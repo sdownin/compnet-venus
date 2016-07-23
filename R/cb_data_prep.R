@@ -7,7 +7,7 @@
 #
 #
 ##########################################################################################
-setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/acquisitions")
+setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
 .libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 #
 library(plyr)
@@ -32,9 +32,9 @@ library(psych)
 library(glmmADMB)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 #
-source(file.path(getwd(),'comp_net_functions.R'))
+source(file.path(getwd(),'R','comp_net_functions.R'))
 #
-load('acquisitions_data_analysis.RData')
+load(file.path(getwd(),'R','acquisitions_data_analysis.RData'))
 # save.image('acquisitions_data_analysis.RData')
 
 

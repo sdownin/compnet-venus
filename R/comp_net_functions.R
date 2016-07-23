@@ -34,9 +34,14 @@ vertCombNames <- function(x, acquirer, concat=FALSE)
   return(out)
 }
 
-collapse <- function(x)
+###
+#
+#
+##
+collapseAcquisitions <- function(x, acquirer)
 {
-  return(paste(x,collapse='|'))
+  out <- ifelse(length(x)==1,"",paste(x[which(x!=acquirer)],collapse='|'))
+  return(out)
 }
 
 ###
@@ -62,7 +67,7 @@ getVertAttrList <- function(g, acquirer, target, attrNames=NA)
   }
   
   vertAttrList <- c(vertAttrList, list(
-    acquisitions=function(x)ifelse(length(x)==1,"",paste(x[which(x!=acquirer)],collapse='|'))
+    acquisitions= function(x)paste(x, collapse='|')#function(x)ifelse(length(x)==1,"",paste(x[which(x!=acquirer)],collapse='|'))
     #name= function(x)vertCombNames(x, acquirer, concat=FALSE)
   ))
   
@@ -133,6 +138,7 @@ getOneAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA)
       g <- tryDeleteVertices
   }
   cat('\nvcount: ',vcount(g),'\n')
+  
   return(g)
 }
 
