@@ -149,7 +149,8 @@ for(t in 3:length(periods)) {
     ## CREATE PERIOD GRAPH
     ##---------------
     ## CONTRACT AQUIRED VERTICES
-    acq.el <- data.frame( acquirer=acq$company_name_unique[which(acq$acquired_at < periods[t])]
+    acq.el <- data.frame( 
+          acquirer=acq$company_name_unique[which(acq$acquired_at < periods[t])]
         , target=acq$acquired_name_unique[which(acq$acquired_at < periods[t])]
         , stringsAsFactors = FALSE
     )
