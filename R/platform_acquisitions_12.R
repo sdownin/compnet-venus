@@ -1,0 +1,264 @@
+##########################################################################################
+#
+# COMPETITION NETWORKS AND ACQUISITIONS ACTIVITY ANALYSIS
+#
+# @author   Stephen Downing <sdowning.bm02g@nctu.edu.tw>
+# @date     May 2015
+#
+# @depends  comp_net_functions.R, cb_data_prep.R
+#
+##########################################################################################
+setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/acquisitions")
+.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
+#
+library(plyr)
+library(dplyr)
+library(magrittr)
+library(texreg)
+library(coefplot2)
+# library(devtools)
+# library(rcrunchbase)
+library(reshape2)
+library(ggplot2)
+# library(xlsx)
+library(igraph)
+# library(sna)
+# library(network)
+library(stringr)
+library(MASS)
+library(memisc)
+# library(pscl)
+# library(AER)
+library(psych)
+library(glmmADMB)
+data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
+#
+source(file.path(getwd(),'comp_net_functions.R'))
+source(file.path(getwd(),'cb_data_prep.R'))
+#
+load('acquisitions_data_analysis.RData')
+# save.image('acquisitions_data_analysis.RData')
+
+#--------------------------------- ANALYSIS -----------------------------------------------------
+
+##--------------------------------------------------------
+## PLOT ACQUISITIONS BY YEAR
+##--------------------------------------------------------
+tmp <- count(acq$acquired_year[acq$acquired_year<2016]) %>% sort('x',decreasing=T)
+years <- data.frame(year=seq(min(tmp$x),max(tmp$x)))
+acq.per.pd <- merge(years,tmp,by.x='year',by.y='x',all=T)
+names(acq.per.pd) <- c('year','acq_count')
+acq.per.pd$acq_count[is.na(acq.per.pd$acq_count)] <- 0
+
+# ## SAVE PLOT
+# png('acquisitions_per_year.png',res=200,units='in',height=4,width=7)
+# par(mfrow=c(1,2))
+# plot(acq.per.pd$year,acq.per.pd$acq_count, type='o', col='darkblue',pch=19,
+#      main="Acquisition Count per Year",xlab='year',ylab='Acquisitions')
+# abline(v=c(2001,2008.5),lty=2)
+# plot(acq.per.pd$year,log(acq.per.pd$acq_count), type='o', col='darkblue',pch=19,
+#      main="Ln Acquisition Count per Year",xlab='year',ylab='Ln Acquisitions')
+# abline(v=c(2001,2008.5),lty=2)
+# dev.off()
+
+par(mar=c(4,4,3,1))
+
+## ACQ per YEAR
+plot(acq.per.pd$year, acq.per.pd$acq_count, type='o', col='darkblue',pch=19,
+     main="Acquisition Count per Year",
+     xlab='year',ylab='Ln Acquisitions')
+
+##  ACQUISITIONS BY YEAR on LOG SCALE
+par(mfrow=c(1,1))
+plot(acq.per.pd$year, acq.per.pd$acq_count, log='y', type='o', col='darkblue',pch=19,
+     main="Acquisition Count per Year",
+     xlab='year',ylab='Acquisitions (Ln scale)')
+
+## LOG ACQUISITIONS BY YEAR
+par(mfrow=c(1,1))
+sub <- subset(acq.per.pd, year>=1986)
+plot(sub$year, log(sub$acq_count), type='o', col='darkblue',pch=19,
+     main="Ln Acquisitions per Year",
+     xlab='year',ylab='Ln Acquisitions')
+#abline(v=c(2001,2008.5),lty=2)
+f1 <- lm( log(sub$acq_count) ~ sub$year);  abline(f1, xpd=F)
+
+
+#----------------------------------------------------------
+#  Illustration of dynamic comp net plot
+#----------------------------------------------------------
+png('example_dynamic_comp_net_with_acquisitions.png',res=200,units='in',height=6.5,width=6.5)
+  getExampleDynamicCompNet()
+dev.off()
+
+
+
+########################################################################
+#
+#
+# TO DO:
+#
+#  1. REMOVE COMPANIES (closed)
+#  1. ADD ACQUIRED CO's COMPETITORS INTO ACQUIRER COMPANY's EGONETWORK
+#
+#
+########################################################################
+
+##--------------------------------------------------------
+## 
+##   MAIN REGRESSION VARIABLES PREPARATION LOOP
+## 
+## BUILD REGRESSION PANEL DATAFRAME BY LOOPING THROUGH PERIODS
+## AND COMPUTING OUTCOME VARIABLE (ACQUISITION COUNT) 
+## AND NETWORK PREDICTOR VARIABLES
+##--------------------------------------------------------
+yrpd <- 2
+startYr <- 2007
+endYr <- 2015
+periods <- seq(startYr,endYr,yrpd)
+company.name <- 'company_name_unique'
+acqExperienceFields <- c('acq_exp', 'acq_count')
+verbose <- TRUE
+df.in <- co.acq
+g <- makeGraph(comp=comp,vertdf=df.in)
+
+## t starts at 3 because:  
+##    periods[t-2]~periods[t-1]==experience @ periods[t] = PANEL_t
+##    t-2 >= 1 ===> t >= 3
+acq.l <- list(); lcc.l <- list()
+
+for(t in 3:length(periods)) {
+    ##--------------
+    ## GET `acq_exp`  :  ACQUSITION EXPERIENCE <- SUM OF PAST ACQUISITIONS   (to be lagged?)
+    ##     `acq_count`:  DEPENDENT VARIABLE
+    ##--------------
+    df.acq <- df.in
+    df.acq$period <- as.factor(periods[t])
+    for(field in acqExperienceFields) {
+        df.acq <- getAcqCountsByPeriod( count.df=df.acq
+            , count.name= company.name
+            , new.count.field=field
+            , start=periods[t-2]
+            , end=periods[t-1]
+            , to.merge.df=df.acq
+        )  
+    }
+    ## GET PERIOD SUBSET GRAPH (remove firms closed before `end` or founded after `end`)
+    g.sub <- makePdSubgraph(g=g, end=periods[t]) 
+    ##---------------
+    ## CREATE PERIOD GRAPH
+    ##---------------
+    ## CONTRACT AQUIRED VERTICES
+    acq.el <- data.frame( acquirer=acq$company_name_unique[which(acq$acquired_at < periods[t])]
+        , target=acq$acquired_name_unique[which(acq$acquired_at < periods[t])]
+        , stringsAsFactors = FALSE
+    )
+    g.sub.acq <- getFullAcquisitionContractedGraph( g.sub
+        , acquirer = acq.el$acquirer
+        , target = acq.el$target
+    ) 
+    ## GET LARGEST COMPONENT
+    lcc <- getLcc(g.sub.acq) 
+    ## GLOBAL NETWORK VERTEX & EGO NETWORK PROPERTIES
+    lcc.l[[t-1]] <- getNetworkProperties(lcc)
+    ## GET DATAFRAME OF NETWORK ATTRIBUTES
+    #############
+    # DEBUG HERE: DUPLICATED ROWNAMES
+    #############
+    df.net <- getNetworkPropertiesDataframe(lcc.l[[t-1]])
+    #############
+    # DEBUG HERE
+    #############
+    ##----------------
+    ## MERGE NETWORK VARIABLES INTO PERIOD REGRESSION DATAFRAME
+    ##----------------
+    acq.l[[t-1]] <- merge(df.acq,df.net,by=company.name,all=T)
+
+    if(verbose)
+        cat(sprintf('\ncompleted period: %s',periods[t]))
+}
+
+# NAME LISTS
+names(acq.l) <- periods[-1] %>% sort(decreasing=F)  # name each period by ending year (remove first start year)
+names(lcc.l)<- periods[-1] %>% sort(decreasing=F)
+
+# EXAMINE LISTS
+df.g <- data.frame(v=sapply(lcc.l,vcount),e=sapply(lcc.l,ecount))
+matplot(x=as.numeric(rownames(df.g)),y=log(df.g), type='o')
+summary(acq.l)
+
+
+##--------------------------------------------------------
+## LIST OF DFs to PANEL DATA DF
+##--------------------------------------------------------
+df.panel <- list2paneldf(acq.l)
+
+# OUTPUT PANEL DATA TABLE
+write.table(x = df.panel, file = sprintf('panel_dataframe_%syrpd.csv',yrpd), sep = ',', row.names = F, col.names = T)
+sprintf('completed yrpd: %s',yrpd)
+
+
+
+
+##--------------------------------------------------------
+## ACQUISITION COUNTS FULL PANEL OVER PERIODS
+##--------------------------------------------------------
+# tmp <- data.frame(
+#   value=df.panel$acq_count,
+#   name=df.panel$company_name_unique,
+#   variable=df.panel$period
+# )
+cnt <- count(df = acq,vars=c('company_name_unique','acquired_year'))
+cnt.w <- dcast(cnt,freq,value.var = 'freq',fun.aggregate = sum)
+df.panel.wide <- dcast(tmp, name ~ variable, sum, margins=c('name','variable'),fill = 0)
+
+
+
+
+
+
+
+
+
+##--------------------------------------------------------
+## GLMM
+##--------------------------------------------------------
+
+reg.vars <- c('acq_count','ego_size','ego_density','period','company_name_unique','age','funding_total_usd','constraint')
+df.panel.reg <- na.omit(df.panel[,which(names(df.panel)%in%reg.vars)])
+#
+samp <- sample(seq_len(nrow(df.panel.reg)),size = 1000,replace = F)
+df.panel.reg.samp <- df.panel.reg[samp,]
+#
+dim(df.panel.reg.samp)
+cnt <- count(df.panel.reg.samp$acq_count)
+barplot(height=cnt$freq,names.arg = cnt$x)
+pairsMod(df.panel.reg.samp, yName='acq_count')
+#
+formula <- acq_count ~ age + ego_size + ego_density + constraint + funding_total_usd + (1|period)
+fit5 <- glmmADMB::glmmadmb(formula=formula, data=df.panel.reg.samp, 
+                   family="nbinom", link="log", corStruct="full", zeroInflation=TRUE, 
+                   #start=list(fixed=0,pz=0.05,log_alpha=.5,RE_sd=0.25,RE_cor=0.0001,u=0),
+                   admb.opts=admbControl(maxfn=30000),
+                   mcmc=FALSE, mcmc.opts=mcmcControl(mcmc = 10000, mcmc2=0, mcnoscale = FALSE, mcgrope = FALSE, mcmult = 1),
+                   save.dir=file.path(getwd(),'glmmadmb'), verbose=FALSE, #extra.args="",
+                   bin_loc=NULL,debug=TRUE, extra.args="-ndi 30000")
+
+screenreg(list(m2=fit1.z,m3=fit3,m4=fit4,m5=fit5))
+
+# ##--------------------------------------------------------
+# ## VISUALIZE NETWORK PROPERTIES RELATIONSHIPS
+# ##--------------------------------------------------------
+# df.net <- data.frame(auth=V(lcc)$authority,
+#                      bet=V(lcc)$between,
+#                      clo=V(lcc)$closeness,
+#                      cons=V(lcc)$constraint,
+#                      ecc=V(lcc)$eccentricity,
+#                      eig=V(lcc)$eigen,
+#                      size=log(V(lcc)$egosize))
+# set.seed(1111)
+# pairs(df.net[sample(nrow(df.net)%>%seq_len(),1000), ]%>%na.omit(),
+#       lower.panel = panel.smooth,diag.panel = panel.hist,upper.panel=panel.cor)
+
+
+

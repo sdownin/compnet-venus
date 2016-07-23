@@ -1,0 +1,10 @@
+setwd("C:\\Users\\sdowning\\Google Drive\\PhD\\Dissertation\\competition networks")
+library(plyr)
+library(reshape2)
+library(ggplot2)
+library(igraph)
+library(stringr)
+library(MASS)
+library(memisc)
+library(lubridate)
+
