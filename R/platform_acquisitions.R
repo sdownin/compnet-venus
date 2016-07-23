@@ -113,7 +113,7 @@ dev.off()
 ## AND NETWORK PREDICTOR VARIABLES
 ##--------------------------------------------------------
 yrpd <- 2
-startYr <- 2007
+startYr <- 2005
 endYr <- 2015
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
@@ -169,7 +169,7 @@ for(t in 3:length(periods)) {
     ##----------------
     df.net.cols <- names(df.net)[which( !(names(df.net) %in% c('age','acquired_at')) )]
     df.acq.cols <- names(df.acq)[which( !(names(df.acq) %in% c('permalink','company_name','homepage_url')) )]
-    acq.l[[t-2]] <- merge(df.acq, df.net[,df.net.cols], by=company.name, all=T)
+    acq.l[[t-2]] <- merge(df.acq[,df.acq.cols], df.net[,df.net.cols], by=company.name, all=T)
 
     if(verbose)
         cat(sprintf('\ncompleted period: %s',periods[t]))
@@ -178,8 +178,8 @@ for(t in 3:length(periods)) {
 
 
 # NAME LISTS
-names(acq.l) <- periods[-1] %>% sort(decreasing=F)  # name each period by ending year (remove first start year)
-names(lcc.l)<- periods[-1] %>% sort(decreasing=F)
+names(acq.l) <- periods[3:length(periods)] %>% sort(decreasing=F)  # name each period by ending year (remove first start year)
+names(lcc.l)<- periods[3:length(periods)] %>% sort(decreasing=F)
 
 # EXAMINE LISTS
 par(mfrow=c(1,1),mar=c(4.1,4.1,3,1))
@@ -194,10 +194,13 @@ summary(acq.l)
 df.panel <- list2paneldf(acq.l)
 
 # OUTPUT PANEL DATA TABLE
-write.table(x = df.panel, file = sprintf('panel_dataframe_%syrpd.csv',yrpd), sep = ',', row.names = F, col.names = T)
+file.name <- file.path(getwd(),'..','acquisitions',sprintf('cb_compnet_panel_dataframe_%syrpd.csv',yrpd))
+write.table(x = df.panel, file = file.name, sep = ',', row.names = F, col.names = T)
 sprintf('completed yrpd: %s',yrpd)
 
 
+df.pna <- na.omit(df.panel)
+df.pna <- droplevels(df.pna)
 
 
 ##--------------------------------------------------------
@@ -215,8 +218,31 @@ df.panel.wide <- dcast(tmp, name ~ variable, sum, margins=c('name','variable'),f
 
 
 
+##--------------------------------------------------------
+## GLMM ON NA OMITTED DATAFRAME
+##------------------------------------------------------------
 
+reg.vars <- c('acq_count','ego_size','ego_density','period','company_name_unique','age','funding_total_usd.x','constraint')
+df.pna.reg <- na.omit(df.pna[,which(names(df.pna)%in%reg.vars)])
+#
+samp <- sample(seq_len(nrow(df.pna.reg)),size = 1000,replace = F)
+df.pna.reg.samp <- df.pna.reg[samp,]
+#
+dim(df.pna.reg.samp)
+cnt <- count(df.pna.reg.samp$acq_count)
+barplot(height=cnt$freq,names.arg = cnt$x)
+pairsMod(df.pna.reg.samp, yName='acq_count')
+#
+formula <- acq_count ~ age + ego_size + ego_density + constraint + funding_total_usd.x + (1|company_name_unique)
+fit5 <- glmmADMB::glmmadmb(formula=formula, data=df.pna.reg.samp, 
+                           family="nbinom", link="log", corStruct="full", zeroInflation=TRUE, 
+                           #start=list(fixed=0,pz=0.05,log_alpha=.5,RE_sd=0.25,RE_cor=0.0001,u=0),
+                           admb.opts=admbControl(maxfn=30000),
+                           mcmc=FALSE, mcmc.opts=mcmcControl(mcmc = 10000, mcmc2=0, mcnoscale = FALSE, mcgrope = FALSE, mcmult = 1),
+                           save.dir=file.path(getwd(),'glmmadmb'), verbose=FALSE, #extra.args="",
+                           bin_loc=NULL,debug=TRUE, extra.args="-ndi 30000")
 
+screenreg(list(m5=fit5))
 
 
 
