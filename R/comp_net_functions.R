@@ -74,6 +74,10 @@ getVertAttrList <- function(g, acquirer, target, attrNames=NA)
   return(vertAttrList)
 }
 
+###
+# Get vector of node indices mapping acquirer to aquired nodes
+#
+##
 getContractionMapping <- function(g, acquirer, target)
 {
   if(length(acquirer) != length(target))
@@ -92,102 +96,9 @@ getContractionMapping <- function(g, acquirer, target)
   return(mapping)
 }
 
-###
-# UPDATE GRAPH FROM ONE ACQUISITION: 
-#     ACQUIRER ABSORBS TIES TO TARGET'S COMPETITORS
-##
-getOneAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA)
-{
-  #cat('\nvcount: ',vcount(g))
-  if(any(length(acquirer)>1|length(target)>1))
-    stop('acquirer and target must be individual nodes')
-
-  if(!('acquisitions'%in% names(igraph::vertex.attributes(g))))
-     V(g)$acquisitions <- V(g)$name %>% as.vector()
-  
-  ## GET LIST OF VERTEX ATTRIBUTES TO COMPUTE WHEN CONTRACTING THE ACQUISITION GRAPH
-  vertAttrList <- getVertAttrList(g, acquirer, target, attrNames)
-  
-  ## GET MAPPING OF ACQUIRER TO TARGET INDICES FOR CONTRACTION (if both in current subgraph)
-  vertNames <- V(g)$name  
-  mapping <- V(g)$name %>% as.factor() %>% as.numeric()
-  doContract  <- FALSE
-
-  if( target%in%vertNames & acquirer%in%vertNames ){
-    doContract <- TRUE
-    targetIndex <- which(vertNames==target)
-    acquirerIndex <- which(vertNames==acquirer)
-    mapping[targetIndex] <- acquirerIndex
-    ## MANUALLY TRACK VERTEX ATTRUBUTES FOR UPDATING
-    # mappedNames <- sapply(mapping, function(x)V(g)$name[x])
-    # if('founded_at' %in% names(vertex.attributes(g)))
-    #   mappedFoundedAt <- sapply(mapping, function(x)V(g)$founded_at[x])
-    # if('founded_month' %in% names(vertex.attributes(g)))
-    #   mappedFoundedMonth <- sapply(mapping, function(x)V(g)$founded_month[x])
-    # if('founded_quarter' %in% names(vertex.attributes(g)))
-    #   mappedFoundedQuarter <- sapply(mapping, function(x)V(g)$founded_quarter[x])
-    # if('founded_year' %in% names(vertex.attributes(g)))
-    #   mappedFoundedYear <- sapply(mapping, function(x)V(g)$founded_year[x])
-    # if('acquired_at' %in% names(vertex.attributes(g)))
-    #   mappedAcquiredAt <- sapply(mapping, function(x)V(g)$acquired_at[x])
-  }
-
-  # cat('\n',mapping)
-  ## DO GRAPH CONTRACTION (if any acquisition pair [acquirer, target] exists in current subgraph)
-  if(doContract) {
-    g <- igraph::contract( g, mapping = mapping,  vertex.attr.comb=vertAttrList )
-    ## UPDATE VERTEX ATTRIBUTES MANUALLY
-    # V(g)$name <- mappedNames
-    # if(exists('mappedFoundedAt'))
-    #   V(g)$founded_at <- mappedFoundedAt
-    # if(exists('mappedFoundedMonth'))
-    #   V(g)$founded_month <- mappedFoundedMonth
-    # if(exists('mappedFoundedQuarter'))
-    #   V(g)$founded_quarter <- mappedFoundedQuarter
-    # if(exists('mappedFoundedYear'))
-    #   V(g)$founded_year <- mappedFoundedYear
-    # if(exists('mappedAcquiredAt'))
-    #   V(g)$acquired_at <- mappedAcquiredAt
-
-    g <- simplify(g, remove.multiple=T,remove.loops=T,edge.attr.comb=list(weight='sum' ))
-    ##
-    # tryDeleteVertices <- try(delete.vertices(g, V(g)[which(degree(g)==0)]), silent=TRUE)
-    # if (!inherits(tryDeleteVertices, 'try-error'))
-    #   g <- tryDeleteVertices
-  }
-  cat('\nvcount: ',vcount(g),'\n')
-  
-  return(g)
-}
-
-
 
 ###
-# LOOP THROUGH ACQUISITIONS AND RETURN FULLY CONTRACTED GRAPH
-#
-##
-getFullAcquisitionContractedGraph <- function(g, acquirer, target, fullGraphList=FALSE)
-{
-  l <- list()
-  l[[1]] <- g
-  lenAcq <- length(acquirer)
-  if (lenAcq != length(target))
-    stop('acquirer and target must be same length')
-  
-  for(i in 1:lenAcq) {
-    l[[i+1]] <- getOneAcquisitionContractedGraph( l[[i]]
-      , acquirer = acquirer[i]
-      , target = target[i]
-    )
-  }
-  if(fullGraphList)
-    return(l)
-  else
-    return(l[[length(l)-1]])
-}
-
-###
-#
+#  Get the list of attributes which are to be added to contracted graph before deleting isolate nodes
 #
 ##
 getAttributeMappingList <- function(g, mapping)
@@ -202,6 +113,10 @@ getAttributeMappingList <- function(g, mapping)
   return(attrList)
 }
 
+###
+#  Add the attributes from the attribute list back to the contracted graph before deleting isolate nodes
+#
+##
 applyAttributeMapping <- function(g, attrMapList)
 {
   for(attr in names(attrMapList)){
@@ -212,6 +127,10 @@ applyAttributeMapping <- function(g, attrMapList)
   return(g)
 }
 
+###
+# Removes nodes with no edges remaining after contraction
+#
+##
 deleteIsolates <- function(g)
 {
   tryDeleteVertices <- try(delete.vertices(g, V(g)[which(degree(g)==0)]), silent=TRUE)
@@ -219,9 +138,10 @@ deleteIsolates <- function(g)
     g <- tryDeleteVertices
   return(g)
 }
+
 ###
-# UPDATE GRAPH FROM ONE ACQUISITION: 
-#     ACQUIRER ABSORBS TIES TO TARGET'S COMPETITORS
+# CREATE ACQUISITION CONTRACTED GRAPH
+#
 ##
 getAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA)
 {

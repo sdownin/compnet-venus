@@ -154,7 +154,7 @@ for(t in 3:length(periods)) {
         , target=acq$acquired_name_unique[which(acq$acquired_at < periods[t])]
         , stringsAsFactors = FALSE
     )
-    g.sub.acq <- getFullAcquisitionContractedGraph( g.sub
+    g.sub.acq <- getAcquisitionContractedGraph( g.sub
         , acquirer = acq.el$acquirer
         , target = acq.el$target
     ) 
