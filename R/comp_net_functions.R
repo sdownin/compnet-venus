@@ -188,7 +188,10 @@ getExampleDynamicCompNet <- function(output=TRUE)
   acqs <- data.frame(acquirer = c('F','F','F'), 
                      target = c('A','C','B'),
                      stringsAsFactors = F)
-  w.l <- getFullAcquisitionContractedGraph(w, acquirer = acqs$acquirer, target = acqs$target, fullGraphList = TRUE)
+  w.l[[1]] <- w
+  for (i in 1:nrow(acqs)) {
+    w.l[[1+i]] <- getAcquisitionContractedGraph(w.l[[i]], acquirer = acqs$acquirer[i], target = acqs$target[i])
+  }
   
   par(mfrow=c(2,2),mar=c(.5,.5,1,1))
   plotNet(w.l[[1]], vertexSizeAttr='patents',legendText='t = 1')
