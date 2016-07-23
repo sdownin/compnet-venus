@@ -187,6 +187,66 @@ getFullAcquisitionContractedGraph <- function(g, acquirer, target, fullGraphList
 }
 
 ###
+#
+#
+##
+getAttributeMappingList <- function(g, mapping)
+{
+  attrList <- list()
+  attrs <- c('name','founded_at','founded_month','founded_quarter','founded_year','acquired_at')
+  for(attr in attrs){
+    if(attr %in% names(vertex.attributes(g))) {
+      attrList[[attr]] <- sapply(mapping, function(x)get.vertex.attribute(graph=g, name=attr, index=x)) 
+    }
+  }
+  return(attrList)
+}
+
+applyAttributeMapping <- function(g, attrMapList)
+{
+  for(attr in names(attrMapList)){
+    if(attr %in% names(vertex.attributes(g))) {
+      g <- set.vertex.attribute(graph=g, name=attr, value=attrMapList[[attr]])
+    }
+  }
+  return(g)
+}
+
+deleteIsolates <- function(g)
+{
+  tryDeleteVertices <- try(delete.vertices(g, V(g)[which(degree(g)==0)]), silent=TRUE)
+  if (!inherits(tryDeleteVertices, 'try-error'))
+    g <- tryDeleteVertices
+  return(g)
+}
+###
+# UPDATE GRAPH FROM ONE ACQUISITION: 
+#     ACQUIRER ABSORBS TIES TO TARGET'S COMPETITORS
+##
+getAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA)
+{
+  if(!('acquisitions'%in% names(igraph::vertex.attributes(g))))
+    V(g)$acquisitions <- V(g)$name %>% as.vector()
+  ## GET LIST OF VERTEX ATTRIBUTES TO COMPUTE WHEN CONTRACTING THE ACQUISITION GRAPH
+  vertAttrList <- getVertAttrList(g, acquirer, target, attrNames)
+  ## GET MAPPING OF ACQUIRER TO TARGET INDICES FOR CONTRACTION (if both in current subgraph)
+  mapping <- getContractionMapping(g, acquirer, target)
+  attrMapList <- getAttributeMappingList(g, mapping)
+  ## DO GRAPH CONTRACTION (if any acquisition pair [acquirer, target] exists in current subgraph)
+  g <- igraph::contract( g, mapping = mapping,  vertex.attr.comb=vertAttrList )
+  g <- simplify(g, remove.multiple=T,remove.loops=T,edge.attr.comb=list(weight='sum' ))
+  ## MANUALLY UPDATE GRAPH ATTRIBUTES
+  g <- applyAttributeMapping(g, attrMapList)
+  ## REMOVE NODES WITHOUT EDGES
+  g <- deleteIsolates(g)
+  
+  cat('\nvcount: ',vcount(g),'\n')
+  
+  return(g)
+}
+
+
+###
 # EXAMPLE DYNAMIC COMPETITION NETWORK WITH ACQUISITIONS
 ##
 getExampleDynamicCompNet <- function(output=TRUE)

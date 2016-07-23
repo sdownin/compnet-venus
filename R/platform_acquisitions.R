@@ -183,42 +183,6 @@ for(t in 3:length(periods)) {
 # MANUALLY TRACK VERTEX ATTRUBUTES FOR UPDATING
 
 
-updateContractedGraphAttributes <- function(g)
-{
-  mappedNames <- sapply(mapping, function(x)V(g)$name[x])
-  if('founded_at' %in% names(vertex.attributes(g)))
-    mappedFoundedAt <- sapply(mapping, function(x)V(g)$founded_at[x])
-  if('founded_month' %in% names(vertex.attributes(g)))
-    mappedFoundedMonth <- sapply(mapping, function(x)V(g)$founded_month[x])
-  if('founded_quarter' %in% names(vertex.attributes(g)))
-    mappedFoundedQuarter <- sapply(mapping, function(x)V(g)$founded_quarter[x])
-  if('founded_year' %in% names(vertex.attributes(g)))
-    mappedFoundedYear <- sapply(mapping, function(x)V(g)$founded_year[x])
-  if('acquired_at' %in% names(vertex.attributes(g)))
-    mappedAcquiredAt <- sapply(mapping, function(x)V(g)$acquired_at[x])
-  
-  # cat('\n',mapping)
-  ## DO GRAPH CONTRACTION (if any acquisition pair [acquirer, target] exists in current subgraph)
-  # UPDATE VERTEX ATTRIBUTES MANUALLY
-  V(g)$name <- mappedNames
-  if(exists('mappedFoundedAt'))
-    V(g)$founded_at <- mappedFoundedAt
-  if(exists('mappedFoundedMonth'))
-    V(g)$founded_month <- mappedFoundedMonth
-  if(exists('mappedFoundedQuarter'))
-    V(g)$founded_quarter <- mappedFoundedQuarter
-  if(exists('mappedFoundedYear'))
-    V(g)$founded_year <- mappedFoundedYear
-  if(exists('mappedAcquiredAt'))
-    V(g)$acquired_at <- mappedAcquiredAt
-  
-  tryDeleteVertices <- try(delete.vertices(g, V(g)[which(degree(g)==0)]), silent=TRUE)
-  if (!inherits(tryDeleteVertices, 'try-error'))
-    g <- tryDeleteVertices
-  return(g)
-}
-
-
 #----------------------------
 
 # NAME LISTS
