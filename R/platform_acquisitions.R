@@ -233,16 +233,17 @@ cnt <- count(df.pna.reg.samp$acq_count)
 barplot(height=cnt$freq,names.arg = cnt$x)
 pairsMod(df.pna.reg.samp, yName='acq_count')
 #
-formula <- acq_count ~ age + ego_size + ego_density + constraint + funding_total_usd.x + (1|company_name_unique)
-fit5 <- glmmADMB::glmmadmb(formula=formula, data=df.pna.reg.samp, 
+formula <- acq_count ~ age + constraint + (1|period)
+# formula <- acq_count ~ age + log(1+ego_size) + ego_density + constraint + log(1+funding_total_usd.x) + (1|company_name_unique)
+fit4 <- glmmADMB::glmmadmb(formula=formula, data=df.pna.reg.samp, 
                            family="nbinom", link="log", corStruct="full", zeroInflation=TRUE, 
                            #start=list(fixed=0,pz=0.05,log_alpha=.5,RE_sd=0.25,RE_cor=0.0001,u=0),
-                           admb.opts=admbControl(maxfn=30000),
+                           admb.opts=admbControl(maxfn=50000),
                            mcmc=FALSE, mcmc.opts=mcmcControl(mcmc = 10000, mcmc2=0, mcnoscale = FALSE, mcgrope = FALSE, mcmult = 1),
                            save.dir=file.path(getwd(),'glmmadmb'), verbose=FALSE, #extra.args="",
-                           bin_loc=NULL,debug=TRUE, extra.args="-ndi 30000")
+                           bin_loc=NULL,debug=TRUE, extra.args="-ndi 50000")
 
-screenreg(list(m5=fit5))
+screenreg(list(m4=fit4))
 
 
 
