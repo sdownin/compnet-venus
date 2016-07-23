@@ -88,7 +88,7 @@ f1 <- lm( log(sub$acq_count) ~ sub$year);  abline(f1, xpd=F)
 #  Illustration of dynamic comp net plot
 #----------------------------------------------------------
 png('example_dynamic_comp_net_with_acquisitions.png',res=200,units='in',height=6.5,width=6.5)
-  getExampleDynamicCompNet()
+  getExampleDynamicCompNet(output = FALSE)
 dev.off()
 
 
@@ -161,35 +161,28 @@ for(t in 3:length(periods)) {
     ## GET LARGEST COMPONENT
     lcc <- getLcc(g.sub.acq) 
     ## GLOBAL NETWORK VERTEX & EGO NETWORK PROPERTIES
-    lcc.l[[t-1]] <- getNetworkProperties(lcc)
+    lcc.l[[t-2]] <- getNetworkProperties(lcc)
     ## GET DATAFRAME OF NETWORK ATTRIBUTES
-    #############
-    # DEBUG HERE: DUPLICATED ROWNAMES
-    #############
-    df.net <- getNetworkPropertiesDataframe(lcc.l[[t-1]])
-    #############
-    # DEBUG HERE
-    #############
+    df.net <- getNetworkPropertiesDataframe(lcc.l[[t-2]])
     ##----------------
     ## MERGE NETWORK VARIABLES INTO PERIOD REGRESSION DATAFRAME
     ##----------------
-    acq.l[[t-1]] <- merge(df.acq,df.net,by=company.name,all=T)
+    df.net.cols <- names(df.net)[which( !(names(df.net) %in% c('age','acquired_at')) )]
+    df.acq.cols <- names(df.acq)[which( !(names(df.acq) %in% c('permalink','company_name','homepage_url')) )]
+    acq.l[[t-2]] <- merge(df.acq, df.net[,df.net.cols], by=company.name, all=T)
 
     if(verbose)
         cat(sprintf('\ncompleted period: %s',periods[t]))
 }
 
-#-----------------------------
-# MANUALLY TRACK VERTEX ATTRUBUTES FOR UPDATING
 
-
-#----------------------------
 
 # NAME LISTS
 names(acq.l) <- periods[-1] %>% sort(decreasing=F)  # name each period by ending year (remove first start year)
 names(lcc.l)<- periods[-1] %>% sort(decreasing=F)
 
 # EXAMINE LISTS
+par(mfrow=c(1,1),mar=c(4.1,4.1,3,1))
 df.g <- data.frame(v=sapply(lcc.l,vcount),e=sapply(lcc.l,ecount))
 matplot(x=as.numeric(rownames(df.g)),y=log(df.g), type='o')
 summary(acq.l)

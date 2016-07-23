@@ -9,6 +9,16 @@
 .libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 library(igraph)
 
+#---------- convenience function ------------
+va <- function(g){
+  return(vertex.attributes(g))
+}
+gdf <- function(g)
+{
+  get.data.frame(x=g, what = 'vertices')
+}
+#--------------------------------------------
+
 ### 
 # KEEP NAME OF AQUIRER WHEN CONTRACTING VERTICES FOR ACQUISITION `vertex.attr.comb`
 ##
@@ -55,7 +65,7 @@ getVertAttrList <- function(g, acquirer, target, attrNames=NA)
   ## GET LIST OF VERTEX ATTRIBUTES TO COMPUTE WHEN CONTRACTING THE ACQUISITION GRAPH
   vertAttrList <- list()
   for(attr in attrNames) {
-    if(attr == 'name' | attr == 'founded_year') 
+    if(attr %in% c('name','founded_year','age')) 
       next
     if(attr %in% names(igraph::vertex.attributes(g))) {
       tryDatum <- na.omit(igraph::get.vertex.attribute(g,attr))[1]
@@ -65,12 +75,10 @@ getVertAttrList <- function(g, acquirer, target, attrNames=NA)
       next
     vertAttrList[[attr]] <- 'sum'
   }
-  
+  ## MANUALLY ADD FUNCTION TO COMBINE ACQUISITION NAMES
   vertAttrList <- c(vertAttrList, list(
     acquisitions= function(x)paste(x, collapse='|')#function(x)ifelse(length(x)==1,"",paste(x[which(x!=acquirer)],collapse='|'))
-    #name= function(x)vertCombNames(x, acquirer, concat=FALSE)
   ))
-  
   return(vertAttrList)
 }
 
