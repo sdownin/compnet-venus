@@ -112,7 +112,7 @@ dev.off()
 ## AND COMPUTING OUTCOME VARIABLE (ACQUISITION COUNT) 
 ## AND NETWORK PREDICTOR VARIABLES
 ##--------------------------------------------------------
-yrpd <- 2
+yrpd <- 1
 startYr <- 2005
 endYr <- 2015
 periods <- seq(startYr,endYr,yrpd)
@@ -143,6 +143,25 @@ for(t in 3:length(periods)) {
             , to.merge.df=df.acq
         )  
     }
+    ##---------------
+    ## FIX ACQ_EXP COMPUTATION: previous period(s)
+    ##---------------
+    
+    ##---------------
+    ## GET FUNDING TOTAL up to & including this period
+    ##---------------
+    
+    
+    ##---------------
+    ## GET AGE up to & including this period(year)
+    ##---------------
+ 
+  
+    ##---------------
+    ## GET BRANCH LOCATIONS for those opened up to & including this period
+    ##---------------   
+    
+    
     ## GET PERIOD SUBSET GRAPH (remove firms closed before `end` or founded after `end`)
     g.sub <- makePdSubgraph(g=g, end=periods[t]) 
     ##---------------
@@ -168,7 +187,7 @@ for(t in 3:length(periods)) {
     ## MERGE NETWORK VARIABLES INTO PERIOD REGRESSION DATAFRAME
     ##----------------
     df.net.cols <- names(df.net)[which( !(names(df.net) %in% c('age','acquired_at')) )]
-    df.acq.cols <- names(df.acq)[which( !(names(df.acq) %in% c('permalink','company_name','homepage_url')) )]
+    df.acq.cols <- names(df.acq)[which( !(names(df.acq) %in% c('permalink','company_name','homepage_url','funding_total_usd')) )]
     acq.l[[t-2]] <- merge(df.acq[,df.acq.cols], df.net[,df.net.cols], by=company.name, all=T)
 
     if(verbose)

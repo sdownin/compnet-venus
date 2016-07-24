@@ -44,14 +44,21 @@ load(file.path(getwd(),'R','acquisitions_data_analysis.RData'))
 csv.companies <- 'cb_export_with_competitors_20160106_companies.csv'
 csv.acquisitions <- 'cb_export_with_competitors_20160106_acquisitions.csv'
 csv.competitors <- 'cb_export_with_competitors_20160106_competitors.csv'
+csv.funding <- 'cb_export_with_competitors_20160106_rounds.csv'
 
 co <- read.table(file.path(data_dir, csv.companies), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 acq <- read.table(file.path(data_dir,csv.acquisitions), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 comp <- read.table(file.path(data_dir,csv.competitors), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
+rou <- read.table(file.path(data_dir,csv.funding), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 
+## only keep relevant funding round columns
+rou.cols <- c('company_name_unique','funding_round_type','funding_round_code','funded_at','funded_month',
+              'funded_quarter','funded_year','raised_amount_usd')
+rou <- rou[,rou.cols]
 
 ## convert funding value strings to numbers
 co$funding_total_usd <- as.numeric(gsub('[-]','0',gsub('[, ]','',co$funding_total_usd)))
+rou$raised_amount_usd <- as.numeric(gsub('[-]','0',gsub('[, ]','',rou$raised_amount_usd)))
 
 ## assign name company_name_unique same as other data.frame
 names(acq)[which(names(acq)=='name')] <- 'company_name_unique'
