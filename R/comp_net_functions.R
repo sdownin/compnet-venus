@@ -112,7 +112,7 @@ getContractionMapping <- function(g, acquirer, target)
 getAttributeMappingList <- function(g, mapping)
 {
   attrList <- list()
-  attrs <- c('name','founded_at','founded_month','founded_quarter','founded_year','acquired_at')
+  attrs <- c('name','founded_at','founded_month','founded_quarter','founded_year','acquired_at','age')
   for(attr in attrs){
     if(attr %in% names(vertex.attributes(g))) {
       attrList[[attr]] <- sapply(mapping, function(x)get.vertex.attribute(graph=g, name=attr, index=x)) 
@@ -141,9 +141,13 @@ applyAttributeMapping <- function(g, attrMapList)
 ##
 deleteIsolates <- function(g)
 {
-  tryDeleteVertices <- try(delete.vertices(g, V(g)[which(degree(g)==0)]), silent=TRUE)
-  if (!inherits(tryDeleteVertices, 'try-error'))
-    g <- tryDeleteVertices
+  tryDeleteVertices <- try(delete.vertices(g, which(degree(g)==0)), silent=TRUE)
+  if (inherits(tryDeleteVertices, 'try-error')) {
+    cat(tryDeleteVertices)
+    stop("deleteIsolates() function error:")
+  } else {
+    g <- tryDeleteVertices    
+  }
   return(g)
 }
 
@@ -167,9 +171,7 @@ getAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA)
   g <- applyAttributeMapping(g, attrMapList)
   ## REMOVE NODES WITHOUT EDGES
   g <- deleteIsolates(g)
-  
   cat('\nvcount: ',vcount(g),'\n')
-  
   return(g)
 }
 

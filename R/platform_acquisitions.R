@@ -88,7 +88,7 @@ f1 <- lm( log(sub$acq_count) ~ sub$year);  abline(f1, xpd=F)
 #  Illustration of dynamic comp net plot
 #----------------------------------------------------------
 png('example_dynamic_comp_net_with_acquisitions.png',res=200,units='in',height=6.5,width=6.5)
-  getExampleDynamicCompNet(output = FALSE)
+  getExampleDynamicCompNet(output = T)
 dev.off()
 
 
