@@ -34,11 +34,7 @@ data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 #
 source(file.path(getwd(),'R','comp_net_functions.R'))
 #
-<<<<<<< HEAD
 #load(file.path(getwd(),'R','acquisitions_data_analysis.RData'))
-=======
-load(file.path(getwd(),'R','acquisitions_data_analysis.RData'))
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 # save.image('acquisitions_data_analysis.RData')
 
 
@@ -49,16 +45,12 @@ csv.companies <- 'cb_export_with_competitors_20160106_companies.csv'
 csv.acquisitions <- 'cb_export_with_competitors_20160106_acquisitions.csv'
 csv.competitors <- 'cb_export_with_competitors_20160106_competitors.csv'
 csv.funding <- 'cb_export_with_competitors_20160106_rounds.csv'
-<<<<<<< HEAD
 csv.branches <- 'cb_export_with_competitors_20160725_branches.csv'
-=======
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 
 co <- read.table(file.path(data_dir, csv.companies), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 acq <- read.table(file.path(data_dir,csv.acquisitions), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 comp <- read.table(file.path(data_dir,csv.competitors), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 rou <- read.table(file.path(data_dir,csv.funding), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
-<<<<<<< HEAD
 br <- read.table(file.path(data_dir,csv.branches), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 
 ## drop unnecessary columns
@@ -73,13 +65,11 @@ br <- br[, !(names(br) %in% c('country_web_path','region_web_path','city_web_pat
 
 ## combine street addresses
 #br$street <- apply(X = br[,c('street_1','street_2')],MARGIN = 1, FUN = function(x)paste(x,collapse=', '))
-=======
 
 ## only keep relevant funding round columns
 rou.cols <- c('company_name_unique','funding_round_type','funding_round_code','funded_at','funded_month',
               'funded_quarter','funded_year','raised_amount_usd')
 rou <- rou[,rou.cols]
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 
 ## convert funding value strings to numbers
 co$funding_total_usd <- as.numeric(gsub('[-]','0',gsub('[, ]','',co$funding_total_usd)))
@@ -90,12 +80,8 @@ names(acq)[which(names(acq)=='name')] <- 'company_name_unique'
 
 ## convert timestamp (epoch) to date
 comp$relation_updated_at_date <- timestamp2date(as.numeric(comp$relation_updated_at))
-<<<<<<< HEAD
 br$created_at <- timestamp2date(as.numeric(br$created_at))
 br$updated_at <- timestamp2date(as.numeric(br$updated_at))
-
-=======
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 
 ## convert factors
 co$status <- as.factor(co$status)
@@ -106,11 +92,7 @@ co$region <- as.factor(co$region)
 ##-----------------------------------------------------------
 ## COMPUTE REGRESSION VARIABLES
 ##------------------------------------------------------------
-<<<<<<< HEAD
 # co$age <- 2016 - co$founded_year  #move this computation to the period loop
-=======
-co$age <- 2016 - co$founded_year
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 
 
 # ##--------------------------------------------------------
@@ -134,17 +116,10 @@ co.acq.dup[duplicated(co.acq.dup$company_name_unique),]
 co.acq <- co.acq.dup[!duplicated(co.acq.dup$company_name_unique),]
 
 ## check REMOVED DUPLICATES
-<<<<<<< HEAD
 cnt <- plyr::count(co.acq$company_name_unique)
 cnt <- cnt[order(cnt$freq, decreasing = T), ]
 dups <- cnt$x[cnt$freq>1]
 assertthat::are_equal(length(dups),0)
-=======
-cnt <- count(co.acq$company_name_unique)
-cnt <- cnt[order(cnt$freq, decreasing = T), ]
-dups <- cnt$x[cnt$freq>1]
-length(dups) == 0
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 
 
 
@@ -162,7 +137,6 @@ length(dups) == 0
 
 
 
-<<<<<<< HEAD
 # ## COMPARE competitors with closed|acquired dates of the competitor
 # ## ****WRONG**** CANT DO THIS WAY BECAUSE THE ACQUISITION DATE RELATED TO ACQUISITION RELATION; NOT COMPETITON RELATION
 # x <- merge(comp[,c('company_name_unique','competitor_name_unique','competitor_closed_on')], 
@@ -171,10 +145,6 @@ length(dups) == 0
 # x <- merge(x, 
 #            acq[,c('company_name_unique','acquired_at')], 
 #            by='company_name_unique')
-
-
-=======
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 
 
 

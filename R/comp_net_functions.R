@@ -88,20 +88,12 @@ getVertAttrList <- function(g, acquirer, target, attrNames=NA)
 ##
 getContractionMapping <- function(g, acquirer, target)
 {
-<<<<<<< HEAD
   lenAcq = length(acquirer)
   if(lenAcq != length(target))
     stop('acquirer and target must be same length')
   vertNames <- V(g)$name  
   mapping <- V(g)$name %>% as.factor() %>% as.numeric()
   for(i in 1:lenAcq) {
-=======
-  if(length(acquirer) != length(target))
-    stop('acquirer and target must be same length')
-  vertNames <- V(g)$name  
-  mapping <- V(g)$name %>% as.factor() %>% as.numeric()
-  for(i in 1:nrow(acqs)) {
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
     a_i <- acquirer[i]
     t_i <- target[i]
     if( t_i%in%vertNames & a_i%in%vertNames ){
@@ -187,10 +179,7 @@ getAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA)
 
 ###
 # EXAMPLE DYNAMIC COMPETITION NETWORK WITH ACQUISITIONS
-<<<<<<< HEAD
 #
-=======
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 ##
 getExampleDynamicCompNet <- function(output=TRUE)
 {  
@@ -211,10 +200,6 @@ getExampleDynamicCompNet <- function(output=TRUE)
   acqs <- data.frame(acquirer = c('F','F','F'), 
                      target = c('A','C','B'),
                      stringsAsFactors = F)
-<<<<<<< HEAD
-  print(acqs)
-=======
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
   w.l[[1]] <- w
   for (i in 1:nrow(acqs)) {
     w.l[[1+i]] <- getAcquisitionContractedGraph(w.l[[i]], acquirer = acqs$acquirer[i], target = acqs$target[i])
@@ -396,11 +381,7 @@ list2paneldf <- function(li)
 ###
 # ADD ACQUISITION COUNTS PER PERIOD (from `count.df`)  TO COMPANY DATAFRAME `to.merge.df`
 ##
-<<<<<<< HEAD
 getAcqCountsByPeriod <- function(acq, start, end, to.merge.df, 
-=======
-getAcqCountsByPeriod <- function(count.df, start, end, to.merge.df, 
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
                                  count.name='company_name_unique', new.count.field='acq_count',
                                  pdName='acquired_year')
 {
@@ -410,11 +391,7 @@ getAcqCountsByPeriod <- function(count.df, start, end, to.merge.df,
   }
   ## PERIOD COUNTS
   df.sub <- acq[which( acq[,pdName]>=start & acq[,pdName]<end ), ]
-<<<<<<< HEAD
   df.sub.count <- plyr::count(df.sub[,count.name])
-=======
-  df.sub.count <- count(df.sub[,count.name])
->>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
   names(df.sub.count) <- c(count.name,new.count.field)
   # MERGE
   to.merge.df <- merge(to.merge.df,df.sub.count,by=count.name,all.x=T)
