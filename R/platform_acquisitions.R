@@ -36,8 +36,12 @@ data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
 #
+<<<<<<< HEAD
 
 #load('acquisitions_data_analysis.RData')
+=======
+load('acquisitions_data_analysis.RData')
+>>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 # save.image('acquisitions_data_analysis.RData')
 
 #--------------------------------- ANALYSIS -----------------------------------------------------
@@ -45,7 +49,11 @@ source(file.path(getwd(),'R','cb_data_prep.R'))
 ##--------------------------------------------------------
 ## PLOT ACQUISITIONS BY YEAR
 ##--------------------------------------------------------
+<<<<<<< HEAD
 tmp <- plyr::count(acq$acquired_year[acq$acquired_year<2016]) %>% sort('x',decreasing=T)
+=======
+tmp <- count(acq$acquired_year[acq$acquired_year<2016]) %>% sort('x',decreasing=T)
+>>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 years <- data.frame(year=seq(min(tmp$x),max(tmp$x)))
 acq.per.pd <- merge(years,tmp,by.x='year',by.y='x',all=T)
 names(acq.per.pd) <- c('year','acq_count')
@@ -241,7 +249,11 @@ df.pna <- droplevels(df.pna)
 #   name=df.panel$company_name_unique,
 #   variable=df.panel$period
 # )
+<<<<<<< HEAD
 cnt <- plyr::count(df = acq,vars=c('company_name_unique','acquired_year'))
+=======
+cnt <- count(df = acq,vars=c('company_name_unique','acquired_year'))
+>>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 cnt.w <- dcast(cnt,freq,value.var = 'freq',fun.aggregate = sum)
 df.panel.wide <- dcast(tmp, name ~ variable, sum, margins=c('name','variable'),fill = 0)
 
@@ -260,7 +272,11 @@ samp <- sample(seq_len(nrow(df.pna.reg)),size = 1000,replace = F)
 df.pna.reg.samp <- df.pna.reg
 #
 dim(df.pna.reg.samp)
+<<<<<<< HEAD
 cnt <- plyr::count(df.pna.reg.samp$acq_count)
+=======
+cnt <- count(df.pna.reg.samp$acq_count)
+>>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 barplot(height=cnt$freq,names.arg = cnt$x)
 pairsMod(df.pna.reg.samp, yName='acq_count')
 #
@@ -298,7 +314,11 @@ samp <- sample(seq_len(nrow(df.panel.reg)),size = 1000,replace = F)
 df.panel.reg.samp <- df.panel.reg[samp,]
 #
 dim(df.panel.reg.samp)
+<<<<<<< HEAD
 cnt <- plyr::count(df.panel.reg.samp$acq_count)
+=======
+cnt <- count(df.panel.reg.samp$acq_count)
+>>>>>>> f88ce83f76dedccbe1e0913df4dac9137f9477e0
 barplot(height=cnt$freq,names.arg = cnt$x)
 pairsMod(df.panel.reg.samp, yName='acq_count')
 #
