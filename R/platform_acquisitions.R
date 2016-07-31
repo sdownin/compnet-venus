@@ -202,7 +202,7 @@ elaff  <- get.edgelist(gb.p$proj2)
 ## AND COMPUTING OUTCOME VARIABLE (ACQUISITION COUNT) 
 ## AND NETWORK PREDICTOR VARIABLES
 ##--------------------------------------------------------
-yrpd <- 1
+yrpd <- 2
 startYr <- 2005
 endYr <- 2015
 periods <- seq(startYr,endYr,yrpd)
@@ -211,12 +211,59 @@ acqExperienceFields <- c('acq_exp', 'acq_count')
 verbose <- TRUE
 df.in <- co.acq
 g <- makeGraph(comp = comp, vertdf = co)
-print(g); print(getLcc(g))
+g.lcc <- getLcc(g)
+print(g); print(g.lcc)
 
 ## t starts at 3 because:  
 ##    periods[t-2]~periods[t-1]==experience @ periods[t] = PANEL_t
 ##    t-2 >= 1 ===> t >= 3
 acq.l <- list(); lcc.l <- list()
+# Start with BASE vertex attributes 
+# Non-varying attributes
+# name, HQ region, country, categories
+
+for (t in 1:length(periods)) {
+  # 1. MAKE PERIOD GRAPH
+  
+  # 1.a. compute time-variates (age, funding, number of markets, etc.) as vertex df for period t
+    # age (diff year_t - year_founded)
+  
+  
+    # funding (sum)
+  
+  
+    # market count (concat string?)
+  
+  
+    # competitor count  (concat string?)
+  
+  
+    # OUTCOME:  Acquisition count
+  
+  
+  #  1.b. remove acquired/closed before period end (founded after period end) companies (check other closed on dates to remove companies, eg, wikipedia, etc.)
+
+  
+  #  1.c. make graph from competitor edgelist (only edges with both vertices not removed in 1.b) with vertex df (1.a) for period t
+
+  
+
+  # 2. ADD MULTIMARKET CONTACT Edges to graph if: 
+    #  2.a. Competition edge (i,j) firms i & j still both in graph  (wasn't removed in 1.b/1.c:  neither company close/acquired/founded after period end)
+ 
+  
+    #  2.b. MMC edge (i,j) created_at before end of period t
+  
+  
+}
+
+
+
+
+
+
+
+
 
 for(t in 3:length(periods)) {
     ##--------------
