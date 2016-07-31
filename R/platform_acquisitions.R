@@ -96,20 +96,19 @@ dev.off()
 
 
 ########################################################################
+#   Multimarket contact and competition edges multiplex graph
+#
+# 1. MAKE PERIOD GRAPH
+#
+#  1.a. compute time-variates (age, funding, number of markets, etc.) as vertex df for period t
+#  1.b. remove acquired/closed before period end (founded after period end) companies (check other closed on dates to remove companies, eg, wikipedia, etc.)
+#  1.c. make graph from competitor edgelist (only edges with both vertices not removed in 1.b) with vertex df (1.a) for period t
 #
 #
-# TO DO:
+# 2. ADD MULTIMARKET CONTACT Edges if: 
 #
-#  1. check other closed on dates to remove companies (eg, wikipedia, etc.)
-#  2. compute time-variates (age, funding, number of markets, etc.) for each period subgraph
-#
-# MAKE COMPETITION BY MARKET-EDGELIST
-#   (i,j,m) = 1 if all:  1.  edge (i,j) in `comp`  (competitors at some point in time)
-#                        2.  edge (i,j) created before period end date  (?competitor relation dates reliable??)
-#                        3.  companies i,j both founded before period end date
-#                        4.  companies i,j both not acquired or closed before period end date
-#                        5.  companies i,j both have branch in market m
-#          = 0  otherwise
+#  2.a. edge (i,j) still in `comp`  (wasn't removed in 1.c:  neither company close/acquired/founded after period end)
+#  2.b. MMC edge (i,j) created before end of period t
 #
 ########################################################################
 
@@ -123,34 +122,77 @@ tmp<-mkcnt[1:40,];barplot(height=tmp$freq,names.arg = tmp$market2,las=2,log='y',
 
 sprintf('Avg branches per co: %.2f',nrow(br)/length(unique(br$company_name_unique)))
 
-## MAKE FIRM-MARKET COMPETITION EDGELIST
-elm <- data.frame(i=NA,j=NA,market=NA,i_created_at=NA,i_updated_at=NA,j_created_at=NA,j_updated_at=NA,created_at=NA)
-row <- 1
-for (m in 1:length(unique(br$market2))) {
-  mar.m <- br$market2[m]
-  br.sub <- br[which(br$market2==mar.m),]
-  for (i in 1:length(unique(br.sub$company_name_unique))) {
-    for (j in 1:i) {
-      co.i <- br.sub$company_name_unique[i]
-      co.j <- br.sub$company_name_unique[j]
-      if (i != j & br.sub$company_name_unique %in% c(co.i,co.j) ) {
-        i_created_at <- br.sub[which(br.sub$company_name_unique==co.i), 'created_at']
-        i_updated_at <- br.sub[which(br.sub$company_name_unique==co.i), 'updated_at']
-        j_created_at <- br.sub[which(br.sub$company_name_unique==co.j), 'created_at']
-        j_updated_at <- br.sub[which(br.sub$company_name_unique==co.j), 'updated_at']
-        created_at <- min(i_created_at,i_updated_at,j_created_at,j_updated_at)
-        elm[row, ] <- c(co.i,co.j,mar.m,i_created_at,i_updated_at,j_created_at,j_updated_at, created_at)
-        #cat(sprintf('%s %s %s\n',co.i,co.j,mar.m))
-        row = row+1
-      }
-    }
-  }
-  cat(sprintf('finished market %d.%s (%.2f%s)\n',m,mar.m,(m/length(unique(br$market2)))*100,"%"))
-}; elm$created_at_str <- timestamp2date(as.numeric(elm$created_at))
+# ## MAKE FIRM-MARKET COMPETITION EDGELIST
+# elm <- data.frame(i=NA,j=NA,market=NA,i_created_at=NA,i_updated_at=NA,j_created_at=NA,j_updated_at=NA,created_at=NA)
+# row <- 1
+# for (m in 1:length(unique(br$market2))) {
+#   mar.m <- br$market2[m]
+#   br.sub <- br[which(br$market2==mar.m),]
+#   for (i in 1:length(unique(br.sub$company_name_unique))) {
+#     for (j in 1:i) {
+#       co.i <- br.sub$company_name_unique[i]
+#       co.j <- br.sub$company_name_unique[j]
+#       if (i != j & br.sub$company_name_unique %in% c(co.i,co.j) ) {
+#         i_created_at <- br.sub[which(br.sub$company_name_unique==co.i), 'created_at']
+#         i_updated_at <- br.sub[which(br.sub$company_name_unique==co.i), 'updated_at']
+#         j_created_at <- br.sub[which(br.sub$company_name_unique==co.j), 'created_at']
+#         j_updated_at <- br.sub[which(br.sub$company_name_unique==co.j), 'updated_at']
+#         created_at <- max(i_created_at,j_created_at)
+#         elm[row, ] <- c(co.i,co.j,mar.m,i_created_at,i_updated_at,j_created_at,j_updated_at, created_at)
+#         #cat(sprintf('%s %s %s\n',co.i,co.j,mar.m))
+#         row = row+1
+#       }
+#     }
+#   }
+#   cat(sprintf('finished market %d.%s (%.2f%s)\n',m,mar.m,(m/length(unique(br$market2)))*100,"%"))
+# }; elm$created_at_str <- timestamp2date(as.numeric(elm$created_at))
+# head(elm, 30)
+# write.csv(x = elm, file = 'market_edgelist_spells.csv',sep = ',',row.names = F, col.names = T, na = 'NA')
+# save.image(file='img_with_firm_market_edgelist.RData')
 
-head(elm, 30)
+## INCIDENCE --> ADJACENCY transform
+## A <- I %*% t(I)
 
-write.csv(x = elm, file = 'market_edgelist_spells.csv',sep = ',',row.names = F, col.names = T, na = 'NA')
+gb <- igraph::graph.data.frame(br[,c('company_name_unique','market2')],directed = F)
+igraph::make_bipartite_graph(types=c('firm','market'),edges = br[,c('company_name_unique','market2')],directed = F)
+
+##-------------------------------------------------------
+## BIPARTITE NETWORK
+##-------------------------------------------------------
+mode1 <- 'company_name_unique'
+mode2 <- 'market2'
+market <- 'market2'
+
+getBipartiteGraph <- function(df,mode1,mode2,market) 
+{
+  created_at <- 'created_at'
+  gb <- graph.empty()
+  n1 <- length(unique(df[,mode1]))
+  n2 <- length(unique(df[,mode2]))
+  gb <- add.vertices(gb, nv=n1, attr=list(name=unique(df[,mode1])), type=rep(TRUE, n1))
+  gb <- add.vertices(gb, nv=n2, attr=list(name=unique(df[,mode2])), type=rep(FALSE,n2))
+  # elv <- c()  #edge list vector
+  # for (row in 1:nrow(df)){
+  #   elv <- c(elv, df[row,mode1],df[row,mode2])
+  # }
+  elv <- as.vector(rbind(df[,mode1],df[,mode2]))
+  gb <- add.edges(gb, elv, attr=list(created_at=df[,created_at],market=df[,market]))
+  E(gb)$created_at <- timestamp2date(as.numeric(E(gb)$created_at))
+  return(gb)
+}
+
+gb <- getBipartiteGraph(br,'company_name_unique','market2','market2')
+
+gb.inc <- igraph::get.incidence(gb, names=TRUE,sparse = TRUE)
+inc <- igraph::graph.incidence(gb.inc)
+
+gb.p <- igraph::bipartite.projection(gb,multiplicity = T,remove.type = T)
+
+elg <- get.edgelist(g)
+elaff  <- get.edgelist(gb.p$proj2)
+
+
+
 
 ##--------------------------------------------------------
 ## 
