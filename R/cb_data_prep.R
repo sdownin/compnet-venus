@@ -53,6 +53,16 @@ comp <- read.table(file.path(data_dir,csv.competitors), sep=",",header=T, quote=
 rou <- read.table(file.path(data_dir,csv.funding), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 br <- read.table(file.path(data_dir,csv.branches), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 
+## remove duplicate office|branche
+br.r <- unique(br)  # with relation {office,headquarters}
+br <- unique(br[, which( !(names(br) %in% 'relation') )])
+## add market variable
+br$market <- br$country_code3
+br$market2 <- apply(X = br[,c('country_code3','region_code2')],
+                   MARGIN = 1,
+                   FUN =  function(x) paste(x, collapse='_'))
+
+
 ## drop unnecessary columns
 co <- co[, !(names(co) %in% c('permalink','company_name','homepage_url'))]
 acq <- acq[, !(names(acq) %in% c('acquired_permalink','acquired_name','company_permalink','company_name'))]
@@ -120,7 +130,7 @@ cnt <- plyr::count(co.acq$company_name_unique)
 cnt <- cnt[order(cnt$freq, decreasing = T), ]
 dups <- cnt$x[cnt$freq>1]
 assertthat::are_equal(length(dups),0)
-
+  
 
 
 

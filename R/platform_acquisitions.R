@@ -24,6 +24,7 @@ library(ggplot2)
 library(igraph)
 # library(sna)
 # library(network)
+library(networkDynamic)
 library(stringr)
 library(MASS)
 library(memisc)
@@ -99,11 +100,29 @@ dev.off()
 #
 # TO DO:
 #
-#  1. REMOVE COMPANIES (closed)
-#  1. ADD ACQUIRED CO's COMPETITORS INTO ACQUIRER COMPANY's EGONETWORK
+#  1. check other closed on dates to remove companies (eg, wikipedia, etc.)
+#  2. compute time-variates (age, funding, number of markets, etc.) for each period subgraph
 #
+# MAKE COMPETITION BY MARKET-EDGELIST
+#   (i,j,m) = 1 if all:  1.  edge (i,j) in `comp`  (competitors at some point in time)
+#                        2.  edge (i,j) created before period end date  (?competitor relation dates reliable??)
+#                        3.  companies i,j both founded before period end date
+#                        4.  companies i,j both not acquired or closed before period end date
+#                        5.  companies i,j both have branch in market m
+#          = 0  otherwise
 #
 ########################################################################
+
+brcnt <- plyr::count(br,'company_name_unique') %>% sort('freq', decreasing=T)
+mkcnt <- plyr::count(br,'market2') %>% sort('freq',decreasing=T)
+
+par(mar=c(7,3.5,3,1))
+tmp<-brcnt[1:40,];barplot(height=tmp$freq,names.arg = tmp$company_name_unique,las=2,log='y',main='Company Branch Counts')
+tmp<-mkcnt[1:40,];barplot(height=tmp$freq,names.arg = tmp$market2,las=2,log='y',main='Market Counts')
+
+sprintf('Avg branches per co: %.2f',nrow(br)/length(unique(br$company_name_unique)))
+
+
 
 ##--------------------------------------------------------
 ## 
@@ -121,7 +140,8 @@ company.name <- 'company_name_unique'
 acqExperienceFields <- c('acq_exp', 'acq_count')
 verbose <- TRUE
 df.in <- co.acq
-g <- makeGraph(comp=comp,vertdf=df.in)
+g <- makeGraph(comp = comp, vertdf = co)
+print(g); print(getLcc(g))
 
 ## t starts at 3 because:  
 ##    periods[t-2]~periods[t-1]==experience @ periods[t] = PANEL_t
@@ -148,6 +168,7 @@ for(t in 3:length(periods)) {
     ## FIX ACQ_EXP COMPUTATION: previous period(s)
     ##---------------
     
+    
     ##---------------
     ## GET FUNDING TOTAL up to & including this period
     ##---------------
@@ -163,6 +184,10 @@ for(t in 3:length(periods)) {
     ##---------------   
     
     
+    ##---------------
+    ## 
+    ##---------------
+    
     ## GET PERIOD SUBSET GRAPH (remove firms closed before `end` or founded after `end`)
     g.sub <- makePdSubgraph(g=g, end=periods[t]) 
     ##---------------
@@ -174,7 +199,8 @@ for(t in 3:length(periods)) {
         , target=acq$acquired_name_unique[which(acq$acquired_at < periods[t])]
         , stringsAsFactors = FALSE
     )
-    g.sub.acq <- getAcquisitionContractedGraph( g.sub
+    g.sub.acq <- getAcquisitionContractedGraph( 
+          g.sub
         , acquirer = acq.el$acquirer
         , target = acq.el$target
     ) 
