@@ -113,6 +113,7 @@ dev.off()
 #
 ########################################################################
 
+## BRANCHES
 brcnt <- plyr::count(br,'company_name_unique') %>% sort('freq', decreasing=T)
 mkcnt <- plyr::count(br,'market2') %>% sort('freq',decreasing=T)
 
@@ -122,7 +123,34 @@ tmp<-mkcnt[1:40,];barplot(height=tmp$freq,names.arg = tmp$market2,las=2,log='y',
 
 sprintf('Avg branches per co: %.2f',nrow(br)/length(unique(br$company_name_unique)))
 
+## MAKE FIRM-MARKET COMPETITION EDGELIST
+elm <- data.frame(i=NA,j=NA,market=NA,i_created_at=NA,i_updated_at=NA,j_created_at=NA,j_updated_at=NA,created_at=NA)
+row <- 1
+for (m in 1:length(unique(br$market2))) {
+  mar.m <- br$market2[m]
+  br.sub <- br[which(br$market2==mar.m),]
+  for (i in 1:length(unique(br.sub$company_name_unique))) {
+    for (j in 1:i) {
+      co.i <- br.sub$company_name_unique[i]
+      co.j <- br.sub$company_name_unique[j]
+      if (i != j & br.sub$company_name_unique %in% c(co.i,co.j) ) {
+        i_created_at <- br.sub[which(br.sub$company_name_unique==co.i), 'created_at']
+        i_updated_at <- br.sub[which(br.sub$company_name_unique==co.i), 'updated_at']
+        j_created_at <- br.sub[which(br.sub$company_name_unique==co.j), 'created_at']
+        j_updated_at <- br.sub[which(br.sub$company_name_unique==co.j), 'updated_at']
+        created_at <- min(i_created_at,i_updated_at,j_created_at,j_updated_at)
+        elm[row, ] <- c(co.i,co.j,mar.m,i_created_at,i_updated_at,j_created_at,j_updated_at, created_at)
+        #cat(sprintf('%s %s %s\n',co.i,co.j,mar.m))
+        row = row+1
+      }
+    }
+  }
+  cat(sprintf('finished market %d.%s (%.2f%s)\n',m,mar.m,(m/length(unique(br$market2)))*100,"%"))
+}; elm$created_at_str <- timestamp2date(as.numeric(elm$created_at))
 
+head(elm, 30)
+
+write.csv(x = elm, file = 'market_edgelist_spells.csv',sep = ',',row.names = F, col.names = T, na = 'NA')
 
 ##--------------------------------------------------------
 ## 
