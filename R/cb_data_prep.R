@@ -20,7 +20,7 @@ library(coefplot2)
 library(reshape2)
 library(ggplot2)
 # library(xlsx)
-library(igraph)
+#library(igraph)
 # library(sna)
 # library(network)
 library(stringr)
@@ -28,11 +28,11 @@ library(MASS)
 library(memisc)
 # library(pscl)
 # library(AER)
-library(psych)
-library(glmmADMB)
+#library(psych)
+#library(glmmADMB)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 #
-source(file.path(getwd(),'R','comp_net_functions.R'))
+#source(file.path(getwd(),'R','comp_net_functions.R'))
 #
 #load(file.path(getwd(),'R','acquisitions_data_analysis.RData'))
 # save.image('acquisitions_data_analysis.RData')
@@ -53,6 +53,9 @@ comp <- read.table(file.path(data_dir,csv.competitors), sep=",",header=T, quote=
 rou <- read.table(file.path(data_dir,csv.funding), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 br <- read.table(file.path(data_dir,csv.branches), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 
+## remove specific competitors
+comp <- comp[which(comp[,'competitor_name_unique']!='4info' & comp[,'company_name_unique']!='4info'), ]
+
 ## remove duplicate office|branche
 br.r <- unique(br)  # with relation {office,headquarters}
 br <- unique(br[, which( !(names(br) %in% 'relation') )])
@@ -61,7 +64,6 @@ br$market <- br$country_code3
 br$market2 <- apply(X = br[,c('country_code3','region_code2')],
                    MARGIN = 1,
                    FUN =  function(x) paste(x, collapse='_'))
-
 
 ## drop unnecessary columns
 co <- co[, !(names(co) %in% c('permalink','company_name','homepage_url'))]

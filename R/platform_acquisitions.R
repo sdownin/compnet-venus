@@ -192,6 +192,20 @@ elg <- get.edgelist(g)
 elaff  <- get.edgelist(gb.p$proj2)
 
 
+#--------------------- CHOOSE TIME FRAME -------------------
+
+g.time.df <- data.frame(yr=NA,firms=NA,firms_w_branch=NA)
+for (i in 1995:2015) {
+  gsub <- induced.subgraph(g.lcc, vids=V(g.lcc)[which(V(g.lcc)$founded_year <= i)])
+  gsubd <- delete.vertices(gsub, v=V(gsub)[which(degree(gsub)==0)])
+  gsubd.names <- V(gsubd)$name[which(V(gsubd)$name %in% br$company_name_unique)]
+  tmp <- data.frame(yr=i,firms=vcount(gsubd),firms_w_branch=length(gsubd.names))
+  g.time.df <- rbind(g.time.df,tmp)
+}; g.time.df <- na.omit(g.time.df)
+print(g.time.df)
+par(mar=c(4.1,4.1,3,1))
+matplot(x=g.time.df$yr,y=as.matrix(g.time.df[,2:3]),type='o',pch=19)
+write.csv(g.time.df,'compnet_company_subset_year_firm_count_with_branches.csv')
 
 
 ##--------------------------------------------------------

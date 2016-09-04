@@ -156,7 +156,7 @@ deleteIsolates <- function(g)
 # CREATE ACQUISITION CONTRACTED GRAPH
 #
 ##
-getAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA)
+getAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA,deleteIsolates=TRUE)
 {
   if(!('acquisitions'%in% names(igraph::vertex.attributes(g))))
     V(g)$acquisitions <- V(g)$name %>% as.vector()
@@ -171,7 +171,8 @@ getAcquisitionContractedGraph <- function(g,acquirer,target,attrNames=NA)
   ## MANUALLY UPDATE GRAPH ATTRIBUTES
   g <- applyAttributeMapping(g, attrMapList)
   ## REMOVE NODES WITHOUT EDGES
-  g <- deleteIsolates(g)
+  if(deleteIsolates)
+    g <- deleteIsolates(g)
   cat('\nvcount: ',vcount(g),'\n')
   return(g)
 }
@@ -383,11 +384,11 @@ list2paneldf <- function(li)
 ##
 getAcqCountsByPeriod <- function(acq, start, end, to.merge.df, 
                                  count.name='company_name_unique', new.count.field='acq_count',
-                                 pdName='acquired_year')
+                                 pdName='acquired_at')
 {
-  if(!(count.name%in%names(count.df))) {
+  if(!(count.name%in%names(acq))) {
     # warning(sprintf('count.name "%s" not in count.df names',count.name))
-    stop(sprintf('count.name "%s" not in count.df names',count.name))
+    stop(sprintf('count.name "%s" not in acq names',count.name))
   }
   ## PERIOD COUNTS
   df.sub <- acq[which( acq[,pdName]>=start & acq[,pdName]<end ), ]
@@ -448,6 +449,37 @@ makePdSubgraph <- function(g,acq,end,pdAttr='founded_at',closedPdAttr='closed_at
   uRemoveVids <- unique(removeVids)
   vids <- uKeepVids[which( !(uKeepVids %in% uRemoveVids) )]
   g.sub <- igraph::induced.subgraph(graph=g,vids=vids)
+  return(g.sub)
+}
+
+###
+# Remove edges between companies that weren't created yet
+# and after being closed/acquired
+##
+filterPdEdges <- function(g,end,pdAttr='founded_at',closedPdAttr='closed_at',acquiredPdAttr='acquired_at')
+{
+  vertexAttrs <- names(igraph::vertex.attributes(g))
+  edges <- E(g)
+  keepEdges <- c()
+  removeEdges <- c()
+  ##  KEEP VERTICES (EDGES) IF   FOUNDED BEFORE `end`
+  if(pdAttr %in% vertexAttrs){
+    tmp <- igraph::get.vertex.attribute(g,pdAttr) 
+    ##
+  }
+  ##  REMOVE VERTICES (EDGES) IF   CLOSED BEFORE `end`
+  if(closedPdAttr %in% vertexAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,closedPdAttr) 
+    ## 
+  }
+  ##  REMOVE VERTICES (EDGES) IF   CLOSED BEFORE `end`
+  if(acquiredPdAttr %in% vertexAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,acquiredPdAttr) 
+    ## 
+  }
+  ## FILTER EDGES
+  edges.delete
+  g.sub <- igraph::delete_edges(graph=g,edges = edges.delete)
   return(g.sub)
 }
 
