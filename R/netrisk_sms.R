@@ -39,15 +39,18 @@ getMultiProdEgoNet <- function(g, firms, k=1)
 ##
 # Plot Competition Network coloring the Multi-Product firms in red
 ##
-plotCompNet <- function(gs,multi.prod, vertex.log.base=exp(1),label.log.base=10, ...) 
+plotCompNet <- function(gs,multi.prod=NA, vertex.log.base=exp(1),label.log.base=10, ...) 
 {
   par(mar=c(.1,.5,.1,.5))
   d <- degree(gs)
-  vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), rgb(.5,.5,.7,.8))
+  if (!all(is.na(multi.prod)))
+      vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), rgb(.5,.5,.7,.8))
+  else
+      vertcol <- rgb(.5,.5,.7,.8)
   set.seed(1111)
   plot.igraph(gs
     , layout=layout.kamada.kawai
-    , vertex.size=log(d,base=vertex.log.base)*2 + .01
+    , vertex.size=log(d,base=vertex.log.base)*2 + 2
     , vertex.color=vertcol
     , vertex.label.cex=log(d,base=label.log.base)/2 + .01
     , vertex.label.color='black'
@@ -67,6 +70,27 @@ getNetFromIgraph <- function(igraph)
   adjmat <- igraph::as_adjacency_matrix(g.tmp, type='both',names=T, sparse=F)
   net <- network::network(adjmat, vertex.attr = vertex.attributes(g.tmp), directed=F)
   return(net)
+}
+
+##
+#
+##
+getNetSizeChange <- function(l, showPlot=TRUE)
+{
+  g.max <- l[[ which.max(sapply(l,ecount)) ]]
+  net.size.full <- data.frame(vertices=vcount(g.max),edges=ecount(g.max))
+  #
+  tmp <- sapply(X = l, FUN = function(x)c(vcount(x),ecount(x)))
+  net.size <- data.frame(t(tmp))
+  names(net.size) <- c('vertices','edges')
+  net.size.pct <- data.frame(vertices=net.size$vertices/net.size.full$vertices, edges=net.size$edges/net.size.full$edges)
+  net.size.diff <- data.frame(vertices=diff(net.size$vertices), edges=diff(net.size$edges))
+  net.size.diff <- rbind(data.frame(vertices=NA,edges=NA), net.size.diff)
+  if(showPlot) {
+    matplot(as.numeric(names(l)),cbind(net.size$edges,net.size.diff$edges),pch=16:17, type='o', xlab='Period',ylab='Competitive Relations')
+    legend(x='topleft',legend=c('Total','New'),lty=1:2,col=1:2,pch=16:17)
+  }
+  return(list(size=net.size, diff=net.size.diff, pct=net.size.pct))
 }
 # END FUNCTIONs ---------------------
 #View(el[grep(pattern = '([Oo]racle)', x=el[,2], ignore.case = T, perl = T),])
@@ -205,7 +229,7 @@ summary(m3)
 
 ##--------------- Make Period Subgraph -----------------------------------
 yrpd <- 2
-startYr <- 2005
+startYr <- 1999
 endYr <- 2015
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
@@ -214,17 +238,23 @@ df.in <- co.acq
 
 # subset kth order compnet
 k <- 2
-g <- makeGraph(comp = comp, vertdf = co)
-mpen <- getMultiProdEgoNet(g, multi.prod, k=k)
-g <- igraph::induced.subgraph(g, vids=mpen$vids)
+g.full <- makeGraph(comp = comp, vertdf = co)
+mpen <- getMultiProdEgoNet(g.full, multi.prod, k=k)
+g <- igraph::induced.subgraph(g.full, vids=mpen$vids)
 
-## t starts at 3 because:  
-##    periods[t-2]~periods[t-1]==experience @ periods[t] = PANEL_t
-##    t-2 >= 1 ===> t >= 3
+## t main period loop  
 gl <- list()
-for(t in 3:length(periods)) {
-  gl[[t-2]] <- filterPdEdges(g=g, acq, end=periods[t]) 
-}
+for(t in 2:length(periods)) {
+  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
+  start <- periods[t-1]
+  end <- periods[t]
+  gl[[t-1]] <- filterPdEdges(g=g,start=start,end=end) 
+}; names(gl) <- periods[-1]
+
+# get Net Size Change (with plot)
+net.size <- getNetSizeChange(gl)
+
+plotCompNet(gl[[1]],multi.prod)
 
 ##------------------- plot period change ---------------------
 png("comp_net_4_pd_subgraph_change_k2.png",width=10, height=12, units='in', res=200)
@@ -238,6 +268,8 @@ par(mfrow=c(2,2),mar=c(.2,.2,.2,.2))
 dev.off()
 -------------------------------------------------------------
 
+  
+  
   
 # Make Network Dynamic
 net.list <- lapply(X = lcc.l, FUN = function(x)getNetFromIgraph(x))

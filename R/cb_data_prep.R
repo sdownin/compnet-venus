@@ -19,6 +19,7 @@ library(coefplot2)
 # library(rcrunchbase)
 library(reshape2)
 library(ggplot2)
+library(lubridate)
 # library(xlsx)
 #library(igraph)
 # library(sna)
@@ -53,6 +54,18 @@ comp <- read.table(file.path(data_dir,csv.competitors), sep=",",header=T, quote=
 rou <- read.table(file.path(data_dir,csv.funding), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 br <- read.table(file.path(data_dir,csv.branches), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 
+## reformat competitor relation dates
+comp$relation_created_at <- as.character( lubridate::mdy(comp$relation_created_at) )
+comp$competitor_founded_on <- as.character( lubridate::mdy(comp$competitor_founded_on) )
+comp$competitor_closed_on <- as.character( lubridate::mdy(comp$competitor_closed_on) )
+
+## add acquisition date to competitor relation
+tmp <- data.frame(company_name_unique=acq$acquired_name_unique, acquired_at=acq$acquired_at)
+comp <- merge(comp, tmp, by='company_name_unique', all.x=T, all.y=F)
+# tmp <- data.frame(company_name_unique=acq$company_name_unique, acquired_at=acq$acquired_at)
+# comp <- merge(comp, tmp, by='company_name_unique',all.x=T, all.y=F)
+# comp$acquired_at <- ifelse( !is.na(comp$acquired_at.x), comp$acquired_at.x, comp$acquired_at.y)
+
 ## remove specific competitors
 comp <- comp[which(comp[,'competitor_name_unique']!='4info' & comp[,'company_name_unique']!='4info'), ]
 
@@ -86,6 +99,9 @@ rou <- rou[,rou.cols]
 ## convert funding value strings to numbers
 co$funding_total_usd <- as.numeric(gsub('[-]','0',gsub('[, ]','',co$funding_total_usd)))
 rou$raised_amount_usd <- as.numeric(gsub('[-]','0',gsub('[, ]','',rou$raised_amount_usd)))
+
+## replace NAs in funding total with 0
+co$funding_total_usd[is.na(co$funding_total_usd)] <- 0
 
 ## assign name company_name_unique same as other data.frame
 names(acq)[which(names(acq)=='name')] <- 'company_name_unique'
@@ -145,7 +161,7 @@ assertthat::are_equal(length(dups),0)
 ##  ADD ClOSED DATES TO REMOVE COMPANIES FROM COMPETITION NETWORK
 ##-------------------------------------------------------
 
-#co$closed_at  <- '' ###
+##co$closed_at  <- '' ###
 
 
 

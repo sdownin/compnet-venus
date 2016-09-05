@@ -406,6 +406,8 @@ getAcqCountsByPeriod <- function(acq, start, end, to.merge.df,
 ##
 makeGraph <- function(comp,vertdf,name='company_name_unique', 
                       compName='competitor_name_unique', relationPdName='relation_created_at',
+                      competitorFoundedName='competitor_founded_on',
+                      competitorClosedName='competitor_closed_on',
                       vertAttrs=c('founded_at','founded_month','founded_quarter',
                                   'founded_year','acquired_at','closed_at','age','funding_total_usd') )
 {
@@ -413,6 +415,11 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
                    target=comp[,compName],
                    relation_created_at=comp[,relationPdName], 
                    stringsAsFactors = F)
+  print(head(el))
+  if (competitorFoundedName %in% names(comp))
+      el[,competitorFoundedName] <- comp[,competitorFoundedName]
+  if (competitorClosedName %in% names(comp))
+    el[,competitorClosedName] <- comp[,competitorClosedName]
   verts <- data.frame(company_name_unique=unique(c(el$source,el$target)), stringsAsFactors = F)
   verts <- merge(x=verts,y=vertdf[,c(name,vertAttrs[vertAttrs%in%names(vertdf)])],
                  by=name,all.x=T,all.y=F)  
@@ -427,7 +434,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 #       BEFORE `end` DATE
 #       FROM  GRAPH BUILT WITH makeGraph()
 ##
-makePdSubgraph <- function(g,acq,end,pdAttr='founded_at',closedPdAttr='closed_at')
+makePdSubgraph <- function(g,acq,start,end,pdAttr='founded_at',closedPdAttr='closed_at')
 {
   vertexAttrs <- names(igraph::vertex.attributes(g))
   keepVids <- c();   removeVids <- c()
@@ -456,30 +463,48 @@ makePdSubgraph <- function(g,acq,end,pdAttr='founded_at',closedPdAttr='closed_at
 # Remove edges between companies that weren't created yet
 # and after being closed/acquired
 ##
-filterPdEdges <- function(g,end,pdAttr='founded_at',closedPdAttr='closed_at',acquiredPdAttr='acquired_at')
+filterPdEdges <- function(g,start,end,pdAttr='founded_at',acquiredPdAttr='acquired_at',
+                          edgeCreatedAttr='relation_created_at',
+                          edgeClosedAttr='competitor_closed_on',
+                          edgeAcquiredAttr='acquired_at')
 {
+  cat('collecting edges to filter...\n')
   vertexAttrs <- names(igraph::vertex.attributes(g))
+  edgeAttrs <- names(igraph::edge.attributes(g))
   edges <- E(g)
-  keepEdges <- c()
   removeEdges <- c()
-  ##  KEEP VERTICES (EDGES) IF   FOUNDED BEFORE `end`
-  if(pdAttr %in% vertexAttrs){
+  ##------------------ COLLECT VERTICES ------------------ 
+  ##  REMOVE EDGES ADJACENT TO VERTICES founded_at > `end`
+  if(pdAttr %in% vertexAttrs) {
     tmp <- igraph::get.vertex.attribute(g,pdAttr) 
-    ##
+    vids <- V(g)[which(tmp > end)]
+    for (v in vids) {
+      removeEdges <- c(removeEdges, E(g)[ from(v) & to(v) ])
+    }
   }
-  ##  REMOVE VERTICES (EDGES) IF   CLOSED BEFORE `end`
-  if(closedPdAttr %in% vertexAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,closedPdAttr) 
-    ## 
+  ##------------------ COLLECT EDGES ---------------------
+  # ##  REMOVE EDGES with relation_created_at > `end`
+  # if(edgeCreatedAttr %in% edgeAttrs) {
+  #   tmp <- igraph::get.edge.attribute(g,edgeCreatedAttr) 
+  #   eids <- E(g)[which(tmp > end)]
+  #   removeEdges <- c(removeEdges, eids)
+  # }
+  ##  REMOVE EDGES competitor_closed_on < `start`
+  if(edgeClosedAttr %in% edgeAttrs) {
+    tmp <- igraph::get.edge.attribute(g,edgeClosedAttr) 
+    eids <- E(g)[which(tmp < start)]
+    removeEdges <- c(removeEdges, eids)
   }
-  ##  REMOVE VERTICES (EDGES) IF   CLOSED BEFORE `end`
-  if(acquiredPdAttr %in% vertexAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,acquiredPdAttr) 
-    ## 
+  ##  REMOVE EDGES acquired_at < `start`
+  if(edgeAcquiredAttr %in% vertexAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,edgeAcquiredAttr) 
+    eids <- E(g)[which(tmp < start)]
+    removeEdges <- c(removeEdges, eids)
   }
-  ## FILTER EDGES
-  edges.delete
-  g.sub <- igraph::delete_edges(graph=g,edges = edges.delete)
+  ##-----------------REMOVE EDGES ---------------------------
+  removeEdgesUnique <- unique(removeEdges)
+  cat(sprintf('removing %d edges of %d (%.2f%s)\n', length(removeEdgesUnique), length(edges), 100*length(removeEdgesUnique)/length(edges), '%'))
+  g.sub <- igraph::delete_edges(graph=g,edges = removeEdgesUnique)
   return(g.sub)
 }
 
