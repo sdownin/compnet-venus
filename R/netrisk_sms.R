@@ -64,11 +64,15 @@ plotCompNet <- function(gs,multi.prod=NA, vertex.log.base=exp(1),label.log.base=
 ##
 #  Get a Network object from an igraph object
 ##
-getNetFromIgraph <- function(igraph)
+getNetFromIgraph <- function(ig)
 {
-  g.tmp <- igraph
+  g.tmp <- ig
   adjmat <- igraph::as_adjacency_matrix(g.tmp, type='both',names=T, sparse=F)
   net <- network::network(adjmat, vertex.attr = vertex.attributes(g.tmp), directed=F)
+  for (edgeAttrName in names(igraph::edge.attributes(g.tmp))) {
+      edgeAttr <- igraph::get.edge.attribute(g.tmp, edgeAttrName)
+      net <- network::set.edge.attribute(net, attrname=edgeAttrName, value=edgeAttr)
+  }
   return(net)
 }
 
@@ -92,74 +96,42 @@ getNetSizeChange <- function(l, showPlot=TRUE)
   }
   return(list(size=net.size, diff=net.size.diff, pct=net.size.pct))
 }
+
 # END FUNCTIONs ---------------------
+
 #View(el[grep(pattern = '([Oo]racle)', x=el[,2], ignore.case = T, perl = T),])
 
-
-## Competitors 
-file <- "C:\\Users\\sdowning\\Google Drive\\PhD\\Dissertation\\crunchbase\\cb_export_with_competitors_20160106_competitors_edgelist.csv"
-el <- read.csv(file, header = T, sep = ',', quote = c("'",'"'), stringsAsFactors = F)
-el <- df2lower(el)
-# drop 4info
-el <- el[which(el[,1]!='4info' & el[,2]!='4info'), ]
-head(el)
-el.all <- data.frame(company_name_unique=c(el[,1],el[,2]))
-el.cnt <- plyr::count(el.all, vars='company_name_unique')
-el.cnt <- el.cnt[ order(el.cnt$freq, decreasing = T), ]
-View(head(el.cnt, 30))
-
-
-
-## Acquisitions
-file <- "C:\\Users\\sdowning\\Google Drive\\PhD\\Dissertation\\crunchbase\\cb_export_with_competitors_20160106_acquisitions_edgelist.csv"
-acq <- read.csv(file, header = T, sep = ',', quote = c("'",'"'), stringsAsFactors = F)
-acq <- df2lower(acq)
-head(acq)
-acq.cnt <- plyr::count(acq, vars='company_name_unique')
-acq.cnt <- acq.cnt[ order(acq.cnt$freq, decreasing = T), ]
-View(head(acq.cnt, 30))
-
-## MERGE acq and comp
-elacq <- merge(el.cnt, acq.cnt, by='company_name_unique', all=T)
-names(elacq) <- c('company_name_unique', 'comp','acq')
-elacq <- elacq[order(elacq$acq, decreasing=T),]
-View(head(elacq, 100))
-
-
-##--------------------- MAKE NETRISK SUBGRAPH ALGORITHM -------------------------
-## 1. MAKE COMPETITOR GRAPH
-g <- graph.data.frame(el, directed = F)
-V(g)$degree <- degree(g)
-deg <- degree(g) %>% sort('freq',decreasing=T)
-net.size.full <- data.frame(vertices=vcount(g),edges=ecount(g))
+#-------------------------    LOAD DATA --------------------------------
+# ## Competitors 
+# file <- "C:\\Users\\sdowning\\Google Drive\\PhD\\Dissertation\\crunchbase\\cb_export_with_competitors_20160106_competitors_edgelist.csv"
+# el <- read.csv(file, header = T, sep = ',', quote = c("'",'"'), stringsAsFactors = F)
+# el <- df2lower(el)
+# # drop 4info
+# el <- el[which(el[,1]!='4info' & el[,2]!='4info'), ]
+# head(el)
+# el.all <- data.frame(company_name_unique=c(el[,1],el[,2]))
+# el.cnt <- plyr::count(el.all, vars='company_name_unique')
+# el.cnt <- el.cnt[ order(el.cnt$freq, decreasing = T), ]
+# View(head(el.cnt, 30))
+# 
+# 
+# 
+# ## Acquisitions
+# file <- "C:\\Users\\sdowning\\Google Drive\\PhD\\Dissertation\\crunchbase\\cb_export_with_competitors_20160106_acquisitions_edgelist.csv"
+# acq <- read.csv(file, header = T, sep = ',', quote = c("'",'"'), stringsAsFactors = F)
+# acq <- df2lower(acq)
+# head(acq)
+# acq.cnt <- plyr::count(acq, vars='company_name_unique')
+# acq.cnt <- acq.cnt[ order(acq.cnt$freq, decreasing = T), ]
+# View(head(acq.cnt, 30))
+# 
+# ## MERGE acq and comp
+# elacq <- merge(el.cnt, acq.cnt, by='company_name_unique', all=T)
+# names(elacq) <- c('company_name_unique', 'comp','acq')
+# elacq <- elacq[order(elacq$acq, decreasing=T),]
+# View(head(elacq, 100))
 
 
-## 2. SELECT n Multi-Product Firms  (serial acquirers)
-top.acquirers <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
-                      "emc","facebook","amazon","ebay","twitter","adobe-systems","nokia","dell","electronicarts",
-                      "riverside","groupon","autodesk","salesforce","thoma-bravo","iac","quest-software","zayo-group",
-                      "zynga","qualcomm","blackberry","ca","berkshire-hathaway-corp","carlyle-group","intuit",
-                      "symantec","broadcom","kkr","medtronic","dropbox","vmware")
-# multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","facebook","amazon","adobe-systems","nokia",
-#                "dell","groupon","salesforce","blackberry")
-multi.prod <- c("google","microsoft","ibm","oracle","amazon")
-
-## 4. GET k-th order competition competition network
-##        union of kth-order ego networks for each n multi-product firms
-
-l <- list()
-for (k in 1:11) {
-  mpen <- getMultiProdEgoNet(g, multi.prod, k=k)
-  l[[k]] <- igraph::induced.subgraph(g, vids=mpen$vids)
-}
-
-tmp <- sapply(X = l, FUN = function(x)c(vcount(x),ecount(x)))
-net.size <- data.frame(t(tmp))
-names(net.size) <- c('vertices','edges')
-net.size.pct <- data.frame(vertices=net.size$vertices/net.size.full$vertices, edges=net.size$edges/net.size.full$edges)
-net.size.diff <- data.frame(vertices=diff(net.size$vertices), edges=diff(net.size$edges))
-net.size.diff <- rbind(data.frame(vertices=NA,edges=NA), net.size.diff)
-#plotCompNet(gs, multi.prod)
 
 ##------------------- PLOTS----------------------------------------------
 # Plot comp net size cumulative distribution
@@ -188,10 +160,85 @@ par(mfrow=c(1,2),mar=c(.1,.1,.1,.1))
 dev.off()
 ## -------------------END PLOTS----------------------------------------
 
-## Make Network Object
-gt <- l[[1]]
-adjmat <- igraph::as_adjacency_matrix(gt, type='both',names=T, sparse=F)
-net <- network::network(adjmat, vertex.attr = vertex.attributes(gt), directed=F)
+
+
+
+##  SELECT n Multi-Product Firms  (serial acquirers)
+top.acquirers <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
+                   "emc","facebook","amazon","ebay","twitter","adobe-systems","nokia","dell","electronicarts",
+                   "riverside","groupon","autodesk","salesforce","thoma-bravo","iac","quest-software","zayo-group",
+                   "zynga","qualcomm","blackberry","ca","berkshire-hathaway-corp","carlyle-group","intuit",
+                   "symantec","broadcom","kkr","medtronic","dropbox","vmware")
+# multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","facebook","amazon","adobe-systems","nokia",
+#                "dell","groupon","salesforce","blackberry")
+
+## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
+g.full <- makeGraph(comp = comp, vertdf = co)
+# fill in missing founded_year values from founded_at year
+V(g.full)$founded_year <- ifelse( (!is.na(V(g.full)$founded_year)|V(g.full)$founded_year==''), V(g.full)$founded_year, as.numeric(substr(V(g.full)$founded_at,1,4)))
+
+## starting values and params
+yrpd <- 2
+startYr <- 1999
+endYr <- 2015
+periods <- seq(startYr,endYr,yrpd)
+company.name <- 'company_name_unique'
+verbose <- TRUE
+df.in <- co.acq
+
+##--------------------- MAKE NETRISK SUBGRAPH ALGORITHM -------------------------
+## ## 1.  Choose Multi-Product firms
+multi.prod <- c("google","microsoft","ibm","oracle","amazon")
+## ## 2. choose kth order for ego-net
+k <- 2
+## ## 3. get ego net from multi-product firms chosen above
+mpen <- getMultiProdEgoNet(g.full, multi.prod, k=k)
+## ## 4. get 2015 ego net igraph object
+g <- igraph::induced.subgraph(g.full, vids=mpen$vids)
+
+##--------------------- MAIN PERIOD SUBGRAPH LOOP -----------------------------  
+gl <- list()
+for(t in 2:length(periods)) {
+  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
+  start <- periods[t-1]
+  end <- periods[t]
+  gl[[t-1]] <- filterPdEdges(g=g,start=start,end=end) 
+}; names(gl) <- periods[-1]
+## END MAIN LOOP 
+
+# get Net Size Change (with plot)
+net.size <- getNetSizeChange(gl)
+
+## plot comp net subgraphs
+plotCompNet(gl[[1]],multi.prod)
+
+
+# ##------------------- PLOTTING PERIOD SUGRAPHS ---------------------
+# png("comp_net_4_pd_subgraph_change_k2.png",width=10, height=12, units='in', res=200)
+# par(mfrow=c(2,2),mar=c(.2,.2,.2,.2))
+#   for (t in seq(2,length(gl),by=2)) {
+#     gx <- gl[[t]]
+#     yr <- names(gl)[t]
+#     plotCompNet(gx, multi.prod, vertex.log.base = 20, label.log.base = 20)
+#     legend(x='topright',legend=sprintf('Yr = %s',yr),bty='n')
+#   }
+# dev.off()
+# ##-------------------------------------------------------------
+
+  
+  
+  
+# Make Network Dynamic
+net.list <- lapply(X = gl, FUN = function(x)getNetFromIgraph(x))
+nd <- networkDynamic(network.list = net.list, onsets = periods[-length(period)], termini = periods[-1])
+
+stergm()
+  
+  
+  
+  
+
+
 
 # Estimte ERGM models
 f1 <- net ~ edges + nodecov("degree") + gwdegree(.5)
@@ -206,80 +253,6 @@ f3 <- net ~ edges + nodecov("degree") + dsp(1:3)
 m3 <- ergm(formula = f3)
 summary(m3)
 
-
-#-----------------------------------------
-#
-#
-#
-#
-#
-#
-#     CONTINUE HERE
-#
-#        TO DO:  1. comp_net_function.R::filterPdEdges()  
-#                2. pd loop to make networkDynamic()
-#                3. stergm()
-#
-#
-#
-#
-#
-#--------------------------------------------
-
-
-##--------------- Make Period Subgraph -----------------------------------
-yrpd <- 2
-startYr <- 1999
-endYr <- 2015
-periods <- seq(startYr,endYr,yrpd)
-company.name <- 'company_name_unique'
-verbose <- TRUE
-df.in <- co.acq
-
-# subset kth order compnet
-k <- 2
-g.full <- makeGraph(comp = comp, vertdf = co)
-mpen <- getMultiProdEgoNet(g.full, multi.prod, k=k)
-g <- igraph::induced.subgraph(g.full, vids=mpen$vids)
-
-## t main period loop  
-gl <- list()
-for(t in 2:length(periods)) {
-  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
-  start <- periods[t-1]
-  end <- periods[t]
-  gl[[t-1]] <- filterPdEdges(g=g,start=start,end=end) 
-}; names(gl) <- periods[-1]
-
-# get Net Size Change (with plot)
-net.size <- getNetSizeChange(gl)
-
-plotCompNet(gl[[1]],multi.prod)
-
-##------------------- plot period change ---------------------
-png("comp_net_4_pd_subgraph_change_k2.png",width=10, height=12, units='in', res=200)
-par(mfrow=c(2,2),mar=c(.2,.2,.2,.2))
-  for (t in 1:length(gl)) {
-    gx <- gl[[t]]
-    yr <- names(gl)[t]
-    plotCompNet(gx, multi.prod, vertex.log.base = 20, label.log.base = 20)
-    legend(x='topright',legend=sprintf('Yr = %s',yr),bty='n')
-  }
-dev.off()
--------------------------------------------------------------
-
-  
-  
-  
-# Make Network Dynamic
-net.list <- lapply(X = lcc.l, FUN = function(x)getNetFromIgraph(x))
-networkDynamic(network.list = net.list)
-
-stergm()
-  
-  
-  
-  
   
   
   
