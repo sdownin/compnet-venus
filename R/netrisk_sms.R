@@ -273,18 +273,19 @@ for(t in 2:length(periods)) {
   
 # Make Network Dynamic
 net.list <- lapply(X = gl, FUN = function(x)getNetFromIgraph(x))
-nd <- networkDynamic(network.list = net.list, onsets = periods[-length(period)], termini = periods[-1])
+nd <- networkDynamic(network.list = net.list, onsets = periods[1:(length(periods)-1)], termini = periods[-1])
 
+# save.image(file = 'netrisk_sms_image.RData')
 
-formation <- ~ edges + transitivities
-dissolution <- ~ edges + transitivities
+formation <- ~ edges
+dissolution <- ~ edges
 sm1 <- stergm(nd,
               formation=formation, 
               dissolution=dissolution, 
               estimate="CMLE", 
-              times=1:8)
+              times=4:6)
   
-  
+
   
   
 
