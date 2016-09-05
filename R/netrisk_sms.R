@@ -97,6 +97,41 @@ getNetSizeChange <- function(l, showPlot=TRUE)
   return(list(size=net.size, diff=net.size.diff, pct=net.size.pct))
 }
 
+## Distance weighted reach function
+distWeightReach <- function(g,
+                            mode='in',
+                            weights=NA
+) {
+  D <- c()
+  #for each vertex
+  for (k in 1:vcount(g)) {
+    if (degree(g, v=k)>0) {
+      #find vertex subcomponent
+      vec <- subcomponent(graph = g,v = V(g)[k],mode = mode)
+      vec <- vec[order(vec)]
+      
+      d <- numeric(length(vec)-1)
+      #for each other vertex l in subcomponent of vertex k
+      for (l in 1:(length(vec))) {
+        # excluding when k=l (which would make -Inf length)
+        if (k!=vec[l]) {
+          # vertex path of geodesic from k to l
+          dp <-  unlist(get.shortest.paths(graph = g, from = k, to = vec[l],
+                                           mode=mode, weights=weights,
+                                           output="vpath")$vpath) #directed graph
+          # inverse of length of geodesic from k to l
+          #  -1 to subtract the origin vertex
+          d[l] <- 1 / ( length(dp)-1 )
+        }
+      }
+      D[k] <- sum(d)
+    }
+  } #end vertex loop
+  
+  R <- sum(D) / vcount(g)
+  return(R)
+}#end function
+
 # END FUNCTIONs ---------------------
 
 #View(el[grep(pattern = '([Oo]racle)', x=el[,2], ignore.case = T, perl = T),])
@@ -177,6 +212,10 @@ g.full <- makeGraph(comp = comp, vertdf = co)
 # fill in missing founded_year values from founded_at year
 V(g.full)$founded_year <- ifelse( (!is.na(V(g.full)$founded_year)|V(g.full)$founded_year==''), V(g.full)$founded_year, as.numeric(substr(V(g.full)$founded_at,1,4)))
 
+
+##################################################################################
+#                        MAIN NETWORK COMPUTATION
+##################################################################################
 ## starting values and params
 yrpd <- 2
 startYr <- 1999
@@ -202,21 +241,25 @@ for(t in 2:length(periods)) {
   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
   start <- periods[t-1]
   end <- periods[t]
-  gl[[t-1]] <- filterPdEdges(g=g,start=start,end=end) 
+  gl[[t-1]] <- setEdgeActiveState(g=g,start=start,end=end) 
 }; names(gl) <- periods[-1]
 ## END MAIN LOOP 
 
-# get Net Size Change (with plot)
-net.size <- getNetSizeChange(gl)
+# ## get Net Size Change (with plot)
+# net.size <- getNetSizeChange(gl)
 
-## plot comp net subgraphs
-plotCompNet(gl[[1]],multi.prod)
+# ## plot comp net subgraphs
+# plotCompNet(gl[[1]],multi.prod)
+
+################################################################################
+#                       // end main network computation
+################################################################################
 
 
 # ##------------------- PLOTTING PERIOD SUGRAPHS ---------------------
 # png("comp_net_4_pd_subgraph_change_k2.png",width=10, height=12, units='in', res=200)
 # par(mfrow=c(2,2),mar=c(.2,.2,.2,.2))
-#   for (t in seq(2,length(gl),by=2)) {
+#   for (t in 1:length(gl)) {
 #     gx <- gl[[t]]
 #     yr <- names(gl)[t]
 #     plotCompNet(gx, multi.prod, vertex.log.base = 20, label.log.base = 20)
@@ -232,7 +275,14 @@ plotCompNet(gl[[1]],multi.prod)
 net.list <- lapply(X = gl, FUN = function(x)getNetFromIgraph(x))
 nd <- networkDynamic(network.list = net.list, onsets = periods[-length(period)], termini = periods[-1])
 
-stergm()
+
+formation <- ~ edges + transitivities
+dissolution <- ~ edges + transitivities
+sm1 <- stergm(nd,
+              formation=formation, 
+              dissolution=dissolution, 
+              estimate="CMLE", 
+              times=1:8)
   
   
   
