@@ -19,26 +19,63 @@ df2lower <- function(df)
 }
 
 ##
-# Get an Igraph object from a network object
+# Gets an Igraph object from a network object
+# WARNING: DOES NOT HANDLE BIPARTITE OR LOOPY NETWORKS
 ##
 getIgraphFromNet <- function(net)
 {
+  mode <- ifelse(network::get.network.attribute(net, 'directed'), 'directed','undirected')
   net.mat <- network::as.matrix.network.adjacency(net)
-  ig <- igraph::graph_from_adjacency_matrix(net.mat)
+  ig <- igraph::graph_from_adjacency_matrix(adjmatrix = net.mat,mode = mode)
+  
+  ## add vertex attributes
+  vertAttrs <- network::list.vertex.attributes(net)
+  for (attr in vertAttrs) {
+    values <- network::get.vertex.attribute(x=net, attrname = attr)
+    ig <- igraph::set.vertex.attribute(graph=ig, name=attr, index=V(ig), value=values)
+  }
+  
+  ## add edge attributes
+  edgeAttrs <- network::list.edge.attributes(net)
+  for (attr in edgeAttrs) {
+    values <- network::get.edge.attribute(el=net$mel, attrname = attr)
+    ig <- igraph::set.edge.attribute(graph=ig, name=attr, index=E(ig), value=values)
+  }
+  
   return(ig)
 }
 
 ##
-#  Get a Network object from an igraph object
+#  Gets a Network object from an igraph object
+#  WARNING: DOES NOT HANDLE BIPARTITE OR LOOPY NETWORKS
 ##
-getNetFromIgraph <- function(ig)
+getNetFromIgraph <- function(ig, add.vertex.name=FALSE)
 {
-  g.tmp <- ig
-  adjmat <- igraph::as_adjacency_matrix(g.tmp, type='both',names=T, sparse=F)
-  net <- network::network(adjmat, vertex.attr = vertex.attributes(g.tmp), directed=F)
-  for (edgeAttrName in names(igraph::edge.attributes(g.tmp))) {
-    edgeAttr <- igraph::get.edge.attribute(g.tmp, edgeAttrName)
-    net <- network::set.edge.attribute(net, attrname=edgeAttrName, value=edgeAttr)
+  adjmat <- igraph::as_adjacency_matrix(ig, type='both',names=T, sparse=F)
+  if (add.vertex.name) {
+    vertAttrList <- igraph::vertex.attributes(ig)
+  } else {
+    vertAttrList <- igraph::vertex.attributes(ig)[which( names(igraph::vertex.attributes(ig))!='name' ) ]
+  }
+  net <- network::network(adjmat, vertex.attr = vertAttrList, directed=igraph::is.directed(ig) )
+  
+  ## add vertex attributes
+  vertAttrs <- names(igraph::vertex.attributes(ig))
+  verts <- V(ig) %>% as.vector()
+  for (attr in vertAttrs) {
+    ## handle vertex name attribute (to add or not to add to network object)
+    if (attr!='name' | add.vertex.name) {
+      values <- igraph::get.vertex.attribute(graph=ig, name=attr, index=verts)
+      net <- network::set.vertex.attribute(x=net,attrname=attr, value=values)
+    }
+  }
+  
+  ## add edge attributes
+  edgeAttrs <- names(igraph::edge.attributes(ig))
+  edges <- E(ig) %>% as.vector()
+  for (attr in edgeAttrs) {
+    values <- igraph::get.edge.attribute(graph=ig, name=attr, index=edges)
+    net <- network::set.edge.attribute(x=net, attrname=attr, value=values)
   }
   return(net)
 }
