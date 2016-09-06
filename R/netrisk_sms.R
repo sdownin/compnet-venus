@@ -1,6 +1,7 @@
 setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
 .libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 library(ergm)
+library(statnet)
 library(tergm)
 library(network)
 library(igraph)
@@ -8,74 +9,38 @@ library(plyr)
 library(dplyr)
 library(stringr)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
+img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment"
 #
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
 
-
-#View(el[grep(pattern = '([Oo]racle)', x=el[,2], ignore.case = T, perl = T),])
-
-#-------------------------    LOAD DATA --------------------------------
-# ## Competitors 
-# file <- "C:\\Users\\sdowning\\Google Drive\\PhD\\Dissertation\\crunchbase\\cb_export_with_competitors_20160106_competitors_edgelist.csv"
-# el <- read.csv(file, header = T, sep = ',', quote = c("'",'"'), stringsAsFactors = F)
-# el <- df2lower(el)
-# # drop 4info
-# el <- el[which(el[,1]!='4info' & el[,2]!='4info'), ]
-# head(el)
-# el.all <- data.frame(company_name_unique=c(el[,1],el[,2]))
-# el.cnt <- plyr::count(el.all, vars='company_name_unique')
-# el.cnt <- el.cnt[ order(el.cnt$freq, decreasing = T), ]
-# View(head(el.cnt, 30))
+# ##------------------- PLOTS----------------------------------------------
+# # Plot comp net size cumulative distribution
+# png('comp_net_3by1_size_k_order_ego_net.png', width = 5, height=7, units = 'in', res = 200)
+# par(mfrow=c(3,1),mar=c(4.5,4.5,1.5,1))
+#   matplot(net.size, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),ylab=expression('Comp Net Size'))
+#   legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+#   #
+#   matplot(net.size.pct, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
+#           ylab=expression('Comp Net Proportion of Total'),  ylim=c(0,1))
+#   legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+#   #
+#   matplot(net.size.diff, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
+#           ylab=expression('Change in Comp Net Size by Order (k)'))
+#   legend(x='topright',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+# dev.off()
 # 
-# 
-# 
-# ## Acquisitions
-# file <- "C:\\Users\\sdowning\\Google Drive\\PhD\\Dissertation\\crunchbase\\cb_export_with_competitors_20160106_acquisitions_edgelist.csv"
-# acq <- read.csv(file, header = T, sep = ',', quote = c("'",'"'), stringsAsFactors = F)
-# acq <- df2lower(acq)
-# head(acq)
-# acq.cnt <- plyr::count(acq, vars='company_name_unique')
-# acq.cnt <- acq.cnt[ order(acq.cnt$freq, decreasing = T), ]
-# View(head(acq.cnt, 30))
-# 
-# ## MERGE acq and comp
-# elacq <- merge(el.cnt, acq.cnt, by='company_name_unique', all=T)
-# names(elacq) <- c('company_name_unique', 'comp','acq')
-# elacq <- elacq[order(elacq$acq, decreasing=T),]
-# View(head(elacq, 100))
-
-
-
-##------------------- PLOTS----------------------------------------------
-# Plot comp net size cumulative distribution
-png('comp_net_3by1_size_k_order_ego_net.png', width = 5, height=7, units = 'in', res = 200)
-par(mfrow=c(3,1),mar=c(4.5,4.5,1.5,1))
-  matplot(net.size, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),ylab=expression('Comp Net Size'))
-  legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
-  #
-  matplot(net.size.pct, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
-          ylab=expression('Comp Net Proportion of Total'),  ylim=c(0,1))
-  legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
-  #
-  matplot(net.size.diff, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
-          ylab=expression('Change in Comp Net Size by Order (k)'))
-  legend(x='topright',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
-dev.off()
-
-# Plot comp net k=1, k=2
-png('comp_net_3by1_ego_net_plot_k1_k2.png', width = 14, height=8, units = 'in', res = 200)
-par(mfrow=c(1,2),mar=c(.1,.1,.1,.1))
-  plotCompNet(l[[1]],multi.prod)
-  legend(x='topright',legend='k = 1',bty='n')
-  #
-  plotCompNet(l[[2]],multi.prod, label.log.base = 20)
-  legend(x='topright',legend='k = 2',bty='n')
-dev.off()
-## -------------------END PLOTS----------------------------------------
-
-
+# # Plot comp net k=1, k=2
+# png('comp_net_3by1_ego_net_plot_k1_k2.png', width = 14, height=8, units = 'in', res = 200)
+# par(mfrow=c(1,2),mar=c(.1,.1,.1,.1))
+#   plotCompNet(l[[1]],multi.prod)
+#   legend(x='topright',legend='k = 1',bty='n')
+#   #
+#   plotCompNet(l[[2]],multi.prod, label.log.base = 20)
+#   legend(x='topright',legend='k = 2',bty='n')
+# dev.off()
+# ## -------------------END PLOTS----------------------------------------
 
 
 ##  SELECT n Multi-Product Firms  (serial acquirers)

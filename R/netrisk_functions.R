@@ -1,9 +1,11 @@
-##
+##########################################################################################
 #
-#  Functions used in the analysis of 
-#  Network Risk: Estimating the risk of envelopment
+# NETWORK RISK FUNCTION
+# 
+# @author   Stephen Downing <sdowning.bm02g@nctu.edu.tw>
+# @article  "Network Risk: Assessing the threat of envelopment"
 #
-##
+##########################################################################################
 
 ##
 # Convert dataframe to lowcase column-wise
@@ -14,6 +16,31 @@ df2lower <- function(df)
     df[,col] <- stringr::str_to_lower(df[,col])
   }
   return(df)
+}
+
+##
+# Get an Igraph object from a network object
+##
+getIgraphFromNet <- function(net)
+{
+  net.mat <- network::as.matrix.network.adjacency(net)
+  ig <- igraph::graph_from_adjacency_matrix(net.mat)
+  return(ig)
+}
+
+##
+#  Get a Network object from an igraph object
+##
+getNetFromIgraph <- function(ig)
+{
+  g.tmp <- ig
+  adjmat <- igraph::as_adjacency_matrix(g.tmp, type='both',names=T, sparse=F)
+  net <- network::network(adjmat, vertex.attr = vertex.attributes(g.tmp), directed=F)
+  for (edgeAttrName in names(igraph::edge.attributes(g.tmp))) {
+    edgeAttr <- igraph::get.edge.attribute(g.tmp, edgeAttrName)
+    net <- network::set.edge.attribute(net, attrname=edgeAttrName, value=edgeAttr)
+  }
+  return(net)
 }
 
 ##
@@ -53,21 +80,6 @@ plotCompNet <- function(gs,multi.prod=NA, vertex.log.base=exp(1),label.log.base=
 }
 
 ##
-#  Get a Network object from an igraph object
-##
-getNetFromIgraph <- function(ig)
-{
-  g.tmp <- ig
-  adjmat <- igraph::as_adjacency_matrix(g.tmp, type='both',names=T, sparse=F)
-  net <- network::network(adjmat, vertex.attr = vertex.attributes(g.tmp), directed=F)
-  for (edgeAttrName in names(igraph::edge.attributes(g.tmp))) {
-    edgeAttr <- igraph::get.edge.attribute(g.tmp, edgeAttrName)
-    net <- network::set.edge.attribute(net, attrname=edgeAttrName, value=edgeAttr)
-  }
-  return(net)
-}
-
-##
 #
 ##
 getNetSizeChange <- function(l, showPlot=TRUE)
@@ -88,6 +100,116 @@ getNetSizeChange <- function(l, showPlot=TRUE)
   return(list(size=net.size, diff=net.size.diff, pct=net.size.pct))
 }
 
+###
+# Remove edges between companies that weren't created yet
+# and after being closed/acquired
+##
+createPdNet <- function(g,start,end,pdAttr='founded_at',acquiredPdAttr='acquired_at',
+                        edgeCreatedAttr='relation_created_at',
+                        edgeClosedAttr='competitor_closed_on',
+                        edgeAcquiredAttr='acquired_at')
+{
+  cat('collecting edges to filter...\n')
+  vertexAttrs <- names(igraph::vertex.attributes(g))
+  edgeAttrs <- names(igraph::edge.attributes(g))
+  edges <- E(g)
+  removeEdges <- c()
+  ##------------------ COLLECT VERTICES ------------------ 
+  ##  REMOVE EDGES ADJACENT TO VERTICES founded_at > `end`
+  if(pdAttr %in% vertexAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,pdAttr) 
+    vids <- V(g)[which(tmp > end)]
+    eids <- E(g)[ from(vids) & to(vids) ]
+    # for (v in vids) {
+    #   removeEdges <- c(removeEdges, E(g)[ from(v) & to(v) ])
+    # }
+    removeEdges <- c(removeEdges, eids)
+  }
+  ##------------------ COLLECT EDGES ---------------------
+  # ##  REMOVE EDGES with relation_created_at > `end`
+  # if(edgeCreatedAttr %in% edgeAttrs) {
+  #   tmp <- igraph::get.edge.attribute(g,edgeCreatedAttr) 
+  #   eids <- E(g)[which(tmp > end)]
+  #   removeEdges <- c(removeEdges, eids)
+  # }
+  ##  REMOVE EDGES competitor_closed_on < `start`
+  if(edgeClosedAttr %in% edgeAttrs) {
+    tmp <- igraph::get.edge.attribute(g,edgeClosedAttr) 
+    eids <- E(g)[which(tmp < start)]
+    removeEdges <- c(removeEdges, eids)
+  }
+  ##  REMOVE EDGES acquired_at < `start`
+  if(edgeAcquiredAttr %in% vertexAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,edgeAcquiredAttr) 
+    eids <- E(g)[which(tmp < start)]
+    removeEdges <- c(removeEdges, eids)
+  }
+  ##-----------------REMOVE EDGES ---------------------------
+  removeEdgesUnique <- unique(removeEdges)
+  cat(sprintf('removing %d edges of %d (%.2f%s)\n', length(removeEdgesUnique), length(edges), 100*length(removeEdgesUnique)/length(edges), '%'))
+  #g.sub <- igraph::delete_edges(graph=g,edges = removeEdgesUnique)
+  ##------------------- networkDynamic ---------------------
+  g.netdyn <- network.initialize(vcount(g),directed=FALSE)
+  activate.vertices(g.netdyn, onset=0, terminus = 10)
+  add.edges.active(g.netdyn,tail=1:2,head=2:3,onset=start,terminus=end)
+  return(g.netdyn)
+}
+
+
+###
+# Remove edges between companies that weren't created yet
+# and after being closed/acquired
+##
+setEdgeActiveState <- function(g,start,end,pdAttr='founded_at',acquiredPdAttr='acquired_at',
+                               edgeCreatedAttr='relation_created_at',
+                               edgeClosedAttr='competitor_closed_on',
+                               edgeAcquiredAttr='acquired_at')
+{
+  cat('collecting edges to filter...\n')
+  E(g)$active <- TRUE
+  vertexAttrs <- names(igraph::vertex.attributes(g))
+  edgeAttrs <- names(igraph::edge.attributes(g))
+  edges <- E(g)
+  removeEdges <- c()
+  ##------------------ COLLECT VERTICES ------------------ 
+  ##  REMOVE EDGES ADJACENT TO VERTICES founded_at > `end`
+  if(pdAttr %in% vertexAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,pdAttr) 
+    vids <- V(g)[which(tmp > end)]
+    eids <- E(g)[ from(vids) & to(vids) ]
+    # for (v in vids) {
+    #   removeEdges <- c(removeEdges, E(g)[ from(v) & to(v) ])
+    # }
+    removeEdges <- c(removeEdges, eids)
+  }
+  ##------------------ COLLECT EDGES ---------------------
+  # ##  REMOVE EDGES with relation_created_at > `end`
+  # if(edgeCreatedAttr %in% edgeAttrs) {
+  #   tmp <- igraph::get.edge.attribute(g,edgeCreatedAttr) 
+  #   eids <- E(g)[which(tmp > end)]
+  #   removeEdges <- c(removeEdges, eids)
+  # }
+  ##  REMOVE EDGES competitor_closed_on < `start`
+  if(edgeClosedAttr %in% edgeAttrs) {
+    tmp <- igraph::get.edge.attribute(g,edgeClosedAttr) 
+    eids <- E(g)[which(tmp < start)]
+    removeEdges <- c(removeEdges, eids)
+  }
+  ##  REMOVE EDGES acquired_at < `start`
+  if(edgeAcquiredAttr %in% vertexAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,edgeAcquiredAttr) 
+    eids <- E(g)[which(tmp < start)]
+    removeEdges <- c(removeEdges, eids)
+  }
+  ##-----------------REMOVE EDGES ---------------------------
+  removeEdgesUnique <- unique(removeEdges)
+  cat(sprintf('removing %d edges of %d (%.2f%s)\n', length(removeEdgesUnique), length(edges), 100*length(removeEdgesUnique)/length(edges), '%'))
+  E(g)[which(E(g) %in% removeEdgesUnique)]$active <- FALSE
+  return(g)
+}
+
+
+#--------------------------------------------------------------------------
 ## Distance weighted reach function
 distWeightReach <- function(g,
                             mode='in',
