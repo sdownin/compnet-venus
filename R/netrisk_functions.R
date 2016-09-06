@@ -24,9 +24,10 @@ df2lower <- function(df)
 ##
 getIgraphFromNet <- function(net)
 {
-  mode <- ifelse(network::get.network.attribute(net, 'directed'), 'directed','undirected')
   net.mat <- network::as.matrix.network.adjacency(net)
-  ig <- igraph::graph_from_adjacency_matrix(adjmatrix = net.mat,mode = mode)
+  mode <- ifelse(network::get.network.attribute(net, 'directed'), 'directed','undirected')
+  diag <- network::get.network.attribute(net,'loops')
+  ig <- igraph::graph_from_adjacency_matrix(adjmatrix = net.mat, mode = mode, diag = diag)
   
   ## add vertex attributes
   vertAttrs <- network::list.vertex.attributes(net)
@@ -57,7 +58,10 @@ getNetFromIgraph <- function(ig, add.vertex.name=FALSE)
   } else {
     vertAttrList <- igraph::vertex.attributes(ig)[which( names(igraph::vertex.attributes(ig))!='name' ) ]
   }
-  net <- network::network(adjmat, vertex.attr = vertAttrList, directed=igraph::is.directed(ig) )
+  net <- network::network(adjmat, vertex.attr = vertAttrList, 
+                          directed=igraph::is.directed(ig),
+                          loops = any(igraph::is.loop(ig)),
+                          bipartite = igraph::is.bipartite(ig))
   
   ## add vertex attributes
   vertAttrs <- names(igraph::vertex.attributes(ig))
@@ -114,6 +118,20 @@ plotCompNet <- function(gs,multi.prod=NA, vertex.log.base=exp(1),label.log.base=
               , ...
   )
   par(mar=c(4.5,4.5,3.5,1))
+}
+
+##
+# Plot an igraph object with base network object style
+##
+plotIgraphInNetworkStyle <- function(g, ...)
+{
+  plot.igraph(g
+    , vertex.color='red'
+    , vertex.label.color='black'
+    , vertex.size=5,edge.color='black'
+    , edge.arrow.size=.35
+    , ...
+  )
 }
 
 ##

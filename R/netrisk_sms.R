@@ -8,12 +8,18 @@ library(igraph)
 library(plyr)
 library(dplyr)
 library(stringr)
+library(ndtv)
+library(visNetwork)
+library(scatterplot3d)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment"
 #
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
+
+
+ndtv::render.animation(ss)
 
 # ##------------------- PLOTS----------------------------------------------
 # # Plot comp net size cumulative distribution
