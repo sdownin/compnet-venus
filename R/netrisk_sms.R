@@ -19,7 +19,7 @@ source(file.path(getwd(),'R','netrisk_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
 
 
-ndtv::render.animation(ss)
+saveVideo( ndtv::render.animation(ss) )
 
 # ##------------------- PLOTS----------------------------------------------
 # # Plot comp net size cumulative distribution
@@ -156,6 +156,14 @@ m3 <- ergm(formula = f3)
 summary(m3)
 
   
-  
+
+
+## ------------------- NETWORKDYNAMIC PLOTS -----------------------------
+data("short.stergm.sim")
+ss <- short.stergm.sim
+ndtv::timeline(ss)
+ndtv::timePrism(ss, at=seq(1,10,by=3))
+ndtv::filmstrip(ss, frames=9, mfrow=c(3,3))
+ndtv::render.d3movie(ss, filename = )
   
   

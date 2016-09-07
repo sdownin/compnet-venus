@@ -159,7 +159,7 @@ getNetSizeChange <- function(l, showPlot=TRUE)
 # Remove edges between companies that weren't created yet
 # and after being closed/acquired
 ##
-createPdNet <- function(g,start,end,pdAttr='founded_at',acquiredPdAttr='acquired_at',
+getPdActiveEdges <- function(g,start,end,pdAttr='founded_at',acquiredPdAttr='acquired_at',
                         edgeCreatedAttr='relation_created_at',
                         edgeClosedAttr='competitor_closed_on',
                         edgeAcquiredAttr='acquired_at')
@@ -168,7 +168,8 @@ createPdNet <- function(g,start,end,pdAttr='founded_at',acquiredPdAttr='acquired
   vertexAttrs <- names(igraph::vertex.attributes(g))
   edgeAttrs <- names(igraph::edge.attributes(g))
   edges <- E(g)
-  removeEdges <- c()
+  inactiveEdges <- c()
+  
   ##------------------ COLLECT VERTICES ------------------ 
   ##  REMOVE EDGES ADJACENT TO VERTICES founded_at > `end`
   if(pdAttr %in% vertexAttrs) {
@@ -204,9 +205,26 @@ createPdNet <- function(g,start,end,pdAttr='founded_at',acquiredPdAttr='acquired
   cat(sprintf('removing %d edges of %d (%.2f%s)\n', length(removeEdgesUnique), length(edges), 100*length(removeEdgesUnique)/length(edges), '%'))
   #g.sub <- igraph::delete_edges(graph=g,edges = removeEdgesUnique)
   ##------------------- networkDynamic ---------------------
+  #
+  #  continue here...
+  #
+  # > activate.edges(triangle,at=1) # turn on all edges at time 1 only
+  # > activate.edges(triangle,onset=2, terminus=3, e=get.edgeIDs(triangle,v=1,alter=2))
+  # > add.edges.active(triangle,onset=4, length=2,tail=3,head=1)
+  #
+  ## GET network object FROM igraph object
+  
+  ## active all edges not in the removeEdges set
   g.netdyn <- network.initialize(vcount(g),directed=FALSE)
   activate.vertices(g.netdyn, onset=0, terminus = 10)
   add.edges.active(g.netdyn,tail=1:2,head=2:3,onset=start,terminus=end)
+  
+  ## Activete vertices
+  #> activate.vertices(triangle,onset=1,terminus=5,v=1)
+  #> activate.vertices(triangle,onset=1,terminus=10,v=2)
+  #> activate.vertices(triangle,onset=4,terminus=10,v=3)
+  
+  ## REturn dynamic network
   return(g.netdyn)
 }
 
