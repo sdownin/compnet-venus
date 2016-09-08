@@ -17,7 +17,6 @@ library(texreg)
 library(reshape2)
 library(lubridate)
 library(stringr)
-library(memisc)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 #
 #source(file.path(getwd(),'R','comp_net_functions.R'))
@@ -45,6 +44,11 @@ br <- read.table(file.path(data_dir,csv.branches), sep=",",header=T, quote='"', 
 comp$relation_created_at <- as.character( lubridate::mdy(comp$relation_created_at) )
 comp$competitor_founded_on <- as.character( lubridate::mdy(comp$competitor_founded_on) )
 comp$competitor_closed_on <- as.character( lubridate::mdy(comp$competitor_closed_on) )
+
+## reformat company datse
+co$founded_at <- as.character( lubridate::mdy(co$founded_at) )
+co$first_funding_at <- as.character( lubridate::mdy(co$first_funding_at) )
+co$last_funding_at <- as.character( lubridate::mdy(co$last_funding_at) )
 
 ## add acquisition date to competitor relation
 tmp <- data.frame(company_name_unique=acq$acquired_name_unique, acquired_at=acq$acquired_at)

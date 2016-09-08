@@ -409,20 +409,25 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
                       competitorFoundedName='competitor_founded_on',
                       competitorClosedName='competitor_closed_on',
                       vertAttrs=c('founded_at','founded_month','founded_quarter',
-                                  'founded_year','acquired_at','closed_at','age','funding_total_usd') )
+                                  'founded_year','acquired_at','closed_at','age','funding_total_usd',
+                                  'category_list','country_code','state_code','city') )
 {
   el <- data.frame(source=comp[,name], 
                    target=comp[,compName],
                    relation_created_at=comp[,relationPdName], 
                    stringsAsFactors = F)
-  print(head(el))
+  ## build edge list
   if (competitorFoundedName %in% names(comp))
       el[,competitorFoundedName] <- comp[,competitorFoundedName]
   if (competitorClosedName %in% names(comp))
-    el[,competitorClosedName] <- comp[,competitorClosedName]
+      el[,competitorClosedName] <- comp[,competitorClosedName]
+  ## remove missing names
+  el <- el[which(el$source!="" & el$target!=""), ]
+  ## make vertex df
   verts <- data.frame(company_name_unique=unique(c(el$source,el$target)), stringsAsFactors = F)
   verts <- merge(x=verts,y=vertdf[,c(name,vertAttrs[vertAttrs%in%names(vertdf)])],
                  by=name,all.x=T,all.y=F)  
+  ## make graph
   g <- igraph::graph.data.frame(d = el, directed = F, vertices = verts)
   E(g)$weight <- 1
   return(g)
