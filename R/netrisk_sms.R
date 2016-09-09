@@ -353,9 +353,9 @@ g2 <- igraph::barabasi.game(8, power = 3, m=4)
 #   igraph MAIN LOOP
 #
 #-----------------------------------------------------------------
-yrpd <- 5
+yrpd <- 2
 startYr <- 1999
-endYr <- 2016
+endYr <- 2015
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
@@ -369,17 +369,49 @@ for(t in 2:length(periods)) {
   gl[[t]] <- makeIgraphPdSubgraphKeepNA(g.base, start=periods[t-1], end=periods[t],acq=acq,rou=rou,br=br)
 }; names(gl) <- periods;  gl <- gl[2:length(gl)]
 
-save.image(file='netrisk_sms_full_pd_graph.RData')
+# save.image(file='netrisk_sms_full_pd_graph.RData')
+# load('netrisk_sms_full_pd_graph.RData')
+
 #--------------------------------------------------------------------
 
 
 
+sapply(gl1, ecount)
+sapply(gl1, vcount)
+sapply(gl1, function(g)max(na.omit(V(g)$founded_at)))
 
-sapply(gl, ecount)
+periods <- seq(2000,2015,1)
+gl1 <- gl1[ which( !(names(gl1)%in%c(2016)) ) ]
 
-par(mfrow=c(2,2))
-for(i in 1:4)
-  plotCompNet(gl[[i+1]])
+name_i <- 'surveymonkey'
+filename <- file.path(img_dir,sprintf('%s_k_period_size_avg_path.png',name_i))
+png(filename,height=7,width=11,units='in',res=250)
+  par(mfrow=c(2,4),mar=c(4,4,2,1))
+  for (k in 1:4) {
+    gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'))
+    df.sm <- data.frame(v=sapply(gs.sm,vcount),e=sapply(gs.sm,ecount))
+    matplot(periods,df.sm,type='o',pch=16:17,ylim=c(5,2000),log='y',ylab='Comp Net Size (log scale)',main=sprintf('k=%d',k))
+    legend('topleft',legend=c('firms','competitive relations'),col=1:2,lty=1:2,pch=16:17)
+  }
+  for (k in 1:4) {
+    gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'))
+    plot(names(gs.sm),sapply(gs.sm,function(g)igraph::average.path.length(g)/k),
+         ylab='Avg Path Length / k',xlab='Period',type='o',pch=16,main=sprintf('k=%d',k),ylim=c(.6,1.9))  
+  }
+dev.off()
+
+## plot k-th order ego net time slices
+par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
+for(i in (1+3*c(0,1,2,3,4,5)) ) {
+  set.seed(1111)
+  plotCompNet(gs.sm[[i]], multi.prod = c('surveymonkey'), vertex.log.base = 1+exp(k)/11, label.log.base = 1+exp(k)/1.6 )
+  legend('topright',legend=sprintf('t=%d',periods[i]),bty='n')
+}
+
+sapply(gs.sm, function(g)V(g)[V(g)$name=='surveymonkey']$funding_total_usd)
+
+
+
 
 
 
