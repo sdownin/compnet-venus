@@ -32,8 +32,9 @@ top.acquirers <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-
 #                "dell","groupon","salesforce","blackberry")
 
 
-#------------------------------------------------------------------------------
+##------------------------------------------------------------------------------
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
+##------------------------------------------------------------------------------
 g.full <- makeGraph(comp = comp, vertdf = co)
 ## fill in missing founded_year values from founded_at year
 V(g.full)$founded_year <- ifelse( (!is.na(V(g.full)$founded_year)|V(g.full)$founded_year==''), V(g.full)$founded_year, as.numeric(substr(V(g.full)$founded_at,1,4)))
@@ -44,9 +45,70 @@ g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founde
 g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2016-01-01')])
 ## change NA funding to 0
 V(g.full)[is.na(V(g.full)$funding_total_usd)]$funding_total_usd <- 0
+## reduce repeated edges
+to.min <- c('relation_created_at','competitor_founded_on','competitor_closed_on','founded_at','founded_month','founded_quarter','founded_year','acquired_at')
+to.collapse <- c('funding_total_usd','category_list','country_code','state_code','city')
+edgeAttrCombList <- list(weight='sum')
+gAttrList <- names(igraph::vertex.attributes(g.full))
+for (i in 1:length(to.min)) {
+  if (to.min[i] %in% gAttrList) {
+    edgeAttrCombList[[ to.min[i] ]] <- 'min'
+  }
+}
+for (i in 1:length(to.collapse))  {
+  if (to.collapse[i] %in% gAttrList) {
+    edgeAttrCombList[[ to.collapse[i] ]] <- function(x)paste(x, collapse = "||||")
+  }
+}
+g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T, 
+                          edge.attr.comb = edgeAttrCombList)
+
+##-----------------------------------------------------------------------
+## make regression predictors
+##-----------------------------------------------------------------------
 V(g.full)$log_funding <- log( V(g.full)$funding_total_usd + 1 )
 V(g.full)$has_funding <- ifelse(V(g.full)$funding_total_usd>0,"YES","NO")
 #_------------------------------------------------------------------------
+
+
+# ##-----------------------------------------------------------------------
+# ## example company ego plots by k order
+# ##-----------------------------------------------------------------------
+# #####
+# ## Netflix
+# png(file.path(img_dir,'netflix_ego_plot.png'), height=6, width=18, units='in',res=350)
+# par(mfrow=c(1,3))
+# for (k in 1:3) {
+#   g.netflix <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='netflix'])[[1]]
+#   plotCompNet(g.netflix, multi.prod = 'netflix')
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# ## Medallia
+# png(file.path(img_dir,'medallia_ego_plot.png'), height=12, width=12, units='in',res=350)
+# par(mfrow=c(2,2))
+# for (k in 1:4) {
+#   g.medallia <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='medallia'])[[1]]
+#   plotCompNet(g.medallia, multi.prod = 'medallia')
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# ## surveymonkey
+# png(file.path(img_dir,'surveymonkey_ego_plot.png'), height=12, width=12, units='in',res=350)
+# par(mfrow=c(2,2))
+# for (k in 1:4) {
+#   g.sm <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
+#   plotCompNet(g.sm, multi.prod = 'surveymonkey',vertex.log.base = 2^k, label.log.base = 3*2^k)
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# 
+# ## shortest paths
+# gx <- g.sm
+# igraph::get.shortest.paths(graph=gx, 
+#                            from = V(gx)[V(gx)$name=='surveymonkey'], 
+#                            to=V(gx)[V(gx)$name=='google'],output = 'both')
+# #####
 
 
 ##################################################################################
@@ -59,7 +121,7 @@ endYr <- 2000
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
-df.in <- co.acq
+df.in <- co
 
 ##--------------------- MAKE NETRISK SUBGRAPH ALGORITHM -------------------------
 ## ## 1.  Choose Multi-Product firms
@@ -74,12 +136,7 @@ V(g.full)$firm_type <- ifelse(V(g.full)$name%in%multi.prod,'MP',
                                                 'Other') )
 ## ## 4. get 2015 ego net igraph object
 g <- igraph::induced.subgraph(g.full, vids=mp.egonet$vids)
-## reduce repeated edges
-g <- igraph::simplify(g, remove.loops=T,remove.multiple=T, 
-                      edge.attr.comb = list(weight='sum',
-                                            relation_created_at='min',
-                                            competitor_founded_on='min',
-                                            competitor_closed_on='min'))
+
 print(g)
 
 ##--------------------- MAIN DYNAMIC NETWORK CREATION -----------------------------  
@@ -167,6 +224,19 @@ summary(sfit8)
 gf8 <- gof(sfit8)
 plot(gf8)
 
+
+png('test_heatmap_1.png',height=15,width=15,units='in',res=250)
+  heatmap(net[,])
+dev.off()
+
+
+sfit9 <- stergm(ss, 
+                formation= ~ kstar(3), 
+                dissolution= ~edges,  #localtriangle
+                estimate="CMLE", times = 10:12)
+summary(sfit9)
+gf9 <- gof(sfit9)
+plot(gf9)
 
 
 ################################################################################
@@ -267,4 +337,40 @@ ndtv::timePrism(ss, at=seq(1,10,by=3))
 ndtv::filmstrip(ss, frames=9, mfrow=c(3,3))
 ndtv::render.d3movie(ss, filename = )
   
+
+
+
+
+
+
+g1 <- igraph::barabasi.game(8, power = 1.1, m=2)
+g2 <- igraph::barabasi.game(8, power = 3, m=4)
   
+
+
+#-----------------------------------------------------------------
+#
+#   igraph MAIN LOOP
+#
+#-----------------------------------------------------------------
+yrpd <- 2
+startYr <- 2000
+endYr <- 2015
+periods <- seq(startYr,endYr,yrpd)
+company.name <- 'company_name_unique'
+verbose <- TRUE
+k <- 3
+
+g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
+gl <- list()
+for(t in 2:length(periods)) {
+  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
+  gl[[t]] <- makeIgraphPdSubgraphKeepNA(g.base, start=periods[t-1], end=periods[t],acq=acq,rou=rou,br=br)
+}; names(gl) <- periods
+
+
+
+
+
+
+

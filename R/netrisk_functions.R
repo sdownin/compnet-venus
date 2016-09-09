@@ -135,7 +135,7 @@ getMultiProdEgoNet <- function(g, firms, k=1, include.competitor.egonet=TRUE)
 plotCompNet <- function(gs,multi.prod=NA, vertex.log.base=exp(1),label.log.base=10, ...) 
 {
   par(mar=c(.1,.5,.1,.5))
-  d <- degree(gs)
+  d <- igraph::degree(gs)
   if (!all(is.na(multi.prod)))
     vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), rgb(.5,.5,.7,.8))
   else
@@ -260,6 +260,173 @@ setPdActivity <- function(net, g, start, end,
   ## REturn dynamic network
   return(net)
 }
+
+
+###
+# Sets active edges for the period in a network object 
+# using attributes from an igraph object
+##
+makeIgraphPdSubgraphKeepNA <- function(g, start, end, 
+                          vertFoundedAttr='founded_at',
+                          vertClosedAttr='company_closed_on',
+                          vertAcquiredAttr='acquired_at',
+                          edgeCreatedAttr='relation_created_at',
+                          acq=NA,rou=NA,br=NA)
+{
+  cat('collecting vertices to remove...\n')
+  vertAttrs <- names(igraph::vertex.attributes(g))
+  edgeAttrs <- names(igraph::edge.attributes(g))
+  inactiveEdges <- c()
+  inactiveVerts <- c()
+  ##------------------ COLLECT VERTICES TO REMOVE ------- 
+  ##  REMOVE VERTICES founded_on > `end`
+  if(vertFoundedAttr %in% vertAttrs) {
+    tmp <- igraph::get.edge.attribute(g,vertFoundedAttr) 
+    vids <- V(g)[which(tmp > end)]
+    inactiveVerts <- c(inactiveVerts, vids)
+  }
+  ##  REMOVE VERTICES closed_on < `start`
+  if(vertClosedAttr %in% vertAttrs) {
+    tmp <- igraph::get.edge.attribute(g,vertClosedAttr) 
+    vids <- V(g)[which(tmp < start)]
+    inactiveVerts <- c(inactiveVerts, vids)
+  }
+  ##  REMOVE VERTICES acquired_at < `start`
+  if(vertAcquiredAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,vertAcquiredAttr) 
+    vids <- V(g)[which(tmp < start)]
+    inactiveVerts <- c(inactiveVerts, vids)
+  }
+  ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
+  activeVerts <- unique(  V(g)[ !(V(g)%in%inactiveVerts) ]  )
+  ##-----------------MAKE SUBGRAPH ---------------------------
+  cat('inducing subgraph...\n')
+  g <- igraph::induced.subgraph(g, vids = activeVerts)
+  ##----------------------DYNAMIC ATTRS-----------------------
+  ## AGE
+  agediff <- end - V(g)$founded_year
+  V(g)$age <- ifelse( agediff >= 0, agediff, NA)
+  ## funding rounds
+  if(any( !is.na(rou) )) {
+    cat('optional: adding funding rounds...\n')
+    V(g)$funding_total_usd <- sapply(V(g)$name,function(x)getTotalRaised(x))
+    V(g)$log_funding_total_usd <- log(V(g)$funding_total_usd + 1)
+    V(g)$has_fund <- ifelse(V(g)$funding_total_usd>0,1,0)
+  }
+  ## acquisitions
+  if(any( !is.na(acq) )) {
+    cat('optional: adding acquisitions...\n')
+    V(g)$acquisitions <- sapply(V(g)$name,function(x)getAcqsConcat(x))
+    V(g)$acquisitions_count <- sapply(V(g)$name,function(x)getAcqsCount(x) )   
+  }
+  ## branches
+  if(any( !is.na(br) )) {
+    cat('optional: adding branches...\n')
+    V(g)$branches <- sapply(V(g)$name,function(x)getBrsConcat(x))
+    V(g)$branches_count <- sapply(V(g)$name,function(x)getBrsCount(x))
+  }
+  return(g)
+} 
+
+#-------- Dependend Functions -----
+getRaisedAmts <- function(name_i)
+{
+  subset(rou, subset=(company_name_unique==name_i & funded_year <= end), select = 'raised_amount_usd')
+}
+getTotalRaised <- function(name_i) 
+{
+  amts <- getRaisedAmts(name_i)
+  if(nrow(amts)>0) {
+    return(sum(amts,na.rm = T))
+  }
+  return(0)
+}
+
+getAcqs <- function(name_i)
+{
+  subset(acq, subset=(company_name_unique==name_i & acquired_year <= end) )
+}
+getAcqsCount <- function(name_i)
+{
+  acqsSubset <- getAcqs(name_i)
+  return(nrow(acqsSubset))
+}
+getAcqsConcat <- function(name_i)
+{
+  acqsSubset <- getAcqs(name_i)
+  if(nrow(acqsSubset)>0) {
+    return( paste(acqsSubset$acquired_name_unique,collapse = "|"))
+  }
+  return("")
+}
+
+getBrs <- function(name_i)
+{
+  subset(br, subset=(company_name_unique==name_i & created_year <= end))
+}
+getBrsConcat <-function(name_i)
+{
+  brs <- getBrs(name_i)
+  brsMarket2 <- brs$market2
+  index <- which(brsMarket2=="" | is.na(brsMarket2))
+  brs[index] <- 'NA'
+  return(paste(brsMarket2, collapse="|"))
+}
+getBrsCount <- function(name_i)
+{
+  brs <- getBrs(name_i)
+  brsCount <- nrow(brs)
+  brsCount[brsCount < 1] <- 1
+  return(brsCount)
+}
+#----------------------------------
+
+
+# ###
+# # Sets active edges for the period in a network object 
+# # using attributes from an igraph object
+# ##
+# makeIgraphPdSubgraphDropNA <- function(g, start, end, 
+#                                        vertFoundedAttr='founded_at',
+#                                        vertClosedAttr='company_closed_on',
+#                                        vertAcquiredAttr='acquired_at',
+#                                        edgeCreatedAttr='relation_created_at',
+#                                        rou=NA,br=NA)
+# {
+#   vertAttrs <- names(igraph::vertex.attributes(g))
+#   edgeAttrs <- names(igraph::edge.attributes(g))
+#   activeEdges <- c()
+#   activeVerts <- c()
+#   ##------------------ COLLECT VERTICES TO KEEP ------- 
+#   ##  KEEP VERTICES founded_on < `end`
+#   if(vertFoundedAttr %in% vertAttrs) {
+#     tmp <- igraph::get.edge.attribute(g,vertFoundedAttr) 
+#     vids <- V(g)[which(tmp < end)]
+#     activeVerts <- c(activeVerts, vids)
+#   }
+#   ##  KEEP VERTICES closed_on > `start`
+#   if(vertClosedAttr %in% vertAttrs) {
+#     tmp <- igraph::get.edge.attribute(g,vertClosedAttr) 
+#     vids <- V(g)[which(tmp > start)]
+#     activeVerts <- c(activeVerts, vids)
+#   }
+#   ##  KEEP VERTICES acquired_at > `start`
+#   if(vertAcquiredAttr %in% vertAttrs) {
+#     tmp <- igraph::get.vertex.attribute(g,vertAcquiredAttr) 
+#     vids <- V(g)[which(tmp > start)]
+#     activeVerts <- c(activeVerts, vids)
+#   }
+#   ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
+#   activeVerts <- unique(  activeVerts  )
+#   ##-----------------MAKE SUBGRAPH ---------------------------
+#   g <- igraph::induced.subgraph(g, vids = activeVerts)
+#   ##----------------------DYNAMIC ATTRS-----------------------
+#   ## AGE
+#   agediff <- end - V(g)$founded_year
+#   V(g)$age <- ifelse( agediff >= 0, agediff, NA)
+#   
+#   return(g)
+# }
 
 
 # ###

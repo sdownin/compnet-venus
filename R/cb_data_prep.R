@@ -24,6 +24,25 @@ data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 #load(file.path(getwd(),'R','acquisitions_data_analysis.RData'))
 # save.image('acquisitions_data_analysis.RData')
 
+##--------- Conversion functions---------------
+
+##
+# convert 12/31/2013 --> 2013-12-31 (only if input contains "/")
+##
+convertMdySlashToYmdDash <- function(df, cols.to.fix)
+{
+  for (i in 1:length(cols.to.fix)) {
+    col <- cols.to.fix[i] 
+    if ( col %in% names(df)) {
+      test.val <- na.omit(df[which(df[,col]!=""),col])[1]
+      if( grepl("[/]", test.val, ignore.case = T,perl = T) ) {
+        df[,col] <- as.character( lubridate::mdy(df[, col]) )
+      }      
+    }
+  }
+  return(df)
+}
+##_--------------------------------------------
 
 ##--------------------------------------------------------
 ## LOAD DATA; CLEAN DATA
@@ -40,15 +59,30 @@ comp <- read.table(file.path(data_dir,csv.competitors), sep=",",header=T, quote=
 rou <- read.table(file.path(data_dir,csv.funding), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 br <- read.table(file.path(data_dir,csv.branches), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 
-## reformat competitor relation dates
-comp$relation_created_at <- as.character( lubridate::mdy(comp$relation_created_at) )
-comp$competitor_founded_on <- as.character( lubridate::mdy(comp$competitor_founded_on) )
-comp$competitor_closed_on <- as.character( lubridate::mdy(comp$competitor_closed_on) )
+
+# xlsx.FINAL <- 'cb_export_with_competitors_20160725_FINAL.xlsx'
+# 
+# co   <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "companies")
+# acq  <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "acquisitions")
+# comp <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "competitors")
+# rou  <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "rounds")
+# br   <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "branches")
+
+
+# ##  DROP COMPANY row with mising name
+co <- co[which(co$company_name_unique!="" & !is.na(co$company_name_unique)), ]
+
+
+# reformat competitor relation dates
+cols.to.fix <- c('relation_created_at','competitor_founded_on','competitor_closed_on','closed_on')
+comp.bak <- comp
+comp <- convertMdySlashToYmdDash(comp, cols.to.fix)
+
 
 ## reformat company datse
-co$founded_at <- as.character( lubridate::mdy(co$founded_at) )
-co$first_funding_at <- as.character( lubridate::mdy(co$first_funding_at) )
-co$last_funding_at <- as.character( lubridate::mdy(co$last_funding_at) )
+cols.to.fix <- c('founded_at','first_funding_at','last_funding_at')
+co.bak <- co
+co <- convertMdySlashToYmdDash(co, cols.to.fix)
 
 ## add acquisition date to competitor relation
 tmp <- data.frame(company_name_unique=acq$acquired_name_unique, acquired_at=acq$acquired_at)
@@ -68,6 +102,14 @@ br$market <- br$country_code3
 br$market2 <- apply(X = br[,c('country_code3','region_code2')],
                    MARGIN = 1,
                    FUN =  function(x) paste(x, collapse='_'))
+
+## add market to company df
+co$market2 <- apply(X = co[,c('country_code','state_code')],
+                    MARGIN = 1,
+                    FUN =  function(x) paste(x, collapse='_'))
+
+## add branch created_year
+br$created_year <- year(br$created_at)
 
 ## drop unnecessary columns
 co <- co[, !(names(co) %in% c('permalink','company_name','homepage_url'))]
@@ -98,7 +140,7 @@ co$funding_total_usd[is.na(co$funding_total_usd)] <- 0
 names(acq)[which(names(acq)=='name')] <- 'company_name_unique'
 
 ## convert timestamp (epoch) to date
-comp$relation_updated_at_date <- timestamp2date(as.numeric(comp$relation_updated_at))
+comp$relation_updated_at <- timestamp2date(as.numeric(comp$relation_updated_at))
 br$created_at <- timestamp2date(as.numeric(br$created_at))
 br$updated_at <- timestamp2date(as.numeric(br$updated_at))
 
@@ -128,31 +170,26 @@ co$region <- as.factor(co$region)
 tmp <- acq[,c('acquired_name_unique','acquired_at','company_name_unique')]
 names(tmp) <- c('company_name_unique','acquired_at','acquirer_company_name_unique')
 # head(co[, c('company_name_unique')])
-co.acq.dup <- merge(co,tmp, by='company_name_unique', all.x=T,all.y=F)
+co <- merge(co,tmp, by='company_name_unique', all.x=T,all.y=F)
 ## examine duplicates
-co.acq.dup[duplicated(co.acq.dup$company_name_unique),]
+#co.acq.dup[duplicated(co.acq.dup$company_name_unique),]
 ## remove duplicates
-co.acq <- co.acq.dup[!duplicated(co.acq.dup$company_name_unique),]
+co <- co[!duplicated(co$company_name_unique),]
 
 ## check REMOVED DUPLICATES
-cnt <- plyr::count(co.acq$company_name_unique)
+cnt <- plyr::count(co$company_name_unique)
 cnt <- cnt[order(cnt$freq, decreasing = T), ]
 dups <- cnt$x[cnt$freq>1]
 assertthat::are_equal(length(dups),0)
   
-
-
-
-##------------------------------------
-##
-## NEED CLOSED_ON DATES HERE...
-##
-##------------------------------------
+# ##-------------------------------------------------------
+# ##  ADD CLOSED ON DATES TO REMOVE COMPANIES FROM COMPETITION NETWORK
 ##-------------------------------------------------------
-##  ADD ClOSED DATES TO REMOVE COMPANIES FROM COMPETITION NETWORK
-##-------------------------------------------------------
+tmp.closed <- data.frame(company_name_unique=comp$competitor_name_unique,company_closed_on=comp$competitor_closed_on)
+co <- merge(co, tmp.closed, by = "company_name_unique", all.x=T, all.y=F)
+co <- co[!duplicated(co$company_name_unique),]
 
-##co$closed_at  <- '' ###
+
 
 
 

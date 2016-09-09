@@ -11,12 +11,27 @@ library(igraph)
 
 #---------- convenience function ------------
 va <- function(g){
-  return(vertex.attributes(g))
+  vertex.attributes(g)
 }
 gdf <- function(g)
 {
   get.data.frame(x=g, what = 'vertices')
 }
+spl <- function(x)
+{
+  str_split(x, "[|]")[[1]]
+}
+jn <- function(x)
+{
+  paste(x, collapse = "|")
+}
+catList <- function(net, attr)
+{
+  out <- net %v% attr
+  names(out) <- net %v% 'vertex.names'
+  lapply(out, function(x) spl(x))
+}
+
 #--------------------------------------------
 
 ### 
@@ -409,8 +424,8 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
                       competitorFoundedName='competitor_founded_on',
                       competitorClosedName='competitor_closed_on',
                       vertAttrs=c('founded_at','founded_month','founded_quarter',
-                                  'founded_year','acquired_at','closed_at','age','funding_total_usd',
-                                  'category_list','country_code','state_code','city') )
+                                  'founded_year','acquired_at','company_closed_on','age','funding_total_usd',
+                                  'category_list','country_code','state_code','city','market2') )
 {
   el <- data.frame(source=comp[,name], 
                    target=comp[,compName],
