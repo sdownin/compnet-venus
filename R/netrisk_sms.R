@@ -1,19 +1,19 @@
 setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
 .libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
-library(statnet)
-library(network)
-library(ergm)
-library(tergm)
-library(btergm)
-library(xergm)  ## includes rem, tnam, GERGM
-library(texreg)
-library(igraph)
-library(plyr)
-library(dplyr)
-library(stringr)
-library(ndtv)
-library(visNetwork)
-library(scatterplot3d)
+library(statnet, quietly = T)
+library(network, quietly = T)
+library(ergm, quietly = T)
+library(tergm, quietly = T)
+library(btergm, quietly = T)
+library(xergm, quietly = T)  ## includes rem, tnam, GERGM
+library(texreg, quietly = T)
+library(igraph, quietly = T)
+library(plyr, quietly = T)
+library(dplyr, quietly = T)
+library(stringr, quietly = T)
+library(ndtv, quietly = T)
+library(visNetwork, quietly = T)
+library(scatterplot3d, quietly = T)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment"
 #
@@ -23,11 +23,11 @@ source(file.path(getwd(),'R','cb_data_prep.R'))
 
 
 ##  SELECT n Multi-Product Firms  (serial acquirers)
-top.acquirers <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
-                   "emc","facebook","amazon","ebay","twitter","adobe-systems","nokia","dell","electronicarts",
-                   "riverside","groupon","autodesk","salesforce","thoma-bravo","iac","quest-software","zayo-group",
-                   "zynga","qualcomm","blackberry","ca","berkshire-hathaway-corp","carlyle-group","intuit",
-                   "symantec","broadcom","kkr","medtronic","dropbox","vmware")
+# top.acquirers <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
+#                    "emc","facebook","amazon","ebay","twitter","adobe-systems","nokia","dell","electronicarts",
+#                    "riverside","groupon","autodesk","salesforce","thoma-bravo","iac","quest-software","zayo-group",
+#                    "zynga","qualcomm","blackberry","ca","berkshire-hathaway-corp","carlyle-group","intuit",
+#                    "symantec","broadcom","kkr","medtronic","dropbox","vmware")
 # multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","facebook","amazon","adobe-systems","nokia",
 #                "dell","groupon","salesforce","blackberry")
 
@@ -66,8 +66,8 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
 ##-----------------------------------------------------------------------
 ## make regression predictors
 ##-----------------------------------------------------------------------
-V(g.full)$log_funding <- log( V(g.full)$funding_total_usd + 1 )
-V(g.full)$has_funding <- ifelse(V(g.full)$funding_total_usd>0,"YES","NO")
+# V(g.full)$log_funding <- log( V(g.full)$funding_total_usd + 1 )
+# V(g.full)$has_funding <- ifelse(V(g.full)$funding_total_usd>0,"YES","NO")
 #_------------------------------------------------------------------------
 
 
@@ -366,10 +366,13 @@ gl <- list()
 for(t in 2:length(periods)) {
   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
   gl[[t]] <- makeIgraphPdSubgraphKeepNA(g.base, start=periods[t-1], end=periods[t],acq=acq,rou=rou,br=br)
-}; names(gl) <- periods
+}; names(gl) <- periods;  gl <- gl[2:length(gl)]
 
+sapply(gl, ecount)
 
-
+par(mfrow=c(2,2))
+for(i in 1:4)
+  plotCompNet(gl[[i+1]])
 
 
 

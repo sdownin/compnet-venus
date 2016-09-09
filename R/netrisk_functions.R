@@ -309,24 +309,70 @@ makeIgraphPdSubgraphKeepNA <- function(g, start, end,
   ## funding rounds
   if(any( !is.na(rou) )) {
     cat('optional: adding funding rounds...\n')
-    V(g)$funding_total_usd <- sapply(V(g)$name,function(x)getTotalRaised(x))
+    # V(g)$funding_total_usd <- sapply(V(g)$name,function(x)getTotalRaised(x))
+    x <- ply.vert.attr(rou, 'funded_year', 'ply.rou', start, end)
+    V(g)$funding_total_usd <- ifelse( is.na(x$funding_total_usd), 0, x$funding_total_usd)
     V(g)$log_funding_total_usd <- log(V(g)$funding_total_usd + 1)
     V(g)$has_fund <- ifelse(V(g)$funding_total_usd>0,1,0)
   }
   ## acquisitions
   if(any( !is.na(acq) )) {
     cat('optional: adding acquisitions...\n')
-    V(g)$acquisitions <- sapply(V(g)$name,function(x)getAcqsConcat(x))
-    V(g)$acquisitions_count <- sapply(V(g)$name,function(x)getAcqsCount(x) )   
+    # V(g)$acquisitions <- sapply(V(g)$name,function(x)getAcqsConcat(x))
+    # V(g)$acquisitions_count <- sapply(V(g)$name,function(x)getAcqsCount(x) )
+    x <-  ply.vert.attr(acq, 'acquired_year', 'ply.acq', start, end)
+    V(g)$acquisitions <- x$acquisitions_concat
+    V(g)$acquisitions_count <- ifelse( is.na(x$acquisitions_count)|x$acquisitions_count=="", 0, x$acquisitions_count)
   }
   ## branches
   if(any( !is.na(br) )) {
     cat('optional: adding branches...\n')
-    V(g)$branches <- sapply(V(g)$name,function(x)getBrsConcat(x))
-    V(g)$branches_count <- sapply(V(g)$name,function(x)getBrsCount(x))
+    # V(g)$branches <- sapply(V(g)$name,function(x)getBrsConcat(x))
+    # V(g)$branches_count <- sapply(V(g)$name,function(x)getBrsCount(x))
+    x <- ply.vert.attr(br, 'created_year', 'ply.br', start, end)
+    V(g)$branches <- x$branches_concat
+    V(g)$branches_count <- ifelse(x$branches_count<1,1,0)
   }
+  
   return(g)
 } 
+##----- dependent functions in makeIgraphPdSubgraphKeepNA() --------
+ply.vert.attr <- function(df, filterPdVar, FUN, start, end)
+{
+  if( !('company_name_unique'%in% names(df)) )
+    stop('df must have name column (`company_name_unique`)')
+  if( !(filterPdVar %in% names(df)) )
+    stop(sprintf('filterPdVar `%s` must be a column in `df`',filterPdVar))
+  df.sub <- df[which( df[,filterPdVar] <= end), ]
+  tmp.name <- data.frame(company_name_unique=V(g)$name, stringsAsFactors = F)
+  tmp.ply <- do.call(what = FUN, args = list(df.sub=df.sub))
+  tmp.merge <- merge(tmp.name, tmp.ply, by='company_name_unique', all.x=T, all.y=F)
+  # for(column in 2:ncol(tmp.merge))
+  #   tmp.merge[is.na(tmp.merge[,column]), column] <- 0
+  return(tmp.merge)
+}
+
+ply.rou <- function(df.sub)  # 'funded_year'
+{
+  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
+              funding_total_usd=sum(raised_amount_usd, na.rm=TRUE))
+}
+
+ply.acq <- function(df.sub)  # 'funded_year'
+{
+  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
+              acquisitions_count=length(company_name_unique),
+              acquisitions_concat=paste(acquired_name_unique, collapse = "|") )
+}
+
+ply.br <- function(df.sub)  # 'acquired_year
+{
+  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
+              branches_count=length(company_name_unique),
+              branches_concat=paste(market2, collapse = "|"))
+}
+
+
 
 #-------- Dependend Functions -----
 getRaisedAmts <- function(name_i)

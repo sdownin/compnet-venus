@@ -10,13 +10,13 @@
 setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
 .libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 #
-library(plyr)
+library(plyr, quietly = T)
 # library(dplyr)
-library(magrittr)
-library(texreg)
-library(reshape2)
-library(lubridate)
-library(stringr)
+library(magrittr, quietly = T)
+library(texreg, quietly = T)
+library(reshape2, quietly = T)
+library(lubridate, quietly = T)
+library(stringr, quietly = T)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 #
 #source(file.path(getwd(),'R','comp_net_functions.R'))
@@ -108,9 +108,6 @@ co$market2 <- apply(X = co[,c('country_code','state_code')],
                     MARGIN = 1,
                     FUN =  function(x) paste(x, collapse='_'))
 
-## add branch created_year
-br$created_year <- year(br$created_at)
-
 ## drop unnecessary columns
 co <- co[, !(names(co) %in% c('permalink','company_name','homepage_url'))]
 acq <- acq[, !(names(acq) %in% c('acquired_permalink','acquired_name','company_permalink','company_name'))]
@@ -143,6 +140,9 @@ names(acq)[which(names(acq)=='name')] <- 'company_name_unique'
 comp$relation_updated_at <- timestamp2date(as.numeric(comp$relation_updated_at))
 br$created_at <- timestamp2date(as.numeric(br$created_at))
 br$updated_at <- timestamp2date(as.numeric(br$updated_at))
+
+## add branch created_year
+br$created_year <- year(br$created_at)
 
 ## convert factors
 co$status <- as.factor(co$status)
