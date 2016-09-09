@@ -281,13 +281,13 @@ makeIgraphPdSubgraphKeepNA <- function(g, start, end,
   ##------------------ COLLECT VERTICES TO REMOVE ------- 
   ##  REMOVE VERTICES founded_on > `end`
   if(vertFoundedAttr %in% vertAttrs) {
-    tmp <- igraph::get.edge.attribute(g,vertFoundedAttr) 
+    tmp <- igraph::get.vertex.attribute(g,vertFoundedAttr) 
     vids <- V(g)[which(tmp > end)]
     inactiveVerts <- c(inactiveVerts, vids)
   }
   ##  REMOVE VERTICES closed_on < `start`
   if(vertClosedAttr %in% vertAttrs) {
-    tmp <- igraph::get.edge.attribute(g,vertClosedAttr) 
+    tmp <- igraph::get.vertex.attribute(g,vertClosedAttr) 
     vids <- V(g)[which(tmp < start)]
     inactiveVerts <- c(inactiveVerts, vids)
   }

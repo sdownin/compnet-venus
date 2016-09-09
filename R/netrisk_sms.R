@@ -353,20 +353,27 @@ g2 <- igraph::barabasi.game(8, power = 3, m=4)
 #   igraph MAIN LOOP
 #
 #-----------------------------------------------------------------
-yrpd <- 2
-startYr <- 2000
-endYr <- 2015
+yrpd <- 5
+startYr <- 1999
+endYr <- 2016
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
-k <- 3
-
-g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
+#k <- 3
+#-----------------------------------
+#g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
+g.base <- g.full
 gl <- list()
 for(t in 2:length(periods)) {
   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
   gl[[t]] <- makeIgraphPdSubgraphKeepNA(g.base, start=periods[t-1], end=periods[t],acq=acq,rou=rou,br=br)
 }; names(gl) <- periods;  gl <- gl[2:length(gl)]
+
+save.image(file='netrisk_sms_full_pd_graph.RData')
+#--------------------------------------------------------------------
+
+
+
 
 sapply(gl, ecount)
 
