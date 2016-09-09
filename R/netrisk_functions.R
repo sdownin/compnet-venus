@@ -308,30 +308,42 @@ makeIgraphPdSubgraphKeepNA <- function(g, start, end,
   V(g)$age <- ifelse( agediff >= 0, agediff, NA)
   ## funding rounds
   if(any( !is.na(rou) )) {
-    cat('optional: adding funding rounds...\n')
-    # V(g)$funding_total_usd <- sapply(V(g)$name,function(x)getTotalRaised(x))
+    cat('optional: aggregating funding rounds...\n')
     x <- ply.vert.attr(rou, 'funded_year', 'ply.rou', start, end)
-    V(g)$funding_total_usd <- ifelse( is.na(x$funding_total_usd), 0, x$funding_total_usd)
+    check <- nrow(x) > 0 & all(c('funding_total_usd') %in% names(x))
+    if(check) {
+        V(g)$funding_total_usd <- ifelse(check, ifelse( is.na(x$funding_total_usd), 0, x$funding_total_usd), 0)
+    } else {
+        V(g)$funding_total_usd <- 0
+    }
     V(g)$log_funding_total_usd <- log(V(g)$funding_total_usd + 1)
     V(g)$has_fund <- ifelse(V(g)$funding_total_usd>0,1,0)
   }
   ## acquisitions
   if(any( !is.na(acq) )) {
-    cat('optional: adding acquisitions...\n')
-    # V(g)$acquisitions <- sapply(V(g)$name,function(x)getAcqsConcat(x))
-    # V(g)$acquisitions_count <- sapply(V(g)$name,function(x)getAcqsCount(x) )
+    cat('optional: aggregating acquisitions...\n')
     x <-  ply.vert.attr(acq, 'acquired_year', 'ply.acq', start, end)
-    V(g)$acquisitions <- x$acquisitions_concat
-    V(g)$acquisitions_count <- ifelse( is.na(x$acquisitions_count)|x$acquisitions_count=="", 0, x$acquisitions_count)
+    check <- nrow(x) > 0 & all(c('acquisitions_count','acquisitions_concat') %in% names(x))
+    if(check) {
+        V(g)$acquisitions <- x$acquisitions_concat
+        V(g)$acquisitions_count <- ifelse( is.na(x$acquisitions_count)|x$acquisitions_count=="", 0, x$acquisitions_count)
+    } else {
+        V(g)$acquisitions <- NA
+        V(g)$acquisitions_count <- 0
+    }
   }
   ## branches
   if(any( !is.na(br) )) {
-    cat('optional: adding branches...\n')
-    # V(g)$branches <- sapply(V(g)$name,function(x)getBrsConcat(x))
-    # V(g)$branches_count <- sapply(V(g)$name,function(x)getBrsCount(x))
+    cat('optional: aggregating branches...\n')
     x <- ply.vert.attr(br, 'created_year', 'ply.br', start, end)
-    V(g)$branches <- x$branches_concat
-    V(g)$branches_count <- ifelse(x$branches_count<1,1,0)
+    check <- nrow(x) > 0 & all(c('branches_count','branches_concat') %in% names(x))
+    if(check) {
+        V(g)$branches <- x$branches_concat
+        V(g)$branches_count <- ifelse(x$branches_count<1,1,0)      
+    } else {
+        V(g)$branches <- NA
+        V(g)$branches_count <- 0 
+    }
   }
   
   return(g)
@@ -351,81 +363,77 @@ ply.vert.attr <- function(df, filterPdVar, FUN, start, end)
   #   tmp.merge[is.na(tmp.merge[,column]), column] <- 0
   return(tmp.merge)
 }
-
 ply.rou <- function(df.sub)  # 'funded_year'
 {
   plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
               funding_total_usd=sum(raised_amount_usd, na.rm=TRUE))
 }
-
-ply.acq <- function(df.sub)  # 'funded_year'
+ply.acq <- function(df.sub)  # 'acquired_year'
 {
   plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
               acquisitions_count=length(company_name_unique),
               acquisitions_concat=paste(acquired_name_unique, collapse = "|") )
 }
-
-ply.br <- function(df.sub)  # 'acquired_year
+ply.br <- function(df.sub)   # 'created_year
 {
   plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
               branches_count=length(company_name_unique),
-              branches_concat=paste(market2, collapse = "|"))
+              branches_concat=paste(market2, collapse = "|") )
 }
+#----// dependent functions -----------
 
 
 
-#-------- Dependend Functions -----
-getRaisedAmts <- function(name_i)
-{
-  subset(rou, subset=(company_name_unique==name_i & funded_year <= end), select = 'raised_amount_usd')
-}
-getTotalRaised <- function(name_i) 
-{
-  amts <- getRaisedAmts(name_i)
-  if(nrow(amts)>0) {
-    return(sum(amts,na.rm = T))
-  }
-  return(0)
-}
-
-getAcqs <- function(name_i)
-{
-  subset(acq, subset=(company_name_unique==name_i & acquired_year <= end) )
-}
-getAcqsCount <- function(name_i)
-{
-  acqsSubset <- getAcqs(name_i)
-  return(nrow(acqsSubset))
-}
-getAcqsConcat <- function(name_i)
-{
-  acqsSubset <- getAcqs(name_i)
-  if(nrow(acqsSubset)>0) {
-    return( paste(acqsSubset$acquired_name_unique,collapse = "|"))
-  }
-  return("")
-}
-
-getBrs <- function(name_i)
-{
-  subset(br, subset=(company_name_unique==name_i & created_year <= end))
-}
-getBrsConcat <-function(name_i)
-{
-  brs <- getBrs(name_i)
-  brsMarket2 <- brs$market2
-  index <- which(brsMarket2=="" | is.na(brsMarket2))
-  brs[index] <- 'NA'
-  return(paste(brsMarket2, collapse="|"))
-}
-getBrsCount <- function(name_i)
-{
-  brs <- getBrs(name_i)
-  brsCount <- nrow(brs)
-  brsCount[brsCount < 1] <- 1
-  return(brsCount)
-}
-#----------------------------------
+#-------- Dependend Functions  Previous versions -----
+# getRaisedAmts <- function(name_i)
+# {
+#   subset(rou, subset=(company_name_unique==name_i & funded_year <= end), select = 'raised_amount_usd')
+# }
+# getTotalRaised <- function(name_i) 
+# {
+#   amts <- getRaisedAmts(name_i)
+#   if(nrow(amts)>0) {
+#     return(sum(amts,na.rm = T))
+#   }
+#   return(0)
+# }
+# getAcqs <- function(name_i)
+# {
+#   subset(acq, subset=(company_name_unique==name_i & acquired_year <= end) )
+# }
+# getAcqsCount <- function(name_i)
+# {
+#   acqsSubset <- getAcqs(name_i)
+#   return(nrow(acqsSubset))
+# }
+# getAcqsConcat <- function(name_i)
+# {
+#   acqsSubset <- getAcqs(name_i)
+#   if(nrow(acqsSubset)>0) {
+#     return( paste(acqsSubset$acquired_name_unique,collapse = "|"))
+#   }
+#   return("")
+# }
+# getBrs <- function(name_i)
+# {
+#   subset(br, subset=(company_name_unique==name_i & created_year <= end))
+# }
+# getBrsConcat <-function(name_i)
+# {
+#   brs <- getBrs(name_i)
+#   brsMarket2 <- brs$market2
+#   index <- which(brsMarket2=="" | is.na(brsMarket2))
+#   brs[index] <- 'NA'
+#   return(paste(brsMarket2, collapse="|"))
+# }
+# getBrsCount <- function(name_i)
+# {
+#   brs <- getBrs(name_i)
+#   brsCount <- nrow(brs)
+#   brsCount[brsCount < 1] <- 1
+#   return(brsCount)
+# }
+#------------------------------------------------------
 
 
 # ###
