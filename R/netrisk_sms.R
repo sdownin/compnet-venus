@@ -14,13 +14,21 @@ library(stringr, quietly = T)
 library(ndtv, quietly = T)
 library(visNetwork, quietly = T)
 library(scatterplot3d, quietly = T)
+library(lattice, quietly = T)
+library(latticeExtra, quietly = T)
+library(ggplot2, quietly = T)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment"
 #
+if( !('gl1' %in% ls()) )
+  load('netrisk_sms_full_pd_graph.RData')
+
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
 
+
+lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 
 ##  SELECT n Multi-Product Firms  (serial acquirers)
 # top.acquirers <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
@@ -343,9 +351,14 @@ ndtv::render.d3movie(ss, filename = )
 
 
 
-g1 <- igraph::barabasi.game(8, power = 1.1, m=2)
-g2 <- igraph::barabasi.game(8, power = 3, m=4)
-  
+####################################################################
+####################################################################
+####################################################################
+####################################################################
+####################################################################
+####################################################################
+####################################################################
+
 
 
 #-----------------------------------------------------------------
@@ -370,49 +383,337 @@ for(t in 2:length(periods)) {
 }; names(gl) <- periods;  gl <- gl[2:length(gl)]
 
 # save.image(file='netrisk_sms_full_pd_graph.RData')
-# load('netrisk_sms_full_pd_graph.RData')
+# 
 
 #--------------------------------------------------------------------
 
 
+###########################
+#  Subset Competition Net List
+###########################
+periods <- seq(2001,2015,1)
+gl1.bak <- gl1
+gl1 <- gl1.bak[ which( names(gl1.bak)%in%periods)  ]
+###########################
 
-sapply(gl1, ecount)
-sapply(gl1, vcount)
-sapply(gl1, function(g)max(na.omit(V(g)$founded_at)))
-
-periods <- seq(2000,2015,1)
-gl1 <- gl1[ which( !(names(gl1)%in%c(2016)) ) ]
-
-name_i <- 'surveymonkey'
-filename <- file.path(img_dir,sprintf('%s_k_period_size_avg_path.png',name_i))
-png(filename,height=7,width=11,units='in',res=250)
-  par(mfrow=c(2,4),mar=c(4,4,2,1))
-  for (k in 1:4) {
-    gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'))
-    df.sm <- data.frame(v=sapply(gs.sm,vcount),e=sapply(gs.sm,ecount))
-    matplot(periods,df.sm,type='o',pch=16:17,ylim=c(5,2000),log='y',ylab='Comp Net Size (log scale)',main=sprintf('k=%d',k))
-    legend('topleft',legend=c('firms','competitive relations'),col=1:2,lty=1:2,pch=16:17)
-  }
-  for (k in 1:4) {
-    gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'))
-    plot(names(gs.sm),sapply(gs.sm,function(g)igraph::average.path.length(g)/k),
-         ylab='Avg Path Length / k',xlab='Period',type='o',pch=16,main=sprintf('k=%d',k),ylim=c(.6,1.9))  
-  }
-dev.off()
-
-## plot k-th order ego net time slices
-par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
-for(i in (1+3*c(0,1,2,3,4,5)) ) {
-  set.seed(1111)
-  plotCompNet(gs.sm[[i]], multi.prod = c('surveymonkey'), vertex.log.base = 1+exp(k)/11, label.log.base = 1+exp(k)/1.6 )
-  legend('topright',legend=sprintf('t=%d',periods[i]),bty='n')
+previous.base.plotting.ego.nets <- function() 
+{
+# name_i <- 'surveymonkey'
+# 
+# filename <- file.path(img_dir,sprintf('%s_k_period_size_avg_path.png',name_i))
+# png(filename,height=7,width=11,units='in',res=250)
+#   par(mfrow=c(2,4),mar=c(4,4,2,1))
+#   for (k in 1:4) {
+#     gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'))
+#     df.sm <- data.frame(Period=periods,k=k,v=sapply(gs.sm,vcount),e=sapply(gs.sm,ecount))
+#     matplot(periods,df.sm,type='o',pch=16:17,ylim=c(5,2000),log='y',ylab='Comp Net Size (log scale)',main=sprintf('k=%d',k))
+#     legend('topleft',legend=c('firms','competitive relations'),col=1:2,lty=1:2,pch=16:17)
+#   }
+#   for (k in 1:4) {
+#     gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'))
+#     plot(names(gs.sm),sapply(gs.sm,function(g)igraph::average.path.length(g)/k),
+#          ylab='Avg Path Length / k',xlab='Period',type='o',pch=16,main=sprintf('k=%d',k),ylim=c(.6,1.9))  
+#   }
+# dev.off() 
 }
 
-sapply(gs.sm, function(g)V(g)[V(g)$name=='surveymonkey']$funding_total_usd)
 
 
 
+##  --------------------latice extra-------------------------------------
+names <- c('google','microsoft','oracle','adobe-systems','amazon','ibm','facebook','sap',
+           'dropbox','surveymonkey','medallia','clarabridge','netflix')
 
+## PLOT LOOP
+for (name_i in names) {
+    # name_i <- 'dropbox'
+    
+    df.sm.tot <- data.frame();  df.av.tot <- data.frame()
+    for (k in 1:4) {
+      gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+      ## size growth
+      df.sm <- data.frame(Period=periods, k=sprintf('k=%d',k),
+                          v=sapply(gs.sm, function(x)safeIgraphApply(x, 'vcount')),
+                          e=sapply(gs.sm, function(x)safeIgraphApply(x, 'ecount')) )
+      df.sm.tot <- rbind(df.sm.tot, df.sm)
+      ## avg. path length
+      df.av <- data.frame(Period=periods, k=sprintf('k=%d',k),
+                          l=sapply(gs.sm, function(x)safeIgraphApply(x,'average.path.length')/k) )
+      df.av.tot <- rbind(df.av.tot, df.av)
+    }
+    df.sm.melt <- reshape2::melt(data = df.sm.tot, id.vars=c('k','Period'), value.name="Network Size")
+    df.av.melt <- reshape2::melt(data = df.av.tot, id.vars=c('k','Period'), value.name="Avg Path Length / k")
+    
+    ## SIZE GROWTH PLOT
+    trel1 <- lattice::xyplot(`Network Size` ~ Period | k, groups=variable, data=df.sm.melt, 
+                main=sprintf("%s: Competition Network Growth by Ego Network Order (k)", stringr::str_to_title(name_i)),
+                type='b', pch=16:17, col=1:2, lty=1:2, layout=c(4,1), na.rm=FALSE,
+                scales = list(y = list(log = 10)),
+                par.settings=list(strip.background=list(col='lightgrey')),
+                key=list(text=list(c("Firms","Competitive Relations")),
+                       points=list(type='b',pch=16:17,col=1:2,lty=1:2),
+                       space="top", columns=2)
+                )
+    ## AVG PATH LENGTH
+    trel2 <- lattice::xyplot(`Avg Path Length / k` ~ Period | k, data=df.av.melt, 
+                 main=sprintf("%s: Avg Competitive Distance Decrease with Ego Network Order (k)", stringr::str_to_title(name_i)),
+                 type='b', pch=16, col=1, lty=1, layout=c(4,1), na.rm=FALSE,
+                 scales = list(y = list(log = 10)),
+                 par.settings=list(strip.background=list(col='lightgrey')),
+                 key=list(text=list(c("Avg Path Length / Ego Network Order (k)")),
+                          points=list(type='b',pch=16,col=1,lty=1),
+                          space="top", columns=1)
+    )
+    ## SAVE PLOT SIZE
+    filename <- file.path(img_dir,sprintf('lattice_%s_k_net_size_growth.png',name_i))
+    lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
+    print(trel1);  
+    dev.off()  
+    ## SAVE PLOT LENGTH
+    filename <- file.path(img_dir,sprintf('lattice_%s_k_avg_path_len.png',name_i))
+    lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
+    print(trel2);  
+    dev.off()  
+ 
+}
+
+
+##-------------------------------------------------------------------------
+
+multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
+                  "facebook","amazon","adobe-systems","nokia","dell",
+                  "groupon","autodesk","salesforce","iac","quest-software","zayo-group",
+                  "qualcomm","blackberry","berkshire-hathaway-corp","carlyle-group","intuit",
+                  "symantec","broadcom","kkr","medtronic","vmware")
+
+
+single.prod <- c('dropbox','surveymonkey','netflix','medallia')
+k.vec <- c(3,3,3,4)
+
+for (i in 1:length(single.prod)) {
+  name_i <- single.prod[i]
+  k <- k.vec[i]
+  
+  gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+  
+  ## plot k-th order ego net time slices
+  filename <- file.path(img_dir,sprintf('ego_compnet_%s_k%d_timeslices.png',name_i,k))
+  png(filename, height=8,width=14,units='in',res=350)
+    par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
+    for(i in (5+2*c(0,1,2,3,4,5)) ) {
+      set.seed(1111)
+      if (length(gs.sm[[i]])==0)
+        g_i <- NA
+      else if( class(gs.sm[[i]])=='igraph' )
+        g_i <- gs.sm[[i]]
+      else if ( class(gs.sm[[i]][[1]])=='igraph'  )
+        g_i <- gs.sm[[i]][[1]]
+      else if ( class(gs.sm[[i]][[1]][[1]])=='igraph'  )
+        g_i <- gs.sm[[i]][[1]][[1]]
+      else
+        g_i <- NA
+      ##
+      if (all( !is.na(g_i) )) {
+        plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
+      } else {
+        plot.new()
+      }
+      legend('topright',legend=sprintf('t=%d (k=%d)',periods[i], k),bty='n', cex=1.6)
+    }
+  dev.off()
+}
+
+
+
+## jaccard similarity
+js <- similarity(g.sub, method='jaccard')
+heatmap(js)
+
+## cliques are markets
+cl <- igraph::cliques(gs.sm[[1]], min = 2)
+cl.cnt <- plyr::count(sapply(cl,length))
+barplot(height = cl.cnt$freq, names.arg = cl.cnt$x)
+
+
+
+## network distance
+name_i <- 'surveymonkey'
+gx <- gl1[[14]]
+sp <- igraph::get.shortest.paths(gx, output = 'both', mode='all',
+                                 from=V(gx)[V(gx)$name==name_i],
+                                 to=V(gx)[V(gx)$name %in% c(multi.prod)]  )
+
+sp <- igraph::get.shortest.paths(gx, to=V(gx)[V(gx)$name %in% c(multi.prod,name_i)] )
+
+dis <- lapply(single.prod, function(name_i){
+  sapply(gl1[3:5], function(gx){
+    print(name_i)
+    tmp <- igraph::shortest.paths(gx, 
+                           v=V(gx)[V(gx)$name==name_i], 
+                           to=V(gx)[V(gx)$name %in% c(multi.prod)] ) 
+    row.names(tmp) <- multi.prod
+    return(tmp)
+  }, simplify=T)
+})
+
+
+############################################################################################
+###_------------------------- NETWORK DISTANCE PLOTS -----------------------------------------
+ls.dist <- list()
+for (name_i in single.prod) {
+  ls.dist[[name_i]] <- ldply(gl1, function(gx){
+      igraph::shortest.paths(gx, 
+                          v=V(gx)[V(gx)$name==name_i], 
+                          to=V(gx)[V(gx)$name %in% c(multi.prod)] ) 
+    })
+}
+
+df2 <- data.frame()
+for (i in 1:length(ls.dist)) {
+  ls.dist[[i]]$single.prod <- names(ls.dist)[i]
+  df2 <- rbind(df2, ls.dist[[i]])  
+}
+
+
+
+l <- 1
+df2[df2==Inf|df2==-Inf] <- NA
+
+ls.dist.melt <- reshape2::melt(df2, id.vars=c('.id','single.prod'))
+
+# lattice::dotplot(value ~ .id | single.prod , groups=variable, type='b', data=ls.dist.melt, na.rm=T)
+
+trel3 <- lattice::xyplot(value ~ as.numeric(.id) | single.prod , groups=variable, 
+                data=ls.dist.melt, na.rm=T,
+                type='b',  pch=16, col=1:14, lty=1:6, layout=c(4,1), na.rm=T,
+                xlab='Period', ylab='Network Distance',
+                # scales = list(y = list(log = 10)),
+                par.settings=list(strip.background=list(col='lightgrey')),
+                key=list(text=list( as.character(unique(droplevels(na.omit(ls.dist.melt)$variable)))),
+                         points=list(type='b',pch=16,col=1:14,lty=1:6),
+                         space="top", columns=6)
+                )
+
+ls.dist.ply.avg <- plyr::ddply(ls.dist.melt, .variables = .(.id, single.prod), summarise,
+            meandist = mean(value, na.rm = T))
+igraph::leading.eigenvector.community(gs.sm[[1]])
+trel4 <- lattice::xyplot(meandist ~ as.numeric(.id) | single.prod, data = ls.dist.ply.avg, 
+                type=c('b','r'), lty=1, pch=16, col='black',size=5,
+                mean = "Envelopment Risk: Avg Network Distance Over Time",
+                xlab='Period', ylab='Mean Network Distance',
+                par.settings=list(strip.background=list(col='lightgrey'))
+                )
+
+filename <- file.path(img_dir,sprintf('all_multiprod_net_dist_change_time.png'))
+lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
+print(trel3);  
+dev.off()  
+filename <- file.path(img_dir,sprintf('avg_net_dist_change_time.png'))
+lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
+print(trel4);  
+dev.off()  
+##################################################################
+
+
+##----------------------- Community -----------------------
+g <- gs.sm[[15]][[1]]
+com <- list()
+com$infomap<- igraph::infomap.community(g)
+com$walktrap <- igraph::walktrap.community(g)
+##com3 <- igraph::spinglass.community(g)
+com$fastgreedy <- igraph::fastgreedy.community(g)
+com$multilevel <- igraph::multilevel.community(g)
+com$edgebet <- igraph::edge.betweenness.community(g)
+com$labelprop <- igraph::label.propagation.community(g)
+com$eigen <- igraph::leading.eigenvector.community(g)
+
+par(mfrow=c(3,3))
+for(i in 1:length(com)) {
+  cnt <- plyr::count(com[[i]]$membership)
+  barplot(height = cnt$freq, names.arg = cnt$x, main=names(com)[i], col='lightgray')
+}
+
+## Single Medallia plot-----------------------------------
+name_i <- 'medallia'
+membership <- com$multilevel$membership
+k <- 4
+gx <- gl1[[length(gl1)]]
+g.sub <- igraph::make_ego_graph(gx, k, V(gx)[V(gx)$name==name_i],mode = 'all')[[1]]
+filename <- file.path(img_dir,sprintf('single_ego_compnet_%s_k%d.png',name_i,k))
+png(filename, height=5.5,width=6,units='in',res=350)
+  par(mfrow=c(1,1), mar=c(.1,.1,0,0))
+  plotCompNet(g.sub, focal.firm = name_i, membership = membership, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
+  legend('topright',legend=sprintf('t=%d (k=%d)',periods[length(periods)], k),bty='n', cex=1.3)
+dev.off()
+
+
+## compare community membership algorithm loop 
+par(mfrow=c(3,3), mar=c(.1,.1,0,0))
+for(i in 1:length(com)) {
+  plotCompNet(g.sub, focal.firm = name_i, membership = com[[i]]$membership, vertex.log.base = 1+exp(k)*.04, label.log.base = 1+exp(k)*.4 )
+  legend('topright',legend=sprintf('%s',stringr::str_to_title(names(com)[i])),bty='n', cex=1.3)
+}
+
+
+
+## medallia community
+c_i <- com$multilevel$membership[which(com$multilevel$names==name_i)]
+com$multilevel$names[which(com$multilevel$membership==c_i)]
+
+##
+coms <- unique(com$multilevel$membership)
+com.subg <- list()
+for (c_i in coms) {
+  com.names <- com$multilevel$names[which(com$multilevel$membership==c_i)]
+  com.subg[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
+}
+par(mfrow=c(3,3), mar=c(.1,.1,2,.1))
+sapply(com.subg, function(x)plotCompNet(x,margins=c(0,0,2,.1), vertex.log.base = 1.5, label.log.base = 3,main=sprintf('%.2f',graph.density(x))))
+
+
+## Noisy Product Markets 
+n <- 10
+par(mfrow=c(2,4), mar=c(2,0,4,0))
+## ERDOS RENYI GAME
+erl <- lapply(X=c(0, 1/3,2/3,1),FUN = function(x)igraph::erdos.renyi.game(n,x,directed = F))
+sapply(erl,function(x)plotRingWithIsolates(x, main=sprintf('        p = %.2f\n    rho = %.2f\np+rho = %.2f',x$p,1-graph.density(x),x$p+1-graph.density(x))))
+##  BARABASI GAME PREFERENTIAL ATTACHMENT
+bgl <- lapply(X=c(0.01,1.5,2,4.5), function(x)as.undirected(barabasi.game(n, power=2.5, m=x)))
+sapply(bgl,function(x)plotRingWithIsolates(x, main=sprintf('    rho = %.2f',1-graph.density(x))))
+
+
+##_--------------------------------------------------------
+
+
+
+##---------------------------------------------------------
+
+
+##---------------------------------------------------------
+
+
+###-------------------------------------------------------------------
+
+
+dis.df <- data.frame(dropbox=dis[[l]]$dropbox,
+                    surveymonkey=dis[[l]]$surveymonkey,
+                    netflix=dis[[l]]$netflix,
+                    medallia=dis[[l]]$medallia)
+do.call(rbind, lapply(dis, data.frame, stringsAsFactors=FALSE))
+
+
+for(i in (5+2*c(0,1,2,3,4,5)) ) {
+  set.seed(1111)
+  gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+  g_i <- ifelse(class(gs.sm[[i]])=='igraph', gs.sm[[i]],  gs.sm[[i]][[1]] )
+
+  print(g_i)
+}
+
+
+    g_i <- ifelse(class(gs.sm[[i]])=='igraph', gs.sm[[i]], 
+                ifelse(class(gs.sm[[i]][[1]])=='igraph', gs.sm[[i]][[1]],
+                       NA))
 
 
 

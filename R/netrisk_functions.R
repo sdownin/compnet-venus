@@ -27,6 +27,34 @@ df2lower <- function(df)
 }
 
 ##
+# Get Igraph from list of igraphs that contain empty|NA elements
+#     controlls for sapply() returning a list of 1 igraph instead of the igraph itself
+# @param list   x    A list of igraphs
+# @param string FUN  The name of igrpah function to apply
+##
+safeIgraphApply <- function(x, FUN, args.list=list())
+{
+  g <- NA
+  if(length(x)==0)
+    return(NA)
+  else if(class(x)=='igraph')
+    g <- x
+  else if(class(x[[1]])=='igraph')
+    g <- x[[1]]
+  else if(class(x[[1]][[1]])=='igraph')
+    g <- x[[1]][[1]]
+  else
+    return(NA)
+  ##
+  if(any( !is.na(g) )) {
+    args.list <- c(args.list, list(graph=g))
+    return(do.call(what = FUN, args = args.list))    
+  }
+  else
+    return(NA)
+}
+
+##
 # Gets an Igraph object from a network object
 # WARNING: DOES NOT HANDLE BIPARTITE OR LOOPY NETWORKS
 ##
@@ -132,14 +160,27 @@ getMultiProdEgoNet <- function(g, firms, k=1, include.competitor.egonet=TRUE)
 ##
 # Plot Competition Network coloring the Multi-Product firms in red
 ##
-plotCompNet <- function(gs,multi.prod=NA, vertex.log.base=exp(1),label.log.base=10, ...) 
+plotCompNet <- function(gs, membership=NA, focal.firm=NA, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, ...) 
 {
-  par(mar=c(.1,.5,.1,.5))
+  if(all(is.na(margins)))
+      margins <- c(.1,.1,.1,.1)
+  ##
+  par(mar=margins)
   d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  rgb(.3,.3,.6,.4)
+  ##
+  if (!all(is.na(membership)))
+    vertcol <- rainbow(length(unique(membership)), alpha=.7)[ membership ]
+  ##
   if (!all(is.na(multi.prod)))
-    vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), rgb(.5,.5,.7,.8))
-  else
-    vertcol <- rgb(.5,.5,.7,.8)
+    vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), vertcol)
+  ##
+  if(!all(is.na(focal.firm))) {
+    vertcol <- ifelse(V(gs)$name %in% focal.firm, rgb(.15,.15,.7,.8), vertcol )
+    vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
+  }
+  ##
   set.seed(1111)
   plot.igraph(gs
               , layout=layout.kamada.kawai
@@ -149,6 +190,30 @@ plotCompNet <- function(gs,multi.prod=NA, vertex.log.base=exp(1),label.log.base=
               , vertex.label.color='black'
               , vertex.label.font = 2
               , vertex.label.family = 'sans'
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+
+##
+#
+##
+plotRingWithIsolates <- function(gs, vert.size=20, label.cex=1.8, edge.width=2, ...) 
+{
+  par(mar=c(2,.1,5,.1))
+  d <- igraph::degree(gs)
+  set.seed(1111)
+  plot.igraph(gs
+              , layout=layout.circle
+              , vertex.size=vert.size
+              , vertex.color='gray'
+              , vertex.label.cex=label.cex
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              , edge.width = edge.width
               , ...
   )
   par(mar=c(4.5,4.5,3.5,1))
