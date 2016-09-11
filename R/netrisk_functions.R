@@ -160,7 +160,7 @@ getMultiProdEgoNet <- function(g, firms, k=1, include.competitor.egonet=TRUE)
 ##
 # Plot Competition Network coloring the Multi-Product firms in red
 ##
-plotCompNet <- function(gs, membership=NA, focal.firm=NA, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, ...) 
+plotCompNet <- function(gs, membership=NA, focal.firm=NA, focal.color=FALSE, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, ...) 
 {
   if(all(is.na(margins)))
       margins <- c(.1,.1,.1,.1)
@@ -177,7 +177,8 @@ plotCompNet <- function(gs, membership=NA, focal.firm=NA, multi.prod=NA, vertex.
     vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), vertcol)
   ##
   if(!all(is.na(focal.firm))) {
-    vertcol <- ifelse(V(gs)$name %in% focal.firm, rgb(.15,.15,.7,.8), vertcol )
+    if(focal.color) 
+        vertcol <- ifelse(V(gs)$name %in% focal.firm, rgb(.15,.15,.7,.8), vertcol )
     vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
   }
   ##
@@ -200,7 +201,7 @@ plotCompNet <- function(gs, membership=NA, focal.firm=NA, multi.prod=NA, vertex.
 ##
 #
 ##
-plotRingWithIsolates <- function(gs, vert.size=20, label.cex=1.8, edge.width=2, ...) 
+plotRingWithIsolates <- function(gs, vert.size=25, label.cex=1.8, edge.width=2, ...) 
 {
   par(mar=c(2,.1,5,.1))
   d <- igraph::degree(gs)
@@ -774,8 +775,7 @@ getPdActiveEdges <- function(net, g, start, end,
 #--------------------------------------------------------------------------
 ## Distance weighted reach function
 distWeightReach <- function(g,
-                            mode='in',
-                            weights=NA
+                            mode='in'
 ) {
   D <- c()
   #for each vertex
@@ -799,10 +799,48 @@ distWeightReach <- function(g,
           d[l] <- 1 / ( length(dp)-1 )
         }
       }
-      D[k] <- sum(d)
+      D[k] <- sum(d)r
     }
   } #end vertex loop
   
   R <- sum(D) / vcount(g)
+  cat(sprintf('nodes %d edges %d reach: %.3f\n',vcount(g),ecount(g),R))
   return(R)
 }#end function
+
+
+
+distWeightReachPerNode <- function(g, mode='in', weights)
+{
+  D <- c()
+
+  # if degree is positive
+  if (degree(g, v=k)>0) {
+    #find vertex subcomponent
+    vec <- subcomponent(graph = g,v = V(g)[k],mode = mode)
+    vec <- vec[order(vec)]
+    
+    d <- numeric(length(vec)-1)
+    #for each other vertex l in subcomponent of vertex k
+    for (l in 1:(length(vec))) {
+      # excluding when k=l (which would make -Inf length)
+      if (k!=vec[l]) {
+        # vertex path of geodesic from k to l
+        dp <-  unlist(get.shortest.paths(graph = g, from = k, to = vec[l],
+                                         mode=mode, weights=weights,
+                                         output="vpath")$vpath) #directed graph
+        # inverse of length of geodesic from k to l
+        #  -1 to subtract the origin vertex
+        d[l] <- 1 / ( length(dp)-1 )
+      }
+    } ## end other vertex l loop
+    D[k] <- sum(d)r
+  } ## end if degree > 0
+  
+  R <- sum(D) / vcount(g)
+  cat(sprintf('nodes %d edges %d reach: %.3f\n',vcount(g),ecount(g),R))
+  return(R)
+}
+
+
+

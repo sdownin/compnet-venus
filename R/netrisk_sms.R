@@ -478,7 +478,7 @@ for (name_i in names) {
 }
 
 
-##-------------------------------------------------------------------------
+##--------------------- PLOT COMPETITION NETWORK SLICES --------------------------------------
 
 multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
                   "facebook","amazon","adobe-systems","nokia","dell",
@@ -535,8 +535,9 @@ cl.cnt <- plyr::count(sapply(cl,length))
 barplot(height = cl.cnt$freq, names.arg = cl.cnt$x)
 
 
-
+############################################################################
 ## network distance
+############################################################################
 name_i <- 'surveymonkey'
 gx <- gl1[[14]]
 sp <- igraph::get.shortest.paths(gx, output = 'both', mode='all',
@@ -559,6 +560,7 @@ dis <- lapply(single.prod, function(name_i){
 
 ############################################################################################
 ###_------------------------- NETWORK DISTANCE PLOTS -----------------------------------------
+
 ls.dist <- list()
 for (name_i in single.prod) {
   ls.dist[[name_i]] <- ldply(gl1, function(gx){
@@ -575,28 +577,28 @@ for (i in 1:length(ls.dist)) {
 }
 
 
-
 l <- 1
 df2[df2==Inf|df2==-Inf] <- NA
 
 ls.dist.melt <- reshape2::melt(df2, id.vars=c('.id','single.prod'))
-
+nColors <- length(unique(droplevels(na.omit(ls.dist.melt)$variable)))
 # lattice::dotplot(value ~ .id | single.prod , groups=variable, type='b', data=ls.dist.melt, na.rm=T)
 
 trel3 <- lattice::xyplot(value ~ as.numeric(.id) | single.prod , groups=variable, 
                 data=ls.dist.melt, na.rm=T,
-                type='b',  pch=16, col=1:14, lty=1:6, layout=c(4,1), na.rm=T,
+                type='b',  pch=16, col=rainbow(n = nColors,alpha=.75), lty=1:6, layout=c(4,1), na.rm=T,
                 xlab='Period', ylab='Network Distance',
                 # scales = list(y = list(log = 10)),
+                main="Distance from Serial Acquirers & Multi-Product Firms",
                 par.settings=list(strip.background=list(col='lightgrey')),
                 key=list(text=list( as.character(unique(droplevels(na.omit(ls.dist.melt)$variable)))),
-                         points=list(type='b',pch=16,col=1:14,lty=1:6),
+                         points=list(type='b',pch=16,col=rainbow(n = nColors,alpha=.75),lty=1:6),
                          space="top", columns=6)
                 )
 
 ls.dist.ply.avg <- plyr::ddply(ls.dist.melt, .variables = .(.id, single.prod), summarise,
             meandist = mean(value, na.rm = T))
-igraph::leading.eigenvector.community(gs.sm[[1]])
+
 trel4 <- lattice::xyplot(meandist ~ as.numeric(.id) | single.prod, data = ls.dist.ply.avg, 
                 type=c('b','r'), lty=1, pch=16, col='black',size=5,
                 mean = "Envelopment Risk: Avg Network Distance Over Time",
@@ -604,7 +606,7 @@ trel4 <- lattice::xyplot(meandist ~ as.numeric(.id) | single.prod, data = ls.dis
                 par.settings=list(strip.background=list(col='lightgrey'))
                 )
 
-filename <- file.path(img_dir,sprintf('all_multiprod_net_dist_change_time.png'))
+filename <- file.path(img_dir,sprintf('all_multiprod_net_dist_change_time_rainbow_col.png'))
 lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
 print(trel3);  
 dev.off()  
@@ -614,8 +616,9 @@ print(trel4);
 dev.off()  
 ##################################################################
 
-
+##################################################################
 ##----------------------- Community -----------------------
+##################################################################
 g <- gs.sm[[15]][[1]]
 com <- list()
 com$infomap<- igraph::infomap.community(g)
@@ -627,10 +630,13 @@ com$edgebet <- igraph::edge.betweenness.community(g)
 com$labelprop <- igraph::label.propagation.community(g)
 com$eigen <- igraph::leading.eigenvector.community(g)
 
-par(mfrow=c(3,3))
+com.name.list <- c('Infomap','Walk Trap','Fast Greedy','Multi-level',
+                   'Edge Betweenness','Label Propagation','Leading Eigenvector')
+
+par(mfrow=c(3,3), mar=c(3,3,3,1))
 for(i in 1:length(com)) {
   cnt <- plyr::count(com[[i]]$membership)
-  barplot(height = cnt$freq, names.arg = cnt$x, main=names(com)[i], col='lightgray')
+  barplot(height = cnt$freq, names.arg = cnt$x, main=com.name.list[i], col='lightgray')
 }
 
 ## Single Medallia plot-----------------------------------
@@ -639,10 +645,10 @@ membership <- com$multilevel$membership
 k <- 4
 gx <- gl1[[length(gl1)]]
 g.sub <- igraph::make_ego_graph(gx, k, V(gx)[V(gx)$name==name_i],mode = 'all')[[1]]
-filename <- file.path(img_dir,sprintf('single_ego_compnet_%s_k%d.png',name_i,k))
+filename <- file.path(img_dir,sprintf('single_ego_compnet_nofocalcolor_%s_k%d.png',name_i,k))
 png(filename, height=5.5,width=6,units='in',res=350)
   par(mfrow=c(1,1), mar=c(.1,.1,0,0))
-  plotCompNet(g.sub, focal.firm = name_i, membership = membership, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
+  plotCompNet(g.sub, focal.firm = name_i, focal.color=FALSE, membership = membership, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
   legend('topright',legend=sprintf('t=%d (k=%d)',periods[length(periods)], k),bty='n', cex=1.3)
 dev.off()
 
@@ -668,23 +674,36 @@ for (c_i in coms) {
   com.subg[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
 }
 par(mfrow=c(3,3), mar=c(.1,.1,2,.1))
-sapply(com.subg, function(x)plotCompNet(x,margins=c(0,0,2,.1), vertex.log.base = 1.5, label.log.base = 3,main=sprintf('%.2f',graph.density(x))))
+sapply(com.subg, function(x){
+  plotRingWithIsolates(x,label.cex=1,main=sprintf('Density = %.2f',graph.density(x)))
+})
 
 
 ## Noisy Product Markets 
 n <- 10
-par(mfrow=c(2,4), mar=c(2,0,4,0))
-## ERDOS RENYI GAME
-erl <- lapply(X=c(0, 1/3,2/3,1),FUN = function(x)igraph::erdos.renyi.game(n,x,directed = F))
-sapply(erl,function(x)plotRingWithIsolates(x, main=sprintf('        p = %.2f\n    rho = %.2f\np+rho = %.2f',x$p,1-graph.density(x),x$p+1-graph.density(x))))
+filename <- file.path(img_dir,'noisy_prod_market_density_epsilon_erd_renyi.png')
+png(filename,height=3, width=8, units='in',res=200)
+  par(mfrow=c(1,4), mar=c(2,0,4,0))
+  ## ERDOS RENYI GAME
+  erl <- lapply(X=c(0, 1/3,2/3,1),FUN = function(x)igraph::erdos.renyi.game(n,x,directed = F))
+  sapply(erl,function(x)plotRingWithIsolates(x, vert.size=30, main=sprintf('        p = %.2f\n    eps = %.2f\np+eps = %.2f',x$p,1-graph.density(x),x$p+1-graph.density(x))))
+dev.off()
+
 ##  BARABASI GAME PREFERENTIAL ATTACHMENT
 bgl <- lapply(X=c(0.01,1.5,2,4.5), function(x)as.undirected(barabasi.game(n, power=2.5, m=x)))
-sapply(bgl,function(x)plotRingWithIsolates(x, main=sprintf('    rho = %.2f',1-graph.density(x))))
+sapply(bgl,function(x)plotRingWithIsolates(x, main=sprintf('    eps = %.2f',1-graph.density(x))))
 
 
 ##_--------------------------------------------------------
 
 
+################################################################
+##   REACH  - distance weighted reach
+################################################################
+r <- sapply(gs.sm[5:length(gs.sm)],function(x)distWeightReach(x[[1]]))
+
+
+################################################################
 
 ##---------------------------------------------------------
 
