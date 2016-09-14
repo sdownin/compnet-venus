@@ -8,7 +8,7 @@
 ##########################################################################################
 
 ##
-# handmade degree function
+# Adjacency matrix degree function
 ##
 mat.degree<-function(x)
 {
@@ -25,6 +25,86 @@ df2lower <- function(df)
   }
   return(df)
 }
+
+##
+# Coleman Theil inequality index [0,1] as measure of Hierarchy ( Burt, 1992:70ff )
+# equals 0 if all contact-specific constraints equal the avg.
+#     -- that is, no contacts are more connected than others
+# approaches 1.0 to the extent that all constraint is from one contact
+##
+burt4inequality <- function(g)
+{
+  cg <- constraint(g)
+  r <- cg / mean(cg)
+  numer <- sum( r * log(r) )
+  denom <- vcount(g)*log(vcount(g))
+  return(numer / denom)
+}
+##
+#
+##
+burt4effectsize <- function(g)
+{
+  vcount(g)-2*ecount(g)/vcount(g)
+}
+##
+#
+##
+burt4efficiency <- function(g)
+{
+  ecount(g) - burt4effectsize(g)
+}
+
+##
+# Burt's 4 related social capital aspects of a network 
+#   density, hierarchy, effectsize, efficiency
+##
+burt4summary <- function(g.list, plotting=TRUE)
+{
+  df <- data.frame(
+    density=sapply(g.list, igraph::graph.density),
+    hierarchy=sapply(g.list, burt4inequality),
+    effectsize=sapply(g.list, burt4effectsize),
+    efficiency=sapply(g.list, burt4efficiency)
+  )
+  if(plotting)
+    pairsDetail(df)
+  return(df)
+}
+
+##
+#
+##
+getEgoGraph <- function(graph.list, name, order=3, safe=FALSE)
+{
+  if(!safe) 
+      return(sapply(graph.list, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T))    
+
+  out.list <- sapply(graph.list, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+  for (i in 1:length(out.list)) {
+      g_i <- out.list[[i]]
+      if (length(g_i)==0)
+        out.list[[i]] <- NA
+      else if( class(g_i)=='igraph' )
+        out.list[[i]] <- g_i
+      else if ( class(g_i[[1]])=='igraph'  )
+        out.list[[i]] <- g_i[[1]]
+      else if ( class(g_i[[1]][[1]])=='igraph'  )
+        out.list[[i]] <- g_i[[1]][[1]]
+      else
+        out.list[[i]] <- NA
+  }
+  return(out.list)
+}
+
+# tmp.list <- sapply(tmp.list, function(x){
+#   if(length(x)==0) 
+#     return(NA)
+#   return( ifelse(class(x)=='igraph',x,
+#                  ifelse(class(x[[1]])=='igraph',x[[1]],
+#                         ifelse(class(x[[1]][[1]])=='igraph',x[[1]][[1]],
+#                                NA))) )
+# }, simplify = T)
 
 ##
 # Get Igraph from list of igraphs that contain empty|NA elements
@@ -85,11 +165,12 @@ getIgraphFromNet <- function(net)
 ##
 #  Gets a Network object from an igraph object
 #  WARNING: DOES NOT HANDLE BIPARTITE OR LOOPY NETWORKS
-#  WARNING:  MUST USE matrix.type='edgelist'; adjacency & incidence not working
+#  WARNING:  MUST USE matrix.type='edgelist'; !!adjacency & incidence not working
 ##
 getNetFromIgraph <- function(ig, add.vertex.name=FALSE, matrix.type='edgelist', 
                              vertex.pid.string='vertex.names')
 {
+  ##  INPUTS CHECK
   if (matrix.type=='adjacency') {
     mat <- igraph::as_adjacency_matrix(ig, type='both',names=T, sparse=F)
   } else if (matrix.type == 'edgelist') {
@@ -99,6 +180,17 @@ getNetFromIgraph <- function(ig, add.vertex.name=FALSE, matrix.type='edgelist',
     stop(sprintf('Conversion from incidence matrix currently broken.'))
   } else {
     stop(sprintf('Invalid matrix.type given: %s.\n',matrix.type))
+  }
+  
+  ## remove null edge attrs first
+  tmp <- names(edge.attributes(ig))
+  edgeAttrs <- tmp[which( !(tmp%in%'weight') )]
+  for (attr in edgeAttrs) {
+    if (all(is.null(igraph::get.edge.attribute(ig,attr))) ) {
+      ig <- remove.edge.attribute(ig, attr)      
+    } else if (all(is.na(igraph::get.edge.attribute(ig,attr))) ) {
+      ig <- remove.edge.attribute(ig, attr)      
+    }
   }
   
   if (add.vertex.name) {
@@ -160,7 +252,7 @@ getMultiProdEgoNet <- function(g, firms, k=1, include.competitor.egonet=TRUE)
 ##
 # Plot Competition Network coloring the Multi-Product firms in red
 ##
-plotCompNet <- function(gs, membership=NA, focal.firm=NA, focal.color=FALSE, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, ...) 
+plotCompNet <- function(gs, membership=NA, focal.firm=NA, focal.color=TRUE, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, ...) 
 {
   if(all(is.na(margins)))
       margins <- c(.1,.1,.1,.1)
@@ -199,15 +291,71 @@ plotCompNet <- function(gs, membership=NA, focal.firm=NA, focal.color=FALSE, mul
 
 
 ##
+# Plot Competition Network ONE COLOR
+##
+plotCompNetOneColor <- function(gs, vertex.color=NA, focal.firm=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.1,.1,.1,.1)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  rgb(.3,.3,.6,.4)
+  if(!all(is.na(vertex.color)))
+    vertcol <- vertex.color
+
+  if(!all(is.na(focal.firm))) {
+    if(focal.color) 
+    vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
+  }
+  ##
+  set.seed(1111)
+  plot.igraph(gs
+              , layout=layout.kamada.kawai
+              , vertex.size=log(d,base=vertex.log.base)*2 + 2
+              , vertex.color=vertcol
+              , vertex.label.cex=log(d,base=label.log.base)/2 + .01
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+
+##
 #
 ##
-plotRingWithIsolates <- function(gs, vert.size=25, label.cex=1.8, edge.width=2, ...) 
+plotRingWithIsolates <- function(gs, vert.size=20, label.cex=1.6, edge.width=2, mar=c(.1,.1,.1,.1), ...) 
 {
-  par(mar=c(2,.1,5,.1))
+  par(mar=mar)
   d <- igraph::degree(gs)
   set.seed(1111)
   plot.igraph(gs
               , layout=layout.circle
+              , vertex.size=vert.size
+              , vertex.color='gray'
+              , vertex.label.cex=label.cex
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              , edge.width = edge.width
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+##
+plotPretty <- function(gs, vert.size=20, label.cex=1.6, edge.width=1.5, mar=c(.1,.1,.1,.1),...) 
+{
+  par(mar=mar)
+  d <- igraph::degree(gs)
+  set.seed(1111)
+  plot.igraph(gs
+              , layout=layout.kamada.kawai
               , vertex.size=vert.size
               , vertex.color='gray'
               , vertex.label.cex=label.cex
@@ -810,12 +958,12 @@ distWeightReach <- function(g,
 
 
 
-distWeightReachPerNode <- function(g, mode='in', weights)
+distWeightReachPerNode <- function(g, mode='all')
 {
   D <- c()
 
-  # if degree is positive
-  if (degree(g, v=k)>0) {
+  # for one node
+
     #find vertex subcomponent
     vec <- subcomponent(graph = g,v = V(g)[k],mode = mode)
     vec <- vec[order(vec)]
@@ -835,11 +983,81 @@ distWeightReachPerNode <- function(g, mode='in', weights)
       }
     } ## end other vertex l loop
     D[k] <- sum(d)r
-  } ## end if degree > 0
-  
+
   R <- sum(D) / vcount(g)
   cat(sprintf('nodes %d edges %d reach: %.3f\n',vcount(g),ecount(g),R))
   return(R)
+}
+
+## UPPER ZEROS
+distWeightReachByNode <- function(g, alpha=1)
+{
+  rmat <- dmat <- distances(g)
+  dmat[lower.tri(dmat,diag = T)] <- 0
+  dmat.vec <- dmat[upper.tri(dmat)]
+  # rmat.vec <- sapply(dmat.vec, function(x)sum(1/1:x))
+  rmat.vec <- sapply(dmat.vec, function(x){
+    return(sum( sapply(seq_len(x),function(x_i)sum(1/(1:x_i)^alpha)) ))
+  })
+  rmat[upper.tri(rmat, diag = F)] <- rmat.vec
+  r <- sapply(1:nrow(rmat), function(x)sum(rmat[x, ],rmat[ ,x]))
+  names(r) <- row.names(rmat)  
+  return(r)
+}
+
+#BOTH SIDES
+distWeightReachByNode_other <- function(g)
+{
+  rmat <- dmat <- distances(g)
+  dmat[lower.tri(dmat,diag = T)] <- 0
+  dmat.vec <- dmat[upper.tri(dmat)]
+  # rmat.vec <- sapply(dmat.vec, function(x)sum(1/1:x))
+  rmat.vec <- sapply(dmat.vec, function(x)sum(1/(1:x)^3))
+  rmat[upper.tri(rmat, diag = F)] <- rmat.vec
+  r <- sapply(1:nrow(rmat), function(x)sum(rmat[x, ],rmat[ ,x]))
+  names(r) <- row.names(rmat)  
+  return(r)
+}
+
+
+
+
+##
+#
+##
+df.cent.norm <- function(g.tmp)
+{
+  be <- igraph::betweenness(g.tmp,normalized = F)
+  cl <- igraph::closeness(g.tmp, normalized = F)
+  ei <- igraph::eigen_centrality(g.tmp)$vector
+  po <- igraph::power_centrality(g.tmp,exp=2)
+  al <- igraph::alpha_centrality(g.tmp,alpha = 2)
+  re <- distWeightReachByNode(g.tmp, alpha = 1)
+  df <- data.frame(
+    between=100*be/sum(be),
+    close=100*cl/sum(cl),
+    eigen=100*ei/sum(ei),
+    power=100*po/sum(po),
+    alpha=100*al/sum(al),
+    reach=100*re/sum(re)
+  )
+  return(df)
+}
+
+##
+#
+##
+df.cent <- function(g.tmp)
+{
+  df <- data.frame(
+    between= igraph::betweenness(g.tmp,normalized = T),
+    close= igraph::closeness(g.tmp, normalized = T),
+    eigen= igraph::eigen_centrality(g.tmp)$vector,
+    negpower= -igraph::power_centrality(g.tmp,exp=2),
+    negalpha= -igraph::alpha_centrality(g.tmp,alpha = 2),
+    normreach= 10*distWeightReachByNode(g.tmp)/sum(distWeightReachByNode(g.tmp))
+  )
+  return(df)
 }
 
 

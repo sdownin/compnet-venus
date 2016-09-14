@@ -358,6 +358,11 @@ pairsMod <- function(x,yName='acq_count',sampSize=2000,output=FALSE,naOmit=FALSE
     return(x)
 }
 
+pairsDetail <- function(x)
+{
+  pairs(x,lower.panel=panel.smooth,diag.panel=panel.hist,upper.panel=panel.cor)
+}
+
 ###
 # MONEY STRING (WITH UNITs ABBREVIATIONS) TO INTEGER
 ##

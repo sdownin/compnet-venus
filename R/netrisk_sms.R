@@ -5,6 +5,7 @@ library(network, quietly = T)
 library(ergm, quietly = T)
 library(tergm, quietly = T)
 library(btergm, quietly = T)
+library(hergm, quietly = T)
 library(xergm, quietly = T)  ## includes rem, tnam, GERGM
 library(texreg, quietly = T)
 library(igraph, quietly = T)
@@ -22,11 +23,12 @@ img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition network
 #
 if( !('gl1' %in% ls()) )
   load('netrisk_sms_full_pd_graph.RData')
+#save.image(file= 'netrisk_sms_full_pd_graph_2.RData')
 
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
-
+par.default <- par()
 
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 
@@ -118,138 +120,6 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
 #                            to=V(gx)[V(gx)$name=='google'],output = 'both')
 # #####
 
-
-##################################################################################
-#                        MAIN NETWORK COMPUTATION
-##################################################################################
-## starting values and params
-yrpd <- 1
-startYr <- 1996
-endYr <- 2000
-periods <- seq(startYr,endYr,yrpd)
-company.name <- 'company_name_unique'
-verbose <- TRUE
-df.in <- co
-
-##--------------------- MAKE NETRISK SUBGRAPH ALGORITHM -------------------------
-## ## 1.  Choose Multi-Product firms
-multi.prod <- c("google","microsoft") #,"ibm","oracle","amazon")
-## ## 2. choose kth order for ego-net
-k <- 1
-## ## 3. get ego net from multi-product firms chosen above
-mp.egonet <- getMultiProdEgoNet(g.full, multi.prod, k=k, include.competitor.egonet = FALSE)
-
-V(g.full)$firm_type <- ifelse(V(g.full)$name%in%multi.prod,'MP',
-                                        ifelse( V(g.full)$name%in%mp.egonet$names,'SP',
-                                                'Other') )
-## ## 4. get 2015 ego net igraph object
-g <- igraph::induced.subgraph(g.full, vids=mp.egonet$vids)
-
-print(g)
-
-##--------------------- MAIN DYNAMIC NETWORK CREATION -----------------------------  
-## make network object
-net <- getNetFromIgraph(g, matrix.type = 'edgelist', vertex.pid.string='vertex.names') 
-# net <- networkDynamic::activate.edges(x = net, onset = start, terminus = end, e = seq_len(length(net$mel)) )
-# net <- networkDynamic::activate.vertices(x = net,onset = start,terminus = end, v = seq_len(length(net$gal$n)) )
-
-## loop through periods and ACTIVATE edges that exist in the period
-for(t in 2:length(periods)) {
-  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
-  net <- setPdActivity(net=net, g=g, start=periods[t-1], end=periods[t]) 
-}
-## END MAIN LOOP 
-
-
-# ## get Net Size Change (with plot)
-# net.size <- getNetSizeChange(gl)
-
-# ## plot comp net subgraphs
-# plotCompNet(gl[[1]],multi.prod)
-
-# ## plot filmstrip
-# filmstrip( net, displaylabels=F, frames = 2)
-
-## PLOT ACTIVE EDGES BY YEAR
-ec <- c()
-for ( t in 2:length(periods) ) {
-  ec[t] <- sum(network.extract(net, onset=periods[t-1], terminus=periods[t], rule = 'any')[,]) / 2
-};  plot(periods,ec,type='o',pch=16,log='',ylab="Active Competitive Relations")
-
-
-## CMLE
-## EGMME
-## CMPLE
-sfit1 <- stergm(net, 
-                formation= ~edges + nodefactor("firm_type"), 
-                dissolution= ~edges + nodefactor("firm_type"),
-                estimate="CMLE", times = periods[c(1,length(periods))])
-
-summary(sfit1)
-
-sfit1b <- stergm(net, 
-                formation= ~edges + nodefactor("firm_type"), 
-                dissolution= ~density  + triangle,
-                estimate="CMLE", times = periods[c(1,length(periods))])
-
-summary(sfit1b)
-
-sfit2 <- stergm(net, 
-                formation= ~edges + nodefactor("firm_type") , 
-                dissolution= ~density + triangle + nodefactor("has_funding"),  #localtriangle
-                estimate="CMLE", times = periods[c(1,length(periods))])
-summary(sfit2)
-
-sfit5 <- stergm(net, 
-                formation= ~edges + nodefactor("firm_type") , 
-                dissolution= ~ density + triangle + nodefactor("has_funding"),  #localtriangle
-                estimate="CMLE", times = periods[c(1,5)])
-summary(sfit5)
-gf5 <- gof(sfit5)
-plot(gf5)
-
-sfit6 <- stergm(net, 
-                formation= ~edges + nodefactor("firm_type") , 
-                dissolution= ~ triangle + nodefactor("has_funding"),  #localtriangle
-                estimate="CMLE", times = periods[2:4])
-summary(sfit6)
-gf6 <- gof(sfit6)
-plot(gf6)
-
-sfit7 <- stergm(net, 
-                formation= ~edges + nodefactor("firm_type") , 
-                dissolution= ~edges + nodefactor("has_funding"),  #localtriangle
-                estimate="CMLE", times = periods[2:4])
-summary(sfit7)
-gf7 <- gof(sfit7)
-plot(gf7)
-
-sfit8 <- stergm(net, 
-                formation= ~edges + nodefactor("firm_type")  + gwesp(0, fixed=T), 
-                dissolution= ~edges,  #localtriangle
-                estimate="CMLE", times = periods[2:4])
-summary(sfit8)
-gf8 <- gof(sfit8)
-plot(gf8)
-
-
-png('test_heatmap_1.png',height=15,width=15,units='in',res=250)
-  heatmap(net[,])
-dev.off()
-
-
-sfit9 <- stergm(ss, 
-                formation= ~ kstar(3), 
-                dissolution= ~edges,  #localtriangle
-                estimate="CMLE", times = 10:12)
-summary(sfit9)
-gf9 <- gof(sfit9)
-plot(gf9)
-
-
-################################################################################
-#                       // end main network computation
-################################################################################
 
 
 # ##------------------- PLOTS----------------------------------------------
@@ -419,35 +289,45 @@ previous.base.plotting.ego.nets <- function()
 
 
 
+others <- c('oracle','adobe-systems','facebook','sap')
 
-##  --------------------latice extra-------------------------------------
-names <- c('google','microsoft','oracle','adobe-systems','amazon','ibm','facebook','sap',
-           'dropbox','surveymonkey','medallia','clarabridge','netflix')
 
-## PLOT LOOP
-for (name_i in names) {
-    # name_i <- 'dropbox'
-    
+## ------------------------PLOT SIZE AND DISTANCE COMPARISONS_-----------------------------------
+
+mp.names <- c('google','amazon','microsoft','ibm')
+sp.names <- c('dropbox','netflix','surveymonkey','medallia')
+
+## for each pair in the list of pairs
+for (i in 1:length(mp.names)) {
     df.sm.tot <- data.frame();  df.av.tot <- data.frame()
-    for (k in 1:4) {
-      gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
-      ## size growth
-      df.sm <- data.frame(Period=periods, k=sprintf('k=%d',k),
-                          v=sapply(gs.sm, function(x)safeIgraphApply(x, 'vcount')),
-                          e=sapply(gs.sm, function(x)safeIgraphApply(x, 'ecount')) )
-      df.sm.tot <- rbind(df.sm.tot, df.sm)
-      ## avg. path length
-      df.av <- data.frame(Period=periods, k=sprintf('k=%d',k),
-                          l=sapply(gs.sm, function(x)safeIgraphApply(x,'average.path.length')/k) )
-      df.av.tot <- rbind(df.av.tot, df.av)
+    sp.name_i <- sp.names[i]
+    mp.name_i <- mp.names[i]
+    # for each name in the pair
+    for(name_i in c(sp.name_i,mp.name_i)) {
+      for (k in 1:4) { ## consider up to 4th order ego network
+        gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+        ## size growth
+        df.sm <- data.frame(Period=periods, k=sprintf('k=%d',k),
+                            v=sapply(gs.sm, function(x)safeIgraphApply(x, 'vcount')),
+                            e=sapply(gs.sm, function(x)safeIgraphApply(x, 'ecount')),
+                            type=ifelse(name_i%in%sp.names,str_to_title(sp.name_i),str_to_title(mp.name_i)))
+        df.sm.tot <- rbind(df.sm.tot, df.sm)
+        ## avg. path length
+        df.av <- data.frame(Period=periods, k=sprintf('k=%d',k),
+                            l=sapply(gs.sm, function(x)safeIgraphApply(x,'average.path.length')/k),
+                            type=ifelse(name_i%in%sp.names,'Single-Product','Multi-Product') )
+        df.av.tot <- rbind(df.av.tot, df.av)
+      }    
     }
-    df.sm.melt <- reshape2::melt(data = df.sm.tot, id.vars=c('k','Period'), value.name="Network Size")
-    df.av.melt <- reshape2::melt(data = df.av.tot, id.vars=c('k','Period'), value.name="Avg Path Length / k")
-    
+    df.sm.melt <- reshape2::melt(data = df.sm.tot, id.vars=c('k','Period','type'), value.name="Network Size")
+    df.av.melt <- reshape2::melt(data = df.av.tot, id.vars=c('k','Period','type'), value.name="Avg Path Length / k")
+    ##----------------------------- PLOTTING --------------------------
     ## SIZE GROWTH PLOT
-    trel1 <- lattice::xyplot(`Network Size` ~ Period | k, groups=variable, data=df.sm.melt, 
-                main=sprintf("%s: Competition Network Growth by Ego Network Order (k)", stringr::str_to_title(name_i)),
-                type='b', pch=16:17, col=1:2, lty=1:2, layout=c(4,1), na.rm=FALSE,
+    trel1 <- lattice::xyplot(`Network Size` ~ Period | type + k, groups=variable, data=df.sm.melt, 
+                main=sprintf("%s vs %s: Competition Network Growth by Ego Network Order (k)", 
+                             stringr::str_to_title(sp.name_i), stringr::str_to_title(mp.name_i)),
+                type='b', pch=16:17, col=1:2, lty=1:2, layout=c(8,1), na.rm=FALSE,
+                ylab= expression('Network Size (log10 scale)'),
                 scales = list(y = list(log = 10)),
                 par.settings=list(strip.background=list(col='lightgrey')),
                 key=list(text=list(c("Firms","Competitive Relations")),
@@ -455,33 +335,37 @@ for (name_i in names) {
                        space="top", columns=2)
                 )
     ## AVG PATH LENGTH
-    trel2 <- lattice::xyplot(`Avg Path Length / k` ~ Period | k, data=df.av.melt, 
-                 main=sprintf("%s: Avg Competitive Distance Decrease with Ego Network Order (k)", stringr::str_to_title(name_i)),
-                 type='b', pch=16, col=1, lty=1, layout=c(4,1), na.rm=FALSE,
-                 scales = list(y = list(log = 10)),
+    trel2 <- lattice::xyplot(`Avg Path Length / k` ~ Period | type + k, data=df.av.melt, 
+                 main=sprintf("%s vs %s: Avg Competitive Distance Decrease with Ego Network Order (k)", 
+                              stringr::str_to_title(sp.name_i), stringr::str_to_title(mp.name_i)),
+                 type='b', pch=16, col=1, lty=1, layout=c(8,1), na.rm=FALSE,
+                 # scales = list(y = list(log = 10)),
                  par.settings=list(strip.background=list(col='lightgrey')),
                  key=list(text=list(c("Avg Path Length / Ego Network Order (k)")),
                           points=list(type='b',pch=16,col=1,lty=1),
                           space="top", columns=1)
     )
     ## SAVE PLOT SIZE
-    filename <- file.path(img_dir,sprintf('lattice_%s_k_net_size_growth.png',name_i))
-    lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
+    filename <- file.path(img_dir,sprintf('lattice_%s_vs_%s_k_net_size_growth.png',sp.name_i,mp.name_i))
+    lattice::trellis.device(device = 'png', filename=filename, height=3.5, width=14, units='in', res=200)
     print(trel1);  
     dev.off()  
     ## SAVE PLOT LENGTH
-    filename <- file.path(img_dir,sprintf('lattice_%s_k_avg_path_len.png',name_i))
-    lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
+    filename <- file.path(img_dir,sprintf('lattice_%s_vs_%s_k_avg_path_len.png',sp.name_i,mp.name_i))
+    lattice::trellis.device(device = 'png', filename=filename, height=3.5, width=14, units='in', res=200)
     print(trel2);  
     dev.off()  
  
-}
+} ## -----------END SP-MP NETOWRK SIZE and DISTANCE COMPARISON -------------------------------
+
+
+
 
 
 ##--------------------- PLOT COMPETITION NETWORK SLICES --------------------------------------
 
 multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
-                  "facebook","amazon","adobe-systems","nokia","dell",
+                  "facebook","amazon","adobe-systems","nokia","dell","sap","motorola",
                   "groupon","autodesk","salesforce","iac","quest-software","zayo-group",
                   "qualcomm","blackberry","berkshire-hathaway-corp","carlyle-group","intuit",
                   "symantec","broadcom","kkr","medtronic","vmware")
@@ -493,35 +377,56 @@ k.vec <- c(3,3,3,4)
 for (i in 1:length(single.prod)) {
   name_i <- single.prod[i]
   k <- k.vec[i]
-  
-  gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
-  
+  gs.sm <- getEgoGraph(gl1, name_i, k, safe=TRUE)
   ## plot k-th order ego net time slices
   filename <- file.path(img_dir,sprintf('ego_compnet_%s_k%d_timeslices.png',name_i,k))
   png(filename, height=8,width=14,units='in',res=350)
-    par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
-    for(i in (5+2*c(0,1,2,3,4,5)) ) {
-      set.seed(1111)
-      if (length(gs.sm[[i]])==0)
-        g_i <- NA
-      else if( class(gs.sm[[i]])=='igraph' )
-        g_i <- gs.sm[[i]]
-      else if ( class(gs.sm[[i]][[1]])=='igraph'  )
-        g_i <- gs.sm[[i]][[1]]
-      else if ( class(gs.sm[[i]][[1]][[1]])=='igraph'  )
-        g_i <- gs.sm[[i]][[1]][[1]]
-      else
-        g_i <- NA
-      ##
-      if (all( !is.na(g_i) )) {
-        plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
-      } else {
-        plot.new()
-      }
-      legend('topright',legend=sprintf('t=%d (k=%d)',periods[i], k),bty='n', cex=1.6)
+  par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
+  for(i in (5+2*c(0,1,2,3,4,5)) ) {
+    set.seed(1111)
+    if (all( !is.na(g_i) )) {
+      plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
+    } else {
+      plot.new()
     }
+    legend('topright',legend=sprintf('t=%d (k=%d)',periods[i], k),bty='n', cex=1.6)
+  }
   dev.off()
 }
+
+
+# for (i in 1:length(single.prod)) {
+#   name_i <- single.prod[i]
+#   k <- k.vec[i]
+#   
+#   gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+#   
+#   ## plot k-th order ego net time slices
+#   filename <- file.path(img_dir,sprintf('ego_compnet_%s_k%d_timeslices.png',name_i,k))
+#   png(filename, height=8,width=14,units='in',res=350)
+#     par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
+#     for(i in (5+2*c(0,1,2,3,4,5)) ) {
+#       set.seed(1111)
+#       if (length(gs.sm[[i]])==0)
+#         g_i <- NA
+#       else if( class(gs.sm[[i]])=='igraph' )
+#         g_i <- gs.sm[[i]]
+#       else if ( class(gs.sm[[i]][[1]])=='igraph'  )
+#         g_i <- gs.sm[[i]][[1]]
+#       else if ( class(gs.sm[[i]][[1]][[1]])=='igraph'  )
+#         g_i <- gs.sm[[i]][[1]][[1]]
+#       else
+#         g_i <- NA
+#       ##
+#       if (all( !is.na(g_i) )) {
+#         plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
+#       } else {
+#         plot.new()
+#       }
+#       legend('topright',legend=sprintf('t=%d (k=%d)',periods[i], k),bty='n', cex=1.6)
+#     }
+#   dev.off()
+# }
 
 
 
@@ -564,9 +469,8 @@ dis <- lapply(single.prod, function(name_i){
 ls.dist <- list()
 for (name_i in single.prod) {
   ls.dist[[name_i]] <- ldply(gl1, function(gx){
-      igraph::shortest.paths(gx, 
-                          v=V(gx)[V(gx)$name==name_i], 
-                          to=V(gx)[V(gx)$name %in% c(multi.prod)] ) 
+      igraph::shortest.paths(gx, v=V(gx)[V(gx)$name==name_i], 
+                             to=V(gx)[V(gx)$name %in% c(multi.prod)] ) 
     })
 }
 
@@ -596,6 +500,14 @@ trel3 <- lattice::xyplot(value ~ as.numeric(.id) | single.prod , groups=variable
                          space="top", columns=6)
                 )
 
+trel4bw <- lattice::bwplot(value ~ factor(.id) | single.prod, 
+                         data=ls.dist.melt, na.rm=T,
+                         type='b',  pch=16, col='steelblue', fill='gray', lty=1:6, layout=c(4,1), na.rm=T,
+                         xlab='Period', ylab='Network Distance',
+                         scales = list(x = list(rot = 90)),
+                         par.settings=list(strip.background=list(col='lightgrey'))
+                )
+
 ls.dist.ply.avg <- plyr::ddply(ls.dist.melt, .variables = .(.id, single.prod), summarise,
             meandist = mean(value, na.rm = T))
 
@@ -607,11 +519,15 @@ trel4 <- lattice::xyplot(meandist ~ as.numeric(.id) | single.prod, data = ls.dis
                 )
 
 filename <- file.path(img_dir,sprintf('all_multiprod_net_dist_change_time_rainbow_col.png'))
-lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
+lattice::trellis.device(device = 'png', filename=filename, height=5, width=12, units='in', res=200)
 print(trel3);  
 dev.off()  
+filename <- file.path(img_dir,sprintf('bwplot_net_dist_change_time.png'))
+lattice::trellis.device(device = 'png', filename=filename, height=4, width=14, units='in', res=200)
+print(trel4bw);  
+dev.off()  
 filename <- file.path(img_dir,sprintf('avg_net_dist_change_time.png'))
-lattice::trellis.device(device = 'png', filename=filename, height=4.5, width=9, units='in', res=200)
+lattice::trellis.device(device = 'png', filename=filename, height=4, width=14, units='in', res=200)
 print(trel4);  
 dev.off()  
 ##################################################################
@@ -654,32 +570,38 @@ dev.off()
 
 
 ## compare community membership algorithm loop 
+filename <- file.path(img_dir,sprintf('compare_community_membership_alorithms_%s_k%d.png',name_i,k))
+png(filename, height=7, width=12, units='in', res=300)
 par(mfrow=c(3,3), mar=c(.1,.1,0,0))
 for(i in 1:length(com)) {
-  plotCompNet(g.sub, focal.firm = name_i, membership = com[[i]]$membership, vertex.log.base = 1+exp(k)*.04, label.log.base = 1+exp(k)*.4 )
+  plotCompNet(g.sub, focal.firm = name_i, focal.color=FALSE,  membership = com[[i]]$membership, vertex.log.base = 1+exp(k)*.03, label.log.base = 1+exp(k)*.4 )
   legend('topright',legend=sprintf('%s',stringr::str_to_title(names(com)[i])),bty='n', cex=1.3)
 }
+dev.off()
 
-
-
-## medallia community
 c_i <- com$multilevel$membership[which(com$multilevel$names==name_i)]
 com$multilevel$names[which(com$multilevel$membership==c_i)]
 
-##
+## BREAK APART COMMUNITY STRUCTURE
 coms <- unique(com$multilevel$membership)
 com.subg <- list()
 for (c_i in coms) {
   com.names <- com$multilevel$names[which(com$multilevel$membership==c_i)]
   com.subg[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
 }
+## PLOT NOISY PRODUCT MARKET DENSITY
+filename <- file.path(img_dir,sprintf('noisy_prod_market_densities_%s_k%d.png',name_i,k))
+png(filename, height=7, width=12, units='in', res=300)
 par(mfrow=c(3,3), mar=c(.1,.1,2,.1))
-sapply(com.subg, function(x){
-  plotRingWithIsolates(x,label.cex=1,main=sprintf('Density = %.2f',graph.density(x)))
+sapply(seq_len(length(com.subg)), function(x){
+  g <- com.subg[[x]]
+  col_i <- rainbow(length(com.subg), alpha=.7)[x]
+  plotCompNetOneColor(g, vertex.color = col_i, vertex.log.base = 1.5,label.log.base = 6,margins = c(.1,.1,2,.1),main=sprintf('Density = %.2f',graph.density(g)))
 })
+dev.off()
 
 
-## Noisy Product Markets 
+## Noisy Product Markets -- ALL ER BINOMIAL MODELS
 n <- 10
 filename <- file.path(img_dir,'noisy_prod_market_density_epsilon_erd_renyi.png')
 png(filename,height=3, width=8, units='in',res=200)
@@ -694,16 +616,108 @@ bgl <- lapply(X=c(0.01,1.5,2,4.5), function(x)as.undirected(barabasi.game(n, pow
 sapply(bgl,function(x)plotRingWithIsolates(x, main=sprintf('    eps = %.2f',1-graph.density(x))))
 
 
+
+################### NEW SIMULATION EXAMPLE NPM ##############
+n <- 10
+SEED <- 11111
+filename <- file.path(img_dir,'noisy_prod_market_density_epsilon_erd_renyi_barabasi_game_2.png')
+png(filename,height=3, width=8, units='in',res=200)
+  par(mfrow=c(1,4), mar=c(.1,0,.1,0))
+  ## ERDOS RENYI GAME
+  set.seed(SEED)
+  erl <- lapply(X=c(.28,.6),FUN = function(x)igraph::erdos.renyi.game(n,x,directed = F))
+  sapply(erl,function(x)plotPretty(x, vert.size=23, mar=c(1,.4,4,.4),
+                                             main=sprintf('ER\nepsilon = %.2f',1-graph.density(x))))
+  ##  BARABASI GAME PREFERENTIAL ATTACHMENT
+  set.seed(SEED)
+  bgl <- lapply(X=c(1.5,3), function(x)as.undirected(barabasi.game(n, power=3, m=x)))
+  sapply(bgl,function(x)plotPretty(x, vert.size=23, mar=c(1,.4,4,.4), main=sprintf('AB\nepsilon = %.2f',1-graph.density(x))))
+dev.off()
+
 ##_--------------------------------------------------------
 
 
 ################################################################
-##   REACH  - distance weighted reach
+##   NETWORK RISK
 ################################################################
-r <- sapply(gs.sm[5:length(gs.sm)],function(x)distWeightReach(x[[1]]))
 
 
+g <- gs.sm$`2007`[[1]]
+
+##  NPM community membership
+com$multilevel <- igraph::multilevel.community(g)
+V(g)$com.ml <- com$multilevel$membership
+## NPM density
+ucoms <- unique(V(g)$com.ml)
+com.den <- sapply(ucoms, function(x)graph.density(induced.subgraph(g,vids=which(V(g)$com.ml==x))) )
+## NPM density weighted risk
+
+V(g)$risk <- com.den[V(g)$com.ml] * igraph::closeness(g) * 10000
+
+
+clo <- igraph::closeness(g) %>% sort()
+rsk <- V(g)$risk 
+names(rsk) <- V(g)$name
+rsk <- sort(rsk)
+
+png(file.path(img_dir,'closeness_risk_metric_compare_3.png'),height=6,width=12,units='in',res=250)
+par(mar=c(8,3,2,1), mfrow=c(2,1))
+barplot(height=clo, las=2, cex.names = .55, main='Closeness')
+par(mar=c(8,3,2,1))
+barplot(height=rsk, las=2, cex.names = .55,main='NPM Density-Weighted Closeness')
+dev.off()
+
+# r2 <- sapply(seq_len(vcount(g)), function(i)V(g)$closeness[i]  )
+## x relative dyadic attributes
+
+# df.close.risk <- data.frame(
+#   name=V(g)$name,
+#   `Closeness`=igraph::closeness(g) %>% sort(decreasing=T),
+#   `NPM-Weighted-Closeness`=V(g)$risk %>% sort(decreasing=T)
+# )
+# df.close.risk.melt <- reshape2::melt(data = df.close.risk, id.vars='name')
+# 
+# lattice::dotplot(value ~ name | variable, data=df.close.risk.melt, layout=c(1,2),
+#                  scales=list(y=list(log=10)))
+
+
+
 ################################################################
+
+## CHECKING HERGM
+tmp <- names(edge.attributes(g))
+edgeAttrs <- tmp[which( !(tmp%in%'weight') )]
+for (attr in edgeAttrs) {
+  if (all(is.null(igraph::get.edge.attribute(g,attr))) 
+      | all(is.na(igraph::get.edge.attribute(g,attr))) ) {
+    g <- remove.edge.attribute(g, attr)      
+  }
+}
+net <- getNetFromIgraph(g)
+
+
+hf1 <- hergm(net ~ edges_ij  ,verbose = F)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ##---------------------------------------------------------
 
@@ -730,9 +744,153 @@ for(i in (5+2*c(0,1,2,3,4,5)) ) {
 }
 
 
-    g_i <- ifelse(class(gs.sm[[i]])=='igraph', gs.sm[[i]], 
-                ifelse(class(gs.sm[[i]][[1]])=='igraph', gs.sm[[i]][[1]],
-                       NA))
 
 
 
+
+
+
+
+
+
+
+
+
+
+##################################################################################
+#                        MAIN NETWORK COMPUTATION
+##################################################################################
+## starting values and params
+yrpd <- 1
+startYr <- 1996
+endYr <- 2000
+periods <- seq(startYr,endYr,yrpd)
+company.name <- 'company_name_unique'
+verbose <- TRUE
+df.in <- co
+
+##--------------------- MAKE NETRISK SUBGRAPH ALGORITHM -------------------------
+## ## 1.  Choose Multi-Product firms
+multi.prod <- c("google","microsoft") #,"ibm","oracle","amazon")
+## ## 2. choose kth order for ego-net
+k <- 1
+## ## 3. get ego net from multi-product firms chosen above
+mp.egonet <- getMultiProdEgoNet(g.full, multi.prod, k=k, include.competitor.egonet = FALSE)
+
+V(g.full)$firm_type <- ifelse(V(g.full)$name%in%multi.prod,'MP',
+                              ifelse( V(g.full)$name%in%mp.egonet$names,'SP',
+                                      'Other') )
+## ## 4. get 2015 ego net igraph object
+g <- igraph::induced.subgraph(g.full, vids=mp.egonet$vids)
+
+print(g)
+
+##--------------------- MAIN DYNAMIC NETWORK CREATION -----------------------------  
+## make network object
+net <- getNetFromIgraph(g, matrix.type = 'edgelist', vertex.pid.string='vertex.names') 
+# net <- networkDynamic::activate.edges(x = net, onset = start, terminus = end, e = seq_len(length(net$mel)) )
+# net <- networkDynamic::activate.vertices(x = net,onset = start,terminus = end, v = seq_len(length(net$gal$n)) )
+
+## loop through periods and ACTIVATE edges that exist in the period
+for(t in 2:length(periods)) {
+  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
+  net <- setPdActivity(net=net, g=g, start=periods[t-1], end=periods[t]) 
+}
+## END MAIN LOOP 
+
+
+# ## get Net Size Change (with plot)
+# net.size <- getNetSizeChange(gl)
+
+# ## plot comp net subgraphs
+# plotCompNet(gl[[1]],multi.prod)
+
+# ## plot filmstrip
+# filmstrip( net, displaylabels=F, frames = 2)
+
+## PLOT ACTIVE EDGES BY YEAR
+ec <- c()
+for ( t in 2:length(periods) ) {
+  ec[t] <- sum(network.extract(net, onset=periods[t-1], terminus=periods[t], rule = 'any')[,]) / 2
+};  plot(periods,ec,type='o',pch=16,log='',ylab="Active Competitive Relations")
+
+
+## CMLE
+## EGMME
+## CMPLE
+sfit1 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type"), 
+                dissolution= ~edges + nodefactor("firm_type"),
+                estimate="CMLE", times = periods[c(1,length(periods))])
+
+summary(sfit1)
+
+sfit1b <- stergm(net, 
+                 formation= ~edges + nodefactor("firm_type"), 
+                 dissolution= ~density  + triangle,
+                 estimate="CMLE", times = periods[c(1,length(periods))])
+
+summary(sfit1b)
+
+sfit2 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type") , 
+                dissolution= ~density + triangle + nodefactor("has_funding"),  #localtriangle
+                estimate="CMLE", times = periods[c(1,length(periods))])
+summary(sfit2)
+
+sfit5 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type") , 
+                dissolution= ~ density + triangle + nodefactor("has_funding"),  #localtriangle
+                estimate="CMLE", times = periods[c(1,5)])
+summary(sfit5)
+gf5 <- gof(sfit5)
+plot(gf5)
+
+sfit6 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type") , 
+                dissolution= ~ triangle + nodefactor("has_funding"),  #localtriangle
+                estimate="CMLE", times = periods[2:4])
+summary(sfit6)
+gf6 <- gof(sfit6)
+plot(gf6)
+
+sfit7 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type") , 
+                dissolution= ~edges + nodefactor("has_funding"),  #localtriangle
+                estimate="CMLE", times = periods[2:4])
+summary(sfit7)
+gf7 <- gof(sfit7)
+plot(gf7)
+
+sfit8 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type")  + gwesp(0, fixed=T), 
+                dissolution= ~edges,  #localtriangle
+                estimate="CMLE", times = periods[2:4])
+summary(sfit8)
+gf8 <- gof(sfit8)
+plot(gf8)
+
+
+png('test_heatmap_1.png',height=15,width=15,units='in',res=250)
+heatmap(net[,])
+dev.off()
+
+
+sfit9 <- stergm(ss, 
+                formation= ~ kstar(3), 
+                dissolution= ~edges,  #localtriangle
+                estimate="CMLE", times = 10:12)
+summary(sfit9)
+gf9 <- gof(sfit9)
+plot(gf9)
+
+
+################################################################################
+#                       // end main network computation
+################################################################################
+
+
+
+
+
+    
