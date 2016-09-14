@@ -23,7 +23,7 @@ img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition network
 #
 if( !('gl1' %in% ls()) )
   load('netrisk_sms_full_pd_graph.RData')
-#save.image(file= 'netrisk_sms_full_pd_graph_2.RData')
+#save.image(file= 'netrisk_sms_full_pd_graph.RData')
 
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
@@ -55,23 +55,27 @@ g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founde
 g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2016-01-01')])
 ## change NA funding to 0
 V(g.full)[is.na(V(g.full)$funding_total_usd)]$funding_total_usd <- 0
-## reduce repeated edges
-to.min <- c('relation_created_at','competitor_founded_on','competitor_closed_on','founded_at','founded_month','founded_quarter','founded_year','acquired_at')
-to.collapse <- c('funding_total_usd','category_list','country_code','state_code','city')
-edgeAttrCombList <- list(weight='sum')
-gAttrList <- names(igraph::vertex.attributes(g.full))
-for (i in 1:length(to.min)) {
-  if (to.min[i] %in% gAttrList) {
-    edgeAttrCombList[[ to.min[i] ]] <- 'min'
-  }
-}
-for (i in 1:length(to.collapse))  {
-  if (to.collapse[i] %in% gAttrList) {
-    edgeAttrCombList[[ to.collapse[i] ]] <- function(x)paste(x, collapse = "||||")
-  }
-}
+## Make list of attributes functions to simplify duplicate edges
+# to.min <- c('relation_created_at','competitor_founded_on','competitor_closed_on','founded_at','founded_month','founded_quarter','founded_year','acquired_at')
+# to.collapse <- c('funding_total_usd','category_list','country_code','state_code','city')
+# edgeAttrCombList <- list(weight='sum')
+# gAttrList <- names(igraph::vertex.attributes(g.full))
+# for (i in 1:length(to.min)) {
+#   if (to.min[i] %in% gAttrList) {
+#     edgeAttrCombList[[ to.min[i] ]] <- function(x){return(min(na.omit(x)))}
+#   }
+# }
+# for (i in 1:length(to.collapse))  {
+#   if (to.collapse[i] %in% gAttrList) {
+#     edgeAttrCombList[[ to.collapse[i] ]] <- function(x)paste(na.omit(x), collapse = "||||")
+#   }
+# }
+## SIMPLIFY
 g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T, 
-                          edge.attr.comb = edgeAttrCombList)
+                          edge.attr.comb = list(weight='sum', 
+                                                relation_created_at='min',
+                                                competitor_founded_on='min',
+                                                competitor_closed_on='min'))
 
 ##-----------------------------------------------------------------------
 ## make regression predictors
@@ -95,8 +99,8 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
 #                 Create Dynamic igraph MAIN LOOP
 #
 #-----------------------------------------------------------------
-yrpd <- 2
-startYr <- 1999
+yrpd <- 1
+startYr <- 2006
 endYr <- 2015
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
@@ -155,7 +159,7 @@ others <- c('oracle','adobe-systems','facebook','sap')
 
 ## ------------------------PLOT SIZE AND DISTANCE COMPARISONS_-----------------------------------
 
-mp.names <- c('google','amazon','microsoft','ibm')
+mp.names <- c('google','amazon','microsoft','sap')
 sp.names <- c('dropbox','netflix','surveymonkey','medallia')
 
 ## for each pair in the list of pairs
@@ -166,7 +170,9 @@ for (i in 1:length(mp.names)) {
     # for each name in the pair
     for(name_i in c(sp.name_i,mp.name_i)) {
       for (k in 1:4) { ## consider up to 4th order ego network
-        gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+        #gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+        gs.sm <- getEgoGraphList(graph.list = gl1, name =  name_i, order = k, safe = TRUE)
+        periods <- names(gs.sm)
         ## size growth
         df.sm <- data.frame(Period=periods, k=sprintf('k=%d',k),
                             v=sapply(gs.sm, function(x)safeIgraphApply(x, 'vcount')),
@@ -222,9 +228,9 @@ for (i in 1:length(mp.names)) {
 
 
 
-
+###############################################################################
 ##--------------------- PLOT COMPETITION NETWORK SLICES --------------------------------------
-
+###############################################################################
 multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
                   "facebook","amazon","adobe-systems","nokia","dell","sap","motorola",
                   "groupon","autodesk","salesforce","iac","quest-software","zayo-group",
@@ -232,69 +238,38 @@ multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-pac
                   "symantec","broadcom","kkr","medtronic","vmware")
 
 
-single.prod <- c('netflix','medallia')  #'dropbox','surveymonkey',
-k.vec <- c(3,3,3,4)
+single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
+k.vec <- c(3,4,3,3)
 
 for (i in 1:length(single.prod)) {
   name_i <- single.prod[i]
   k <- k.vec[i]
-  gs.sm <- getEgoGraph(gl1, name_i, k, safe=TRUE)
+  gs.sm <- getEgoGraphList(gl1, name_i, k, safe=TRUE)
   ## plot k-th order ego net time slices
-  filename <- file.path(img_dir,sprintf('ego_compnet_%s_k%d_timeslices.png',name_i,k))
-  png(filename, height=8,width=14,units='in',res=350)
-  par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
-  for(i in (5+2*c(0,1,2,3,4,5)) ) {
+  filename <- file.path(img_dir,sprintf('ego_compnet_%s_k%s_timeslices.png',name_i,k))
+  png(filename, height=14,width=14,units='in',res=350)
+  par(mfrow=c(3,3),mar=c(.1,.1,.1,.1))
+  # for(i in (5+2*c(0,1,2,3,4,5)) ) {
+  tstart <- which(as.numeric(names(gs.sm))==2007)
+  tend <- which(as.numeric(names(gs.sm))==2015)
+  yrs <- seq(tstart,tend,by=2)
+  for(i in 1:length(gs.sm) ) {
     g_i <- gs.sm[[i]]
     set.seed(1111)
-    if (all( !is.na(g_i) )) {
-      plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.1, label.log.base = 1+exp(k)*.5 )
+    if (all( !is.na(g_i) ) & class(g_i)=='igraph') {
+      if(ecount(g_i)>0)
+        plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.1, label.log.base = 1+exp(k)*.5 )
+      else
+        plot.new()
     } else {
       plot.new()
     }
-    legend('topright',legend=sprintf('t=%d (k=%d)',periods[i], k),bty='n', cex=1.6)
+    legend('topright',legend=sprintf('t=%s (k=%s)',names(gs.sm)[i], k),bty='n', cex=1.6)
   }
   dev.off()
 }
 
 
-# for (i in 1:length(single.prod)) {
-#   name_i <- single.prod[i]
-#   k <- k.vec[i]
-#   
-#   gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
-#   
-#   ## plot k-th order ego net time slices
-#   filename <- file.path(img_dir,sprintf('ego_compnet_%s_k%d_timeslices.png',name_i,k))
-#   png(filename, height=8,width=14,units='in',res=350)
-#     par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
-#     for(i in (5+2*c(0,1,2,3,4,5)) ) {
-#       set.seed(1111)
-#       if (length(gs.sm[[i]])==0)
-#         g_i <- NA
-#       else if( class(gs.sm[[i]])=='igraph' )
-#         g_i <- gs.sm[[i]]
-#       else if ( class(gs.sm[[i]][[1]])=='igraph'  )
-#         g_i <- gs.sm[[i]][[1]]
-#       else if ( class(gs.sm[[i]][[1]][[1]])=='igraph'  )
-#         g_i <- gs.sm[[i]][[1]][[1]]
-#       else
-#         g_i <- NA
-#       ##
-#       if (all( !is.na(g_i) )) {
-#         plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
-#       } else {
-#         plot.new()
-#       }
-#       legend('topright',legend=sprintf('t=%d (k=%d)',periods[i], k),bty='n', cex=1.6)
-#     }
-#   dev.off()
-# }
-
-
-
-## jaccard similarity
-js <- similarity(g.sub, method='jaccard')
-heatmap(js)
 
 ## cliques are markets
 cl <- igraph::cliques(gs.sm[[1]], min = 2)
@@ -397,7 +372,11 @@ dev.off()
 ##################################################################
 ##----------------------- Community -----------------------
 ##################################################################
-g <- gs.sm[[15]][[1]]
+name_i <- 'netflix'
+k <- 3
+#
+g.list <- getEgoGraphList(gl1, name_i, k, safe=TRUE)
+g <- g.list[[length(g.list)]]
 com <- list()
 com$infomap<- igraph::infomap.community(g)
 com$walktrap <- igraph::walktrap.community(g)
@@ -417,10 +396,8 @@ for(i in 1:length(com)) {
   barplot(height = cnt$freq, names.arg = cnt$x, main=com.name.list[i], col='lightgray')
 }
 
-## Single Medallia plot-----------------------------------
-name_i <- 'medallia'
+## SINGLE FOCAL FIRM RAINBOW PLOT COMMUNITY MEMBERSHIP-----------------------------
 membership <- com$multilevel$membership
-k <- 4
 gx <- gl1[[length(gl1)]]
 g.sub <- igraph::make_ego_graph(gx, k, V(gx)[V(gx)$name==name_i],mode = 'all')[[1]]
 filename <- file.path(img_dir,sprintf('single_ego_compnet_nofocalcolor_%s_k%d.png',name_i,k))
@@ -436,7 +413,7 @@ filename <- file.path(img_dir,sprintf('compare_community_membership_alorithms_%s
 png(filename, height=7, width=12, units='in', res=300)
 par(mfrow=c(3,3), mar=c(.1,.1,0,0))
 for(i in 1:length(com)) {
-  plotCompNet(g.sub, focal.firm = name_i, focal.color=FALSE,  membership = com[[i]]$membership, vertex.log.base = 1+exp(k)*.03, label.log.base = 1+exp(k)*.4 )
+  plotCompNet(g.sub, focal.firm = name_i, focal.color=FALSE,  membership = com[[i]]$membership, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
   legend('topright',legend=sprintf('%s',stringr::str_to_title(names(com)[i])),bty='n', cex=1.3)
 }
 dev.off()
@@ -446,6 +423,12 @@ com$multilevel$names[which(com$multilevel$membership==c_i)]
 
 ## BREAK APART COMMUNITY STRUCTURE
 coms <- unique(com$multilevel$membership)
+ncoms <- length(coms)
+mf.col = ceiling(sqrt(ncoms))
+mf.row = floor(sqrt(ncoms))
+if(mf.col*mf.row < ncoms)
+    mf.row <- ceiling(sqrt(ncoms))
+#
 com.subg <- list()
 for (c_i in coms) {
   com.names <- com$multilevel$names[which(com$multilevel$membership==c_i)]
@@ -453,8 +436,8 @@ for (c_i in coms) {
 }
 ## PLOT NOISY PRODUCT MARKET DENSITY
 filename <- file.path(img_dir,sprintf('noisy_prod_market_densities_%s_k%d.png',name_i,k))
-png(filename, height=7, width=12, units='in', res=300)
-par(mfrow=c(3,3), mar=c(.1,.1,2,.1))
+png(filename, height=3.25*mf.row, width=3.5*mf.col, units='in', res=300)
+par(mfrow=c(mf.row,mf.col), mar=c(.1,.1,2,.1))
 sapply(seq_len(length(com.subg)), function(x){
   g <- com.subg[[x]]
   col_i <- rainbow(length(com.subg), alpha=.7)[x]
@@ -463,6 +446,8 @@ sapply(seq_len(length(com.subg)), function(x){
 dev.off()
 
 
+
+################ EXAMPLE RANDOM SAMPLE PLOTS ####################################
 ## Noisy Product Markets -- ALL ER BINOMIAL MODELS
 n <- 10
 filename <- file.path(img_dir,'noisy_prod_market_density_epsilon_erd_renyi.png')

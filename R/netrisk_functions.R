@@ -75,7 +75,7 @@ burt4summary <- function(g.list, plotting=TRUE)
 ##
 # 
 ##
-getEgoGraph <- function(graph.list, name, order=3, safe=TRUE)
+getEgoGraphList <- function(graph.list, name, order=3, safe=TRUE)
 {
   if(!safe) 
       return(sapply(graph.list, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T))    
@@ -516,6 +516,18 @@ makeIgraphPdSubgraphKeepNA <- function(g, start, end,
   ##-----------------MAKE SUBGRAPH ---------------------------
   cat('inducing subgraph...\n')
   g <- igraph::induced.subgraph(g, vids = activeVerts)
+  ##------------------ COLLECT EDGES TO REMOVE -----------
+  ## REMOVE EDGES CREATED AT
+  if (edgeCreatedAttr %in% edgeAttrs) {
+    tmp <- igraph::get.edge.attribute(g,edgeCreatedAttr)
+    eids <- E(g)[which(tmp > end)]
+    inactiveEdges <- c(inactiveEdges, eids)
+    
+  }
+  ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
+  # activeEdges <- unique(  E(g)[ !(E(g)%in%inactiveEdges) ]  )
+  ## -------------- UPDATE SUBGRAPH PRUNING EDGES -------------
+  g <- igraph::delete.edges(g, edges=inactiveEdges)
   ##----------------------DYNAMIC ATTRS-----------------------
   ## AGE
   agediff <- end - V(g)$founded_year
@@ -523,7 +535,7 @@ makeIgraphPdSubgraphKeepNA <- function(g, start, end,
   ## funding rounds
   if(any( !is.na(rou) )) {
     cat('optional: aggregating funding rounds...\n')
-    x <- ply.vert.attr(rou, 'funded_year', 'ply.rou', start, end)
+    x <- ply.vert.attr(rou, g, 'funded_year', 'ply.rou', start, end)
     check <- nrow(x) > 0 & all(c('funding_total_usd') %in% names(x))
     if(check) {
         V(g)$funding_total_usd <- ifelse(check, ifelse( is.na(x$funding_total_usd), 0, x$funding_total_usd), 0)
@@ -536,7 +548,7 @@ makeIgraphPdSubgraphKeepNA <- function(g, start, end,
   ## acquisitions
   if(any( !is.na(acq) )) {
     cat('optional: aggregating acquisitions...\n')
-    x <-  ply.vert.attr(acq, 'acquired_year', 'ply.acq', start, end)
+    x <-  ply.vert.attr(acq, g, 'acquired_year', 'ply.acq', start, end)
     check <- nrow(x) > 0 & all(c('acquisitions_count','acquisitions_concat') %in% names(x))
     if(check) {
         V(g)$acquisitions <- x$acquisitions_concat
@@ -549,7 +561,7 @@ makeIgraphPdSubgraphKeepNA <- function(g, start, end,
   ## branches
   if(any( !is.na(br) )) {
     cat('optional: aggregating branches...\n')
-    x <- ply.vert.attr(br, 'created_year', 'ply.br', start, end)
+    x <- ply.vert.attr(br, g, 'created_year', 'ply.br', start, end)
     check <- nrow(x) > 0 & all(c('branches_count','branches_concat') %in% names(x))
     if(check) {
         V(g)$branches <- x$branches_concat
@@ -563,7 +575,7 @@ makeIgraphPdSubgraphKeepNA <- function(g, start, end,
   return(g)
 } 
 ##----- dependent functions in makeIgraphPdSubgraphKeepNA() --------
-ply.vert.attr <- function(df, filterPdVar, FUN, start, end)
+ply.vert.attr <- function(df, g, filterPdVar, FUN, start, end)
 {
   if( !('company_name_unique'%in% names(df)) )
     stop('df must have name column (`company_name_unique`)')
