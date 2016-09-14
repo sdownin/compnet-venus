@@ -42,9 +42,9 @@ lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 #                "dell","groupon","salesforce","blackberry")
 
 
-##------------------------------------------------------------------------------
+#####################################################################################
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
-##------------------------------------------------------------------------------
+#####################################################################################
 g.full <- makeGraph(comp = comp, vertdf = co)
 ## fill in missing founded_year values from founded_at year
 V(g.full)$founded_year <- ifelse( (!is.na(V(g.full)$founded_year)|V(g.full)$founded_year==''), V(g.full)$founded_year, as.numeric(substr(V(g.full)$founded_at,1,4)))
@@ -81,159 +81,18 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
 #_------------------------------------------------------------------------
 
 
-# ##-----------------------------------------------------------------------
-# ## example company ego plots by k order
-# ##-----------------------------------------------------------------------
-# #####
-# ## Netflix
-# png(file.path(img_dir,'netflix_ego_plot.png'), height=6, width=18, units='in',res=350)
-# par(mfrow=c(1,3))
-# for (k in 1:3) {
-#   g.netflix <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='netflix'])[[1]]
-#   plotCompNet(g.netflix, multi.prod = 'netflix')
-#   legend('topright',legend=sprintf('k=%s',k),bty='n')
-# }
-# dev.off()
-# ## Medallia
-# png(file.path(img_dir,'medallia_ego_plot.png'), height=12, width=12, units='in',res=350)
-# par(mfrow=c(2,2))
-# for (k in 1:4) {
-#   g.medallia <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='medallia'])[[1]]
-#   plotCompNet(g.medallia, multi.prod = 'medallia')
-#   legend('topright',legend=sprintf('k=%s',k),bty='n')
-# }
-# dev.off()
-# ## surveymonkey
-# png(file.path(img_dir,'surveymonkey_ego_plot.png'), height=12, width=12, units='in',res=350)
-# par(mfrow=c(2,2))
-# for (k in 1:4) {
-#   g.sm <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
-#   plotCompNet(g.sm, multi.prod = 'surveymonkey',vertex.log.base = 2^k, label.log.base = 3*2^k)
-#   legend('topright',legend=sprintf('k=%s',k),bty='n')
-# }
-# dev.off()
-# 
-# ## shortest paths
-# gx <- g.sm
-# igraph::get.shortest.paths(graph=gx, 
-#                            from = V(gx)[V(gx)$name=='surveymonkey'], 
-#                            to=V(gx)[V(gx)$name=='google'],output = 'both')
-# #####
 
-
-
-# ##------------------- PLOTS----------------------------------------------
-# gk <- list()
-# for (k in 1:12) {
-#   mp.egonet <- getMultiProdEgoNet(g.full, multi.prod, k=k, include.competitor.egonet = T)
-#   gk[[k]] <- igraph::induced.subgraph(g.full, vids=mp.egonet$vids)
-# }
-# net.size <- getNetSizeChange(gk, showPlot = F)
-#
-# # Plot comp net size cumulative distribution
-# png('comp_net_3by1_size_k_order_ego_net.png', width = 5, height=7, units = 'in', res = 200)
-# par(mfrow=c(3,1),mar=c(4.5,4.5,1.5,1))
-# matplot(net.size, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),ylab=expression('Comp Net Size'))
-# legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
-# #
-# matplot(net.size.pct, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
-#         ylab=expression('Comp Net Proportion of Total'),  ylim=c(0,1))
-# legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
-# #
-# matplot(net.size.diff, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
-#         ylab=expression('Change in Comp Net Size by Order (k)'))
-# legend(x='topright',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
-# dev.off()
-# 
-# # Plot comp net k=1, k=2
-# png('comp_net_3by1_ego_net_plot_k1_k2.png', width = 14, height=8, units = 'in', res = 200)
-# par(mfrow=c(1,2),mar=c(.1,.1,.1,.1))
-#   plotCompNet(l[[1]],multi.prod)
-#   legend(x='topright',legend='k = 1',bty='n')
-#   #
-#   plotCompNet(l[[2]],multi.prod, label.log.base = 20)
-#   legend(x='topright',legend='k = 2',bty='n')
-# dev.off()
-##
-
-# ##------------------- PLOTTING PERIOD SUGRAPHS ---------------------
-# png("comp_net_4_pd_subgraph_change_k2.png",width=10, height=12, units='in', res=200)
-# par(mfrow=c(2,2),mar=c(.2,.2,.2,.2))
-#   for (t in 1:length(gl)) {
-#     gx <- gl[[t]]
-#     yr <- names(gl)[t]
-#     plotCompNet(gx, multi.prod, vertex.log.base = 20, label.log.base = 20)
-#     legend(x='topright',legend=sprintf('Yr = %s',yr),bty='n')
-#   }
-# dev.off()
-# ##-------------------------------------------------------------
-
-  
-  
-  
-# Make Network Dynamic
-net.list <- lapply(X = gl, FUN = function(x)getNetFromIgraph(x))
-nd <- networkDynamic(network.list = net.list, onsets = periods[1:(length(periods)-1)], termini = periods[-1])
-
-# save.image(file = 'netrisk_sms_image_with_tergm_fit.RData')
-
-formation <- ~ edges
-dissolution <- ~ edges
-sm1 <- stergm(net,
-              formation=formation, 
-              dissolution=dissolution, 
-              estimate="CMLE", 
-              times=2001:2002)
-  
-
-  
-  
-
-
-
-# Estimte ERGM models
-f1 <- net ~ edges + nodecov("degree") + gwdegree(.5)
-m1 <- ergm(formula = f1)
-summary(m1)
-
-f2 <- net ~ edges + nodecov("degree") + triangle()
-m2 <- ergm(formula = f2)
-summary(m2)
-
-f3 <- net ~ edges + nodecov("degree") + dsp(1:3)
-m3 <- ergm(formula = f3)
-summary(m3)
-
-  
-
-
-## ------------------- NETWORKDYNAMIC PLOTS -----------------------------
-data("short.stergm.sim")
-ss <- short.stergm.sim
-ndtv::timeline(ss)
-ndtv::timePrism(ss, at=seq(1,10,by=3))
-ndtv::filmstrip(ss, frames=9, mfrow=c(3,3))
-ndtv::render.d3movie(ss, filename = )
-  
-
-
-
+####################################################################
+####################################################################
+####################################################################
 
 
 
 ####################################################################
 ####################################################################
-####################################################################
-####################################################################
-####################################################################
-####################################################################
-####################################################################
-
-
-
 #-----------------------------------------------------------------
 #
-#   igraph MAIN LOOP
+#                 Create Dynamic igraph MAIN LOOP
 #
 #-----------------------------------------------------------------
 yrpd <- 2
@@ -256,6 +115,8 @@ for(t in 2:length(periods)) {
 # 
 
 #--------------------------------------------------------------------
+####################################################################
+####################################################################
 
 
 ###########################
@@ -371,7 +232,7 @@ multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-pac
                   "symantec","broadcom","kkr","medtronic","vmware")
 
 
-single.prod <- c('dropbox','surveymonkey','netflix','medallia')
+single.prod <- c('netflix','medallia')  #'dropbox','surveymonkey',
 k.vec <- c(3,3,3,4)
 
 for (i in 1:length(single.prod)) {
@@ -383,9 +244,10 @@ for (i in 1:length(single.prod)) {
   png(filename, height=8,width=14,units='in',res=350)
   par(mfrow=c(2,3),mar=c(.1,.1,.1,.1))
   for(i in (5+2*c(0,1,2,3,4,5)) ) {
+    g_i <- gs.sm[[i]]
     set.seed(1111)
     if (all( !is.na(g_i) )) {
-      plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
+      plotCompNet(g_i, focal.firm = name_i, multi.prod=multi.prod, vertex.log.base = 1+exp(k)*.1, label.log.base = 1+exp(k)*.5 )
     } else {
       plot.new()
     }
@@ -742,6 +604,148 @@ for(i in (5+2*c(0,1,2,3,4,5)) ) {
 
   print(g_i)
 }
+
+
+
+
+
+
+
+# ##-----------------------------------------------------------------------
+# ## example company ego plots by k order
+# ##-----------------------------------------------------------------------
+# #####
+# ## Netflix
+# png(file.path(img_dir,'netflix_ego_plot.png'), height=6, width=18, units='in',res=350)
+# par(mfrow=c(1,3))
+# for (k in 1:3) {
+#   g.netflix <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='netflix'])[[1]]
+#   plotCompNet(g.netflix, multi.prod = 'netflix')
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# ## Medallia
+# png(file.path(img_dir,'medallia_ego_plot.png'), height=12, width=12, units='in',res=350)
+# par(mfrow=c(2,2))
+# for (k in 1:4) {
+#   g.medallia <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='medallia'])[[1]]
+#   plotCompNet(g.medallia, multi.prod = 'medallia')
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# ## surveymonkey
+# png(file.path(img_dir,'surveymonkey_ego_plot.png'), height=12, width=12, units='in',res=350)
+# par(mfrow=c(2,2))
+# for (k in 1:4) {
+#   g.sm <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
+#   plotCompNet(g.sm, multi.prod = 'surveymonkey',vertex.log.base = 2^k, label.log.base = 3*2^k)
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# 
+# ## shortest paths
+# gx <- g.sm
+# igraph::get.shortest.paths(graph=gx, 
+#                            from = V(gx)[V(gx)$name=='surveymonkey'], 
+#                            to=V(gx)[V(gx)$name=='google'],output = 'both')
+# #####
+
+
+
+# ##------------------- PLOTS----------------------------------------------
+# gk <- list()
+# for (k in 1:12) {
+#   mp.egonet <- getMultiProdEgoNet(g.full, multi.prod, k=k, include.competitor.egonet = T)
+#   gk[[k]] <- igraph::induced.subgraph(g.full, vids=mp.egonet$vids)
+# }
+# net.size <- getNetSizeChange(gk, showPlot = F)
+#
+# # Plot comp net size cumulative distribution
+# png('comp_net_3by1_size_k_order_ego_net.png', width = 5, height=7, units = 'in', res = 200)
+# par(mfrow=c(3,1),mar=c(4.5,4.5,1.5,1))
+# matplot(net.size, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),ylab=expression('Comp Net Size'))
+# legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+# #
+# matplot(net.size.pct, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
+#         ylab=expression('Comp Net Proportion of Total'),  ylim=c(0,1))
+# legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+# #
+# matplot(net.size.diff, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
+#         ylab=expression('Change in Comp Net Size by Order (k)'))
+# legend(x='topright',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+# dev.off()
+# 
+# # Plot comp net k=1, k=2
+# png('comp_net_3by1_ego_net_plot_k1_k2.png', width = 14, height=8, units = 'in', res = 200)
+# par(mfrow=c(1,2),mar=c(.1,.1,.1,.1))
+#   plotCompNet(l[[1]],multi.prod)
+#   legend(x='topright',legend='k = 1',bty='n')
+#   #
+#   plotCompNet(l[[2]],multi.prod, label.log.base = 20)
+#   legend(x='topright',legend='k = 2',bty='n')
+# dev.off()
+##
+
+# ##------------------- PLOTTING PERIOD SUGRAPHS ---------------------
+# png("comp_net_4_pd_subgraph_change_k2.png",width=10, height=12, units='in', res=200)
+# par(mfrow=c(2,2),mar=c(.2,.2,.2,.2))
+#   for (t in 1:length(gl)) {
+#     gx <- gl[[t]]
+#     yr <- names(gl)[t]
+#     plotCompNet(gx, multi.prod, vertex.log.base = 20, label.log.base = 20)
+#     legend(x='topright',legend=sprintf('Yr = %s',yr),bty='n')
+#   }
+# dev.off()
+# ##-------------------------------------------------------------
+
+
+
+
+# Make Network Dynamic
+net.list <- lapply(X = gl, FUN = function(x)getNetFromIgraph(x))
+nd <- networkDynamic(network.list = net.list, onsets = periods[1:(length(periods)-1)], termini = periods[-1])
+
+# save.image(file = 'netrisk_sms_image_with_tergm_fit.RData')
+
+formation <- ~ edges
+dissolution <- ~ edges
+sm1 <- stergm(net,
+              formation=formation, 
+              dissolution=dissolution, 
+              estimate="CMLE", 
+              times=2001:2002)
+
+
+
+
+
+
+
+# Estimte ERGM models
+f1 <- net ~ edges + nodecov("degree") + gwdegree(.5)
+m1 <- ergm(formula = f1)
+summary(m1)
+
+f2 <- net ~ edges + nodecov("degree") + triangle()
+m2 <- ergm(formula = f2)
+summary(m2)
+
+f3 <- net ~ edges + nodecov("degree") + dsp(1:3)
+m3 <- ergm(formula = f3)
+summary(m3)
+
+
+
+
+## ------------------- NETWORKDYNAMIC PLOTS -----------------------------
+data("short.stergm.sim")
+ss <- short.stergm.sim
+ndtv::timeline(ss)
+ndtv::timePrism(ss, at=seq(1,10,by=3))
+ndtv::filmstrip(ss, frames=9, mfrow=c(3,3))
+ndtv::render.d3movie(ss, filename = )
+
+
 
 
 

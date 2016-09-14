@@ -73,9 +73,9 @@ burt4summary <- function(g.list, plotting=TRUE)
 }
 
 ##
-#
+# 
 ##
-getEgoGraph <- function(graph.list, name, order=3, safe=FALSE)
+getEgoGraph <- function(graph.list, name, order=3, safe=TRUE)
 {
   if(!safe) 
       return(sapply(graph.list, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T))    
