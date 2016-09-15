@@ -6,6 +6,7 @@
 # @article  "Network Risk: Assessing the threat of envelopment"
 #
 ##########################################################################################
+library(stringdist)
 
 ##
 # Adjacency matrix degree function
@@ -78,9 +79,9 @@ burt4summary <- function(g.list, plotting=TRUE)
 getEgoGraphList <- function(graph.list, name, order=3, safe=TRUE)
 {
   if(!safe) 
-      return(sapply(graph.list, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T))    
+      return(sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T))    
 
-  out.list <- sapply(graph.list, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+  out.list <- sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
   for (i in 1:length(out.list)) {
       g_i <- out.list[[i]]
       if (length(g_i)==0)
@@ -284,6 +285,43 @@ plotCompNet <- function(gs, membership=NA, focal.firm=NA, focal.color=TRUE, mult
               , vertex.label.font = 2
               , vertex.label.family = 'sans'
               , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+
+##
+# Plot Competition Network coloring the Multi-Product firms in red
+##
+plotCompNetRisk <- function(gs, membership=NA, focal.firm=NA, focal.color=TRUE, multi.prod=NA, margins=NA, ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.1,.1,.1,.1)
+  ##
+  par(mar=margins)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  rgb(.3,.3,.6,.4)
+  ##
+  if (!all(is.na(membership)))
+    vertcol <- rainbow(length(unique(membership)), alpha=.7)[ membership ]
+  ##
+  if (!all(is.na(multi.prod)))
+    vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), vertcol)
+  ##
+  if(!all(is.na(focal.firm))) {
+    if(focal.color) 
+      vertcol <- ifelse(V(gs)$name %in% focal.firm, rgb(.15,.15,.7,.8), vertcol )
+    vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
+  }
+  ##
+  set.seed(1111)
+  plot.igraph(gs
+              , layout=layout.kamada.kawai
+              , vertex.color=vertcol
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
               , ...
   )
   par(mar=c(4.5,4.5,3.5,1))
@@ -1071,6 +1109,95 @@ df.cent <- function(g.tmp)
   )
   return(df)
 }
+
+
+##
+#
+##
+envRisk <- function(g, single.prod.names, multi.prod.names, 
+                    only.single.prod=TRUE, community.type='multilevel.community', 
+                    out.risk=FALSE, out.graph=FALSE, out.df=FALSE,
+                    normalize.risk=TRUE )
+{
+  ## get noisy product market
+  com.ml <- do.call(community.type, list(graph=g))
+  V(g)$community <- com.ml$membership
+  ## npms
+  coms <- unique(com.ml$membership)
+  npms <- list()
+  for (c_i in coms) {
+    com.names <-com.ml$names[which(com.ml$membership==c_i)]
+    npms[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
+  }
+  ## inverse DISTANCES MATRIX
+  r <- 1/igraph::distances(g)
+  diag(r) <- 0
+  # ## TYPE MATRIX -- EYE matrix to add 0s specifying for firm type SP vs MP
+  # tm <- dm ## keep row.names|col.names
+  # tm[,] <- diag(nrow(dm))
+  
+  ## COMMUNITY:  set same NPM (community) risk to 0
+  d.man <- as.matrix(dist(V(g)$community, method='manhattan'))
+  r[which(d.man == 0)] <- 0  ## set 0-distance (same community) risk to 
+  
+  ## MULTIPROD vs SINGLEPROD:  only mp-sp or sp-mp relations to 1, else (sp-sp, mp-mp) = 0
+  V(g)$is_multiprod <-  ifelse(V(g)$name %in% multi.prod.names, 1, 0)
+  d.type <- as.matrix(dist(V(g)$is_multiprod, method='manhattan')) ## same type is 0 distance
+  r[which(d.man == 0)] <- 0    ## so set 0 distance to 0 risk from 
+  
+  # if (only.single.prod) {
+  #   # ## +1 risk for single prod; -1 risk for multi-prod
+  #   # prod.vec <- ifelse(V(g)$name %in% multi.prod.names, -1, 1)
+  #   # prod.mat <- prod.vec %*% t(prod.vec)
+  #   # ## 1 for single-product firms 0 for mulit-prodc firms
+  #   prod.mat <- as.matrix( dist(prod.vec), method='maximum'  )
+  #   # dimnames(prod.mat) <- dimnames(r)
+  #   r[which(prod.mat  == 1 )] <- 0
+  #   ## FIRM TYPE: set multi-product firm to 0
+  #   
+  # }
+
+  #dm.lower <- dm; dm.lower[upper.tri(dm.lower, diag = T)] <- 0
+  g <- igraph::set.graph.attribute(g, 'envrisk', r)
+  
+  V(g)$envrisk <- rowSums(r) / 2
+  V(g)$envrisk <- ifelse(V(g)$is_multiprod==1,0,V(g)$envrisk)
+  names(V(g)$envrisk) <- V(g)$name
+  
+  if (normalize.risk) {
+    V(g)$envrisk <- V(g)$envrisk / sum(V(g)$envrisk) 
+    r <- r / sum(r)
+  }
+  
+  if(out.risk)
+    return(r)
+  if(out.graph)
+    return(g)
+  df.r <- data.frame(name=V(g)$name,envrisk=V(g)$envrisk)
+  df.r <- df.r[order(df.r$envrisk, decreasing=T),]
+  if(out.df)
+    return(df.r)
+  return(list(g=g, risk=r, npms=npms, df.r=df.r))
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

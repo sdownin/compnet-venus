@@ -23,14 +23,15 @@ img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition network
 #
 if( !('gl1' %in% ls()) )
   load('netrisk_sms_full_pd_graph.RData')
-#save.image(file= 'netrisk_sms_full_pd_graph.RData')
-
+# save.image(file= 'netrisk_sms_full_pd_graph.RData')
+#
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
+#
 par.default <- par()
-
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
+###########################################################################
 
 ##  SELECT n Multi-Product Firms  (serial acquirers)
 # top.acquirers <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
@@ -390,6 +391,7 @@ com$eigen <- igraph::leading.eigenvector.community(g)
 com.name.list <- c('Infomap','Walk Trap','Fast Greedy','Multi-level',
                    'Edge Betweenness','Label Propagation','Leading Eigenvector')
 
+## compare NPM distribution BARPLOT
 par(mfrow=c(3,3), mar=c(3,3,3,1))
 for(i in 1:length(com)) {
   cnt <- plyr::count(com[[i]]$membership)
@@ -428,7 +430,6 @@ mf.col = ceiling(sqrt(ncoms))
 mf.row = floor(sqrt(ncoms))
 if(mf.col*mf.row < ncoms)
     mf.row <- ceiling(sqrt(ncoms))
-#
 com.subg <- list()
 for (c_i in coms) {
   com.names <- com$multilevel$names[which(com$multilevel$membership==c_i)]
@@ -488,44 +489,92 @@ dev.off()
 ##   NETWORK RISK
 ################################################################
 
+name_i <- 'netflix'
+k <- 2
+tmp.list <- getEgoGraphList(gl1, name_i, k, safe=T)
+knames <- V(tmp.list[[length(tmp.list)]])$name
+g.list <- getEgoGraphList(gl1, name_i, 5, safe=T)
+g <- g.list$`2015`
+tmp <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod, normalize.risk = FALSE)
+g <- tmp$g
+r <- tmp$risk
+df.r <- tmp$df.r
+head(df.r)
 
-g <- gs.sm$`2007`[[1]]
-
-##  NPM community membership
-com$multilevel <- igraph::multilevel.community(g)
-V(g)$com.ml <- com$multilevel$membership
-## NPM density
-ucoms <- unique(V(g)$com.ml)
-com.den <- sapply(ucoms, function(x)graph.density(induced.subgraph(g,vids=which(V(g)$com.ml==x))) )
-## NPM density weighted risk
-
-V(g)$risk <- com.den[V(g)$com.ml] * igraph::closeness(g) * 10000
-
-
-clo <- igraph::closeness(g) %>% sort()
-rsk <- V(g)$risk 
-names(rsk) <- V(g)$name
-rsk <- sort(rsk)
-
-png(file.path(img_dir,'closeness_risk_metric_compare_3.png'),height=6,width=12,units='in',res=250)
-par(mar=c(8,3,2,1), mfrow=c(2,1))
-barplot(height=clo, las=2, cex.names = .55, main='Closeness')
-par(mar=c(8,3,2,1))
-barplot(height=rsk, las=2, cex.names = .55,main='NPM Density-Weighted Closeness')
+membership <- multilevel.community(g)$membership
+filename <- file.path(img_dir,sprintf('single_ego_compnet_nofocalcolor_%s_k%s.png',name_i,k))
+  png(filename, height=5.5,width=6,units='in',res=350)
+  par(mfrow=c(1,1), mar=c(.1,.1,0,0))
+  plotCompNetRisk(g, focal.firm = name_i, focal.color=FALSE, membership = membership, vertex.size = 1+V(g)$envrisk*((vcount(g)/20)/max(V(g)$envrisk)), vertex.label.cex=vcount(g)/400 )
+  #legend('topright',legend=sprintf('t=%s (k=%s)',periods[length(periods)], k),bty='n', cex=1.3)
 dev.off()
 
-# r2 <- sapply(seq_len(vcount(g)), function(i)V(g)$closeness[i]  )
-## x relative dyadic attributes
 
-# df.close.risk <- data.frame(
-#   name=V(g)$name,
-#   `Closeness`=igraph::closeness(g) %>% sort(decreasing=T),
-#   `NPM-Weighted-Closeness`=V(g)$risk %>% sort(decreasing=T)
-# )
-# df.close.risk.melt <- reshape2::melt(data = df.close.risk, id.vars='name')
+# g.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
+#                                            multi.prod.names = multi.prod,
+#                                            only.single.prod = T,out.graph = TRUE
+#                                             ) )
+
+r.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
+                                           multi.prod.names = multi.prod,
+                                           only.single.prod = T,out.df = TRUE
+))
+
+df.r.m <- data.frame(name=NA)
+for (i in 1:length(r.list)) {
+  tmp <- r.list[[i]]
+  names(tmp) <- c(names(tmp)[1], names(r.list)[i])
+  df.r.m <- merge(df.r.m, tmp, by='name', all=T )
+}
+
+df.r.melt <- reshape2::melt(data = df.r.m)
+
+df.xy <- subset(df.r.melt, subset=(df.r.melt$name %in% k10names))
+xyplot(as.numeric(value) ~ as.numeric(variable) | name, data=df.xy,
+       type='b', pch=16, na.rm=T, 
+       col=rainbow(length(unique(df.r.melt[!is.na(df.r.melt$value),'variable'])), s=.8, v=.8, alpha=.8))
+
+df.r.m.t <- t(df.r.m[,-1])
+colnames(df.r.m.t) <- df.r.m$name
+df.diff <- diff(df.r.m.t)
+
+# g <- gs.sm$`2007`[[1]]
 # 
-# lattice::dotplot(value ~ name | variable, data=df.close.risk.melt, layout=c(1,2),
-#                  scales=list(y=list(log=10)))
+# ##  NPM community membership
+# com$multilevel <- igraph::multilevel.community(g)
+# V(g)$com.ml <- com$multilevel$membership
+# ## NPM density
+# ucoms <- unique(V(g)$com.ml)
+# com.den <- sapply(ucoms, function(x)graph.density(induced.subgraph(g,vids=which(V(g)$com.ml==x))) )
+# ## NPM density weighted risk
+# 
+# V(g)$risk <- com.den[V(g)$com.ml] * igraph::closeness(g) * 10000
+# 
+# 
+# clo <- igraph::closeness(g) %>% sort()
+# rsk <- V(g)$risk 
+# names(rsk) <- V(g)$name
+# rsk <- sort(rsk)
+# 
+# png(file.path(img_dir,'closeness_risk_metric_compare_3.png'),height=6,width=12,units='in',res=250)
+# par(mar=c(8,3,2,1), mfrow=c(2,1))
+# barplot(height=clo, las=2, cex.names = .55, main='Closeness')
+# par(mar=c(8,3,2,1))
+# barplot(height=rsk, las=2, cex.names = .55,main='NPM Density-Weighted Closeness')
+# dev.off()
+# 
+# # r2 <- sapply(seq_len(vcount(g)), function(i)V(g)$closeness[i]  )
+# ## x relative dyadic attributes
+# 
+# # df.close.risk <- data.frame(
+# #   name=V(g)$name,
+# #   `Closeness`=igraph::closeness(g) %>% sort(decreasing=T),
+# #   `NPM-Weighted-Closeness`=V(g)$risk %>% sort(decreasing=T)
+# # )
+# # df.close.risk.melt <- reshape2::melt(data = df.close.risk, id.vars='name')
+# # 
+# # lattice::dotplot(value ~ name | variable, data=df.close.risk.melt, layout=c(1,2),
+# #                  scales=list(y=list(log=10)))
 
 
 
