@@ -6,7 +6,6 @@
 # @article  "Network Risk: Assessing the threat of envelopment"
 #
 ##########################################################################################
-library(stringdist)
 
 ##
 # Adjacency matrix degree function
@@ -79,9 +78,9 @@ burt4summary <- function(g.list, plotting=TRUE)
 getEgoGraphList <- function(graph.list, name, order=3, safe=TRUE)
 {
   if(!safe) 
-      return(sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T))    
+      return(sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name],mode = 'all'), simplify = T))    
 
-  out.list <- sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+  out.list <- sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name],mode = 'all'), simplify = T)
   for (i in 1:length(out.list)) {
       g_i <- out.list[[i]]
       if (length(g_i)==0)
@@ -1114,12 +1113,14 @@ df.cent <- function(g.tmp)
 ##
 #
 ##
-envRisk <- function(g, single.prod.names, multi.prod.names, 
-                    only.single.prod=TRUE, community.type='multilevel.community', 
-                    out.risk=FALSE, out.graph=FALSE, out.df=FALSE,
-                    normalize.risk=TRUE )
+envRisk <- function(g, single.prod.names, multi.prod.names,
+                         community.type='multilevel.community',
+                         standardize = FALSE,
+                         out.dist=FALSE, out.graph=FALSE, out.df=FALSE)
 {
-  ## get noisy product market
+  if(class(g)!='igraph' | ecount(g)==0)
+    return(NA)
+  ## ------------ NOISY PRODUCT MARKETS --------------------------
   com.ml <- do.call(community.type, list(graph=g))
   V(g)$community <- com.ml$membership
   ## npms
@@ -1129,48 +1130,29 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
     com.names <-com.ml$names[which(com.ml$membership==c_i)]
     npms[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
   }
-  ## inverse DISTANCES MATRIX
-  r <- 1/igraph::distances(g)
-  diag(r) <- 0
-  # ## TYPE MATRIX -- EYE matrix to add 0s specifying for firm type SP vs MP
-  # tm <- dm ## keep row.names|col.names
-  # tm[,] <- diag(nrow(dm))
-  
+  ##------------------ RISK COMPUTATION --------------------------
+  ## Distances Matrix 
+  D <- igraph::distances(g, mode="all")
   ## COMMUNITY:  set same NPM (community) risk to 0
   d.man <- as.matrix(dist(V(g)$community, method='manhattan'))
-  r[which(d.man == 0)] <- 0  ## set 0-distance (same community) risk to 
-  
-  ## MULTIPROD vs SINGLEPROD:  only mp-sp or sp-mp relations to 1, else (sp-sp, mp-mp) = 0
-  V(g)$is_multiprod <-  ifelse(V(g)$name %in% multi.prod.names, 1, 0)
-  d.type <- as.matrix(dist(V(g)$is_multiprod, method='manhattan')) ## same type is 0 distance
-  r[which(d.man == 0)] <- 0    ## so set 0 distance to 0 risk from 
-  
-  # if (only.single.prod) {
-  #   # ## +1 risk for single prod; -1 risk for multi-prod
-  #   # prod.vec <- ifelse(V(g)$name %in% multi.prod.names, -1, 1)
-  #   # prod.mat <- prod.vec %*% t(prod.vec)
-  #   # ## 1 for single-product firms 0 for mulit-prodc firms
-  #   prod.mat <- as.matrix( dist(prod.vec), method='maximum'  )
-  #   # dimnames(prod.mat) <- dimnames(r)
-  #   r[which(prod.mat  == 1 )] <- 0
-  #   ## FIRM TYPE: set multi-product firm to 0
-  #   
-  # }
-
-  #dm.lower <- dm; dm.lower[upper.tri(dm.lower, diag = T)] <- 0
-  g <- igraph::set.graph.attribute(g, 'envrisk', r)
-  
-  V(g)$envrisk <- rowSums(r) / 2
-  V(g)$envrisk <- ifelse(V(g)$is_multiprod==1,0,V(g)$envrisk)
-  names(V(g)$envrisk) <- V(g)$name
-  
-  if (normalize.risk) {
-    V(g)$envrisk <- V(g)$envrisk / sum(V(g)$envrisk) 
-    r <- r / sum(r)
+  D[which(d.man == 0)] <- 0  ## set 0-distance (same community) risk to  
+  ## Standardize non-NPM distances ?
+  if (standardize) {
+    ## Moore-Penrose Pseudoinverse Covariance
+    Sinv <- ginv( cov(D) )
+    ## Standardized distances
+    Z <- t( D - colMeans(D) ) %*% Sinv %*% (D - colMeans(D))    
+  } else {
+    Z <- D
   }
-  
-  if(out.risk)
-    return(r)
+  ## RISK: inverse of sum of distances (of firms outside focal firm's NPM)
+  r <- 1 / (colSums(Z)/2)
+  names(r) <- V(g)$name
+  V(g)$envrisk <- r
+  #-------------------------------------------------------------------
+  if(out.dist)
+    return(D)
+  g <- igraph::set.graph.attribute(g, 'noNPMdist', D)
   if(out.graph)
     return(g)
   df.r <- data.frame(name=V(g)$name,envrisk=V(g)$envrisk)
@@ -1178,13 +1160,97 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
   if(out.df)
     return(df.r)
   return(list(g=g, risk=r, npms=npms, df.r=df.r))
-
+  
 }
 
 
 
 
+# ##
+# #
+# ##
+# envRiskNaive <- function(g, single.prod.names, multi.prod.names,
+#                     community.type='multilevel.community',
+#                     net.norm=TRUE,
+#                     center.risk=FALSE, scale.risk=FALSE,
+#                     out.risk=FALSE, out.graph=FALSE, out.df=FALSE)
+# {
+#   if(class(g)!='igraph')
+#     return(NA)
+#   ## get noisy product market
+#   com.ml <- do.call(community.type, list(graph=g))
+#   V(g)$community <- com.ml$membership
+#   ## npms
+#   coms <- unique(com.ml$membership)
+#   npms <- list()
+#   for (c_i in coms) {
+#     com.names <-com.ml$names[which(com.ml$membership==c_i)]
+#     npms[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
+#   }
+#   ## inverse DISTANCES MATRIX
+#   r <- 1/igraph::distances(g)
+#   diag(r) <- 0
+#   # ## TYPE MATRIX -- EYE matrix to add 0s specifying for firm type SP vs MP
+#   # tm <- dm ## keep row.names|col.names
+#   # tm[,] <- diag(nrow(dm))
+#   
+#   ## COMMUNITY:  set same NPM (community) risk to 0
+#   d.man <- as.matrix(dist(V(g)$community, method='manhattan'))
+#   r[which(d.man == 0)] <- 0  ## set 0-distance (same community) risk to 
+#   
+#   # ## MULTIPROD vs SINGLEPROD:  only mp-sp or sp-mp relations to 1, else (sp-sp, mp-mp) = 0
+#   # V(g)$is_multiprod <-  ifelse(V(g)$name %in% multi.prod.names, 1, 0)
+#   # d.type <- as.matrix(dist(V(g)$is_multiprod, method='manhattan')) ## same type is 0 distance
+#   # r[which(d.man == 0)] <- 0    ## so set 0 distance to 0 risk from 
+# 
+#   #dm.lower <- dm; dm.lower[upper.tri(dm.lower, diag = T)] <- 0
+#   g <- igraph::set.graph.attribute(g, 'envrisk', r)
+#   
+#   # # ## MULTIPROD vs SINGLEPROD:
+#   # V(g)$envrisk <- ifelse(V(g)$is_multiprod==1,0,V(g)$envrisk)
+#   
+#   # V(g)$envrisk <- rowSums(r) / 2
+# 
+#   if(net.norm) {
+#     r <- r - mean(r[lower.tri(r, diag = F)], na.rm = T)
+#     r <- r / sd(r[lower.tri(r, diag = F)], na.rm = T)
+#   }
+#   
+#   if (center.risk | scale.risk) {
+#     # V(g)$envrisk <- V(g)$envrisk - mean(V(g)$envrisk, na.rm = T)
+#     r <- scale(x = r, center = center.risk, scale = scale.risk)
+#   }
+#   
+#   V(g)$envrisk <- colSums(r) / 2
+#   names(V(g)$envrisk) <- V(g)$name
+#   
+#   if(out.risk)
+#     return(r)
+#   if(out.graph)
+#     return(g)
+#   df.r <- data.frame(name=V(g)$name,envrisk=V(g)$envrisk)
+#   df.r <- df.r[order(df.r$envrisk, decreasing=T),]
+#   if(out.df)
+#     return(df.r)
+#   return(list(g=g, risk=r, npms=npms, df.r=df.r))
+# 
+# }
+# 
 
+
+
+
+# if (only.single.prod) {
+#   # ## +1 risk for single prod; -1 risk for multi-prod
+#   # prod.vec <- ifelse(V(g)$name %in% multi.prod.names, -1, 1)
+#   # prod.mat <- prod.vec %*% t(prod.vec)
+#   # ## 1 for single-product firms 0 for mulit-prodc firms
+#   prod.mat <- as.matrix( dist(prod.vec), method='maximum'  )
+#   # dimnames(prod.mat) <- dimnames(r)
+#   r[which(prod.mat  == 1 )] <- 0
+#   ## FIRM TYPE: set multi-product firm to 0
+#   
+# }
 
 
 

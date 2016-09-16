@@ -17,6 +17,7 @@ library(visNetwork, quietly = T)
 library(scatterplot3d, quietly = T)
 library(lattice, quietly = T)
 library(latticeExtra, quietly = T)
+library(directlabels, quietly = T)
 library(ggplot2, quietly = T)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment"
@@ -31,6 +32,16 @@ source(file.path(getwd(),'R','cb_data_prep.R'))
 #
 par.default <- par()
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
+###########################################################################
+## Firm type global variables
+multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel",
+                "aol","apple","facebook","amazon","adobe-systems","nokia","dell","sap","motorola",
+                "groupon","autodesk","salesforce","iac","quest-software","zayo-group","sas",
+                "qualcomm","blackberry","berkshire-hathaway-corp","carlyle-group","intuit",
+                "symantec","broadcom","kkr","medtronic","vmware","sony","lg","motorola-mobility",
+                "motorola-solutions")
+
+single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
 ###########################################################################
 
 ##  SELECT n Multi-Product Firms  (serial acquirers)
@@ -232,14 +243,7 @@ for (i in 1:length(mp.names)) {
 ###############################################################################
 ##--------------------- PLOT COMPETITION NETWORK SLICES --------------------------------------
 ###############################################################################
-multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel","aol","apple",
-                  "facebook","amazon","adobe-systems","nokia","dell","sap","motorola",
-                  "groupon","autodesk","salesforce","iac","quest-software","zayo-group",
-                  "qualcomm","blackberry","berkshire-hathaway-corp","carlyle-group","intuit",
-                  "symantec","broadcom","kkr","medtronic","vmware")
 
-
-single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
 k.vec <- c(3,4,3,3)
 
 for (i in 1:length(single.prod)) {
@@ -486,57 +490,93 @@ dev.off()
 
 
 ################################################################
-##   NETWORK RISK
+##   ENVELOPMENT RISK
 ################################################################
 
-name_i <- 'netflix'
-k <- 2
-tmp.list <- getEgoGraphList(gl1, name_i, k, safe=T)
-knames <- V(tmp.list[[length(tmp.list)]])$name
-g.list <- getEgoGraphList(gl1, name_i, 5, safe=T)
+name_i <- 'medallia'
+krisk <- 6
+kplot <- 3
+tmp.list <- getEgoGraphList(gl1, name_i, kplot, safe=T)
+plotnames <- V(tmp.list[[length(tmp.list)]])$name
+g.list <- getEgoGraphList(gl1, name_i, krisk, safe=T)
+###
+## YEARLY LIST OF RISK DATAFRAME
+r.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
+                                           multi.prod.names = multi.prod,
+                                           standardize=TRUE, out.df = TRUE
+))
+## MERGE COMBINED LIST OF RISK
+df.r.m <- data.frame(name=NA)
+for (i in 1:length(r.list)) {
+  tmp <- r.list[[i]]
+  if(any( !is.na(tmp) )) {
+    names(tmp) <- c(names(tmp)[1], names(r.list)[i])
+    df.r.m <- merge(df.r.m, tmp, by='name', all=T )    
+  }
+}
+## ADD FACTOR VARS
+df.r.m$type <- ifelse(df.r.m$name%in%multi.prod, 'Multi-Product','Single-Product')
+df.tmp <- df.r.m[,!(names(df.r.m)%in%c('name','type','risk'))]
+ncols <- ncol(df.tmp)
+split <- ceiling(ncols/2)
+risk.check <- rowMeans(df.tmp[,(split+1):ncols], na.rm = T) - rowMeans(df.tmp[,1:split], na.rm = T)
+df.r.m$risk <- ifelse( risk.check > 0, 'Increasing Risk', 'Decreasing Risk')
+df.r.melt <- reshape2::melt(data = df.r.m, id.vars=c('name','type','risk'))
+
+## ------------PLOTTING--------------------------------
+df.xy <- subset(df.r.melt, subset=(df.r.melt$name %in% plotnames))
+# df.xy <- df.r.melt
+cols <- rainbow(length(unique(df.r.melt[!is.na(df.r.melt$value),'variable'])), s=.8, v=.8, alpha=.95)
+X <- na.omit(df.xy)
+trel.r1 <- direct.label( xyplot(
+  value ~ variable | type + risk, groups= name, data=X,
+  type='b', pch=16, na.rm=T, col=cols,
+  par.settings=list(strip.background=list(col=c('lightgrey','darkgrey'))),
+  panel=function(x,y,groups,...){
+    panel.xyplot(x,y,groups,...);
+    panel.lines(x=0:(length(unique(X$variable))*2),y=0,col='black',lty=2);
+  }), 'last.qp'); print(trel.r1)
+
+filename <- file.path(img_dir, sprintf('risk_timeseries_lattice_%s_k%s_k%s.png',name_i,krisk,kplot))
+lattice::trellis.device(device='png', filename=filename, height=8, width=12, units='in', res=200)
+print(trel.r1)
+dev.off()
+
+X <- df.xy
+bwplot(value ~ variable | type + risk, groups= name, data=X,
+       panel=function(x,y,groups,...){
+         panel.bwplot(x,y,...);
+         panel.lines(x=0:(length(unique(X$variable))*2),y=0,lty=2,col='black');
+       })
+##_--------------------------------------------------
+# df.r.m.t <- t(df.r.m[,-1])
+# colnames(df.r.m.t) <- df.r.m$name
+# df.diff <- diff(df.r.m.t)
+
+
+##
 g <- g.list$`2015`
 tmp <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod, normalize.risk = FALSE)
 g <- tmp$g
 r <- tmp$risk
 df.r <- tmp$df.r
 head(df.r)
-
 membership <- multilevel.community(g)$membership
 filename <- file.path(img_dir,sprintf('single_ego_compnet_nofocalcolor_%s_k%s.png',name_i,k))
-  png(filename, height=5.5,width=6,units='in',res=350)
-  par(mfrow=c(1,1), mar=c(.1,.1,0,0))
-  plotCompNetRisk(g, focal.firm = name_i, focal.color=FALSE, membership = membership, vertex.size = 1+V(g)$envrisk*((vcount(g)/20)/max(V(g)$envrisk)), vertex.label.cex=vcount(g)/400 )
-  #legend('topright',legend=sprintf('t=%s (k=%s)',periods[length(periods)], k),bty='n', cex=1.3)
+png(filename, height=5.5,width=6,units='in',res=350)
+par(mfrow=c(1,1), mar=c(.1,.1,0,0))
+plotCompNetRisk(g, focal.firm = name_i, focal.color=FALSE, membership = membership, vertex.size = 1+V(g)$envrisk*((vcount(g)/20)/max(V(g)$envrisk)), vertex.label.cex=vcount(g)/400 )
+#legend('topright',legend=sprintf('t=%s (k=%s)',periods[length(periods)], k),bty='n', cex=1.3)
 dev.off()
+##
 
-
+##
 # g.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
 #                                            multi.prod.names = multi.prod,
 #                                            only.single.prod = T,out.graph = TRUE
 #                                             ) )
 
-r.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
-                                           multi.prod.names = multi.prod,
-                                           only.single.prod = T,out.df = TRUE
-))
 
-df.r.m <- data.frame(name=NA)
-for (i in 1:length(r.list)) {
-  tmp <- r.list[[i]]
-  names(tmp) <- c(names(tmp)[1], names(r.list)[i])
-  df.r.m <- merge(df.r.m, tmp, by='name', all=T )
-}
-
-df.r.melt <- reshape2::melt(data = df.r.m)
-
-df.xy <- subset(df.r.melt, subset=(df.r.melt$name %in% k10names))
-xyplot(as.numeric(value) ~ as.numeric(variable) | name, data=df.xy,
-       type='b', pch=16, na.rm=T, 
-       col=rainbow(length(unique(df.r.melt[!is.na(df.r.melt$value),'variable'])), s=.8, v=.8, alpha=.8))
-
-df.r.m.t <- t(df.r.m[,-1])
-colnames(df.r.m.t) <- df.r.m$name
-df.diff <- diff(df.r.m.t)
 
 # g <- gs.sm$`2007`[[1]]
 # 
