@@ -1113,7 +1113,7 @@ df.cent <- function(g.tmp)
 ##
 #
 ##
-envRisk <- function(g, order, single.prod.names, multi.prod.names,
+envRisk <- function(g, single.prod.names, multi.prod.names,
                          community.type='multilevel.community',
                          risk.center = FALSE, risk.scale=FALSE,
                          out.dist=FALSE, out.graph=FALSE, out.df=FALSE)
@@ -1132,21 +1132,44 @@ envRisk <- function(g, order, single.prod.names, multi.prod.names,
     com.names <-com.ml$names[which(com.ml$membership==c_i)]
     npms[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
   }
-  ##------------------ RISK COMPUTATION --------------------------
-  ## Distances Matrix 
-  D <- igraph::distances(g, mode="all")
-  ## COMMUNITY:  set same NPM (community) risk to 0
-  d.man <- as.matrix(dist(V(g)$community, method='manhattan'))
-  D[which(d.man == 0)] <- 0  ## set 0-distance (same community) risk to  
+  vcs <- sapply(npms, igraph::vcount)
+  ecs <- sapply(npms, igraph::ecount)
+  dens <- sapply(npms,igraph::graph.density)
+  ## find cross market density
+  cmd <- matrix(NA, nrow=length(coms), ncol=length(coms))
+  for (i in 1:length(coms)) {
+    for (j in 1:length(coms)) {
+      if ( i != j ) {
+        el <- get.edgelist(g, names=F)
+        el <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
+                  | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
+        cmd[i,j] <- nrow(el) / (vcs[i] * vcs[j])
+      } else if ( i == j ) {
+        cmd[i,j] <- dens[i]
+      }
+    }
+  }
+  ##------------------ RISK COMPUTATION ------------------------------
+  ## 1. DISTANCES Matrix excluding current competition (-1)
+  D <- igraph::distances(g, mode="all") - 1
+  diag(D) <- 0
+  ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
+  d.man <- as.matrix(dist(V(g)$community, method='manhattan')) ## manhattan distance=0 if same
+  D[which(d.man == 0)] <- cmd[ V(g) , ]  ## set 0-distance (same community) risk to (1 * density)
+  
+  W <- sapply(V(g)$community, function(x){
+    sapply(V(g)$community, function(y){
+      cmd[x,y]
+    })
+  })
+  
+
   ## RISK: inverse of sum of distances (of firms outside focal firm's NPM)
   r <- 1 / (colSums(D)/2)
-  #r <- r / order
-  if (risk.center) {
+  if (risk.center)
     r <- r - mean(r, na.rm = T)
-  }
-  if (risk.scale) {
+  if (risk.scale)
     r <- r / sd(r, na.rm = T)
-  }
   names(r) <- V(g)$name
   V(g)$envrisk <- r
   #-------------------------------------------------------------------

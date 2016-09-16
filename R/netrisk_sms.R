@@ -495,7 +495,7 @@ dev.off()
 
 name_i <- 'netflix'
 krisk <- 7
-kplot <- 1
+kplot <- 2
 tmp.list <- getEgoGraphList(gl1, name_i, kplot, safe=T)
 plotnames <- V(tmp.list[[length(tmp.list)]])$name
 g.list <- getEgoGraphList(gl1, name_i, krisk, safe=T)
@@ -528,10 +528,10 @@ risk.check <- rowMeans(df.tmp[,(split+1):ncols], na.rm = T) - rowMeans(df.tmp[,1
 # risk.check <- rowMeans(df.tmp[,(ncol(df.tmp)-1):ncol(df.tmp)]) > 0
 #
 df.r.m$risk <- ifelse( risk.check, 'Increasing', 'Decreasing')
-df.r.melt <- reshape2::melt(data = df.r.m, id.vars=c('name','type','risk'))
+df.r.melt <- reshape2::melt(data = df.r.m, id.vars=c('name','type','risk'), value.name='Std Envelopment Risk')
 
 ## ------------PLOTTING--------------------------------
-X <- na.omit( subset(df.r.melt, subset=( type=='Multi-Product' | name %in% plotnames )) )
+X <- na.omit( subset(df.r.melt, subset=( name %in% plotnames )) )
 # X <- df.r.melt
 cols <- rainbow(length(unique(df.r.melt[!is.na(df.r.melt$value),'variable'])), s=.8, v=.8, alpha=.95)
 trel.r1 <- direct.label( xyplot(
