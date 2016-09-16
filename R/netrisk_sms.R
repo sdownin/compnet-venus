@@ -493,17 +493,19 @@ dev.off()
 ##   ENVELOPMENT RISK
 ################################################################
 
-name_i <- 'medallia'
-krisk <- 6
-kplot <- 3
+name_i <- 'netflix'
+krisk <- 7
+kplot <- 1
 tmp.list <- getEgoGraphList(gl1, name_i, kplot, safe=T)
 plotnames <- V(tmp.list[[length(tmp.list)]])$name
 g.list <- getEgoGraphList(gl1, name_i, krisk, safe=T)
+print(vcount(g.list[[length(g.list)]]))
 ###
 ## YEARLY LIST OF RISK DATAFRAME
-r.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
+r.list <- lapply(g.list,function(g)envRisk(g, krisk, single.prod.names = single.prod,
                                            multi.prod.names = multi.prod,
-                                           standardize=TRUE, out.df = TRUE
+                                           risk.center=TRUE, risk.scale=TRUE,
+                                           out.df = TRUE
 ))
 ## MERGE COMBINED LIST OF RISK
 df.r.m <- data.frame(name=NA)
@@ -517,32 +519,37 @@ for (i in 1:length(r.list)) {
 ## ADD FACTOR VARS
 df.r.m$type <- ifelse(df.r.m$name%in%multi.prod, 'Multi-Product','Single-Product')
 df.tmp <- df.r.m[,!(names(df.r.m)%in%c('name','type','risk'))]
+#
 ncols <- ncol(df.tmp)
 split <- ceiling(ncols/2)
-risk.check <- rowMeans(df.tmp[,(split+1):ncols], na.rm = T) - rowMeans(df.tmp[,1:split], na.rm = T)
-df.r.m$risk <- ifelse( risk.check > 0, 'Increasing Risk', 'Decreasing Risk')
+risk.check <- rowMeans(df.tmp[,(split+1):ncols], na.rm = T) - rowMeans(df.tmp[,1:split], na.rm = T) > 0
+#
+# lastyear <- names(g.list)[length(g.list)]
+# risk.check <- rowMeans(df.tmp[,(ncol(df.tmp)-1):ncol(df.tmp)]) > 0
+#
+df.r.m$risk <- ifelse( risk.check, 'Increasing', 'Decreasing')
 df.r.melt <- reshape2::melt(data = df.r.m, id.vars=c('name','type','risk'))
 
 ## ------------PLOTTING--------------------------------
-df.xy <- subset(df.r.melt, subset=(df.r.melt$name %in% plotnames))
-# df.xy <- df.r.melt
+X <- na.omit( subset(df.r.melt, subset=( type=='Multi-Product' | name %in% plotnames )) )
+# X <- df.r.melt
 cols <- rainbow(length(unique(df.r.melt[!is.na(df.r.melt$value),'variable'])), s=.8, v=.8, alpha=.95)
-X <- na.omit(df.xy)
 trel.r1 <- direct.label( xyplot(
   value ~ variable | type + risk, groups= name, data=X,
   type='b', pch=16, na.rm=T, col=cols,
+  main=sprintf('%s Risk from %s-Order Network (showing %s of %s firms)',str_to_upper(name_i),krisk,length(unique(X$name)),vcount(g.list[[length(g.list)]]) ),
   par.settings=list(strip.background=list(col=c('lightgrey','darkgrey'))),
   panel=function(x,y,groups,...){
     panel.xyplot(x,y,groups,...);
     panel.lines(x=0:(length(unique(X$variable))*2),y=0,col='black',lty=2);
-  }), 'last.qp'); print(trel.r1)
+  }), 'last.qp'); #print(trel.r1)
 
 filename <- file.path(img_dir, sprintf('risk_timeseries_lattice_%s_k%s_k%s.png',name_i,krisk,kplot))
 lattice::trellis.device(device='png', filename=filename, height=8, width=12, units='in', res=200)
 print(trel.r1)
 dev.off()
 
-X <- df.xy
+
 bwplot(value ~ variable | type + risk, groups= name, data=X,
        panel=function(x,y,groups,...){
          panel.bwplot(x,y,...);

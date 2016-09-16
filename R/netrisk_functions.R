@@ -1113,12 +1113,14 @@ df.cent <- function(g.tmp)
 ##
 #
 ##
-envRisk <- function(g, single.prod.names, multi.prod.names,
+envRisk <- function(g, order, single.prod.names, multi.prod.names,
                          community.type='multilevel.community',
-                         standardize = FALSE,
+                         risk.center = FALSE, risk.scale=FALSE,
                          out.dist=FALSE, out.graph=FALSE, out.df=FALSE)
 {
-  if(class(g)!='igraph' | ecount(g)==0)
+  if(class(g)!='igraph')
+    return(NA)
+  if(ecount(g)==0)
     return(NA)
   ## ------------ NOISY PRODUCT MARKETS --------------------------
   com.ml <- do.call(community.type, list(graph=g))
@@ -1136,17 +1138,15 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
   ## COMMUNITY:  set same NPM (community) risk to 0
   d.man <- as.matrix(dist(V(g)$community, method='manhattan'))
   D[which(d.man == 0)] <- 0  ## set 0-distance (same community) risk to  
-  ## Standardize non-NPM distances ?
-  if (standardize) {
-    ## Moore-Penrose Pseudoinverse Covariance
-    Sinv <- ginv( cov(D) )
-    ## Standardized distances
-    Z <- t( D - colMeans(D) ) %*% Sinv %*% (D - colMeans(D))    
-  } else {
-    Z <- D
-  }
   ## RISK: inverse of sum of distances (of firms outside focal firm's NPM)
-  r <- 1 / (colSums(Z)/2)
+  r <- 1 / (colSums(D)/2)
+  #r <- r / order
+  if (risk.center) {
+    r <- r - mean(r, na.rm = T)
+  }
+  if (risk.scale) {
+    r <- r / sd(r, na.rm = T)
+  }
   names(r) <- V(g)$name
   V(g)$envrisk <- r
   #-------------------------------------------------------------------
