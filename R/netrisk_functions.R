@@ -27,6 +27,24 @@ df2lower <- function(df)
 }
 
 ##
+#  get ordinal number suffic
+##
+th <- function(x)
+{
+  if(! is.numeric(x) )
+    return(x)
+  if(x==1)
+    return(paste0(x,'st'))
+  if(x==2)
+    return(paste0(x,'nd'))
+  if(x==3)
+    return(paste0(x,'rd'))
+  if(x)
+    return(paste0(x,'th'))
+  return(x)
+}
+
+##
 # Coleman Theil inequality index [0,1] as measure of Hierarchy ( Burt, 1992:70ff )
 # equals 0 if all contact-specific constraints equal the avg.
 #     -- that is, no contacts are more connected than others
@@ -1137,24 +1155,24 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
     com.names <-com.ml$names[which(com.ml$membership==c_i)]
     npms[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
   }
-  vcs <- sapply(npms, igraph::vcount)
-  ecs <- sapply(npms, igraph::ecount)
-  dens <- sapply(npms,igraph::graph.density)
+  vcs <- sapply(npms, igraph::vcount)  #vertices
+  ecs <- sapply(npms, igraph::ecount)  #edges
+  dens <- sapply(npms,igraph::graph.density)  #densities
   ## find cross market DENSITIES 
   cmd <- matrix(NA, nrow=length(coms), ncol=length(coms))
-  for (i in 1:length(coms)) {
-    for (j in 1:length(coms)) {
+  cmd <- sapply(1:length(coms), function(i){
+    sapply(1:length(coms), function(j){
       if ( i != j ) {
         el <- get.edgelist(g, names=F)
         el <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
-                  | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
+                        | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
         crossden_ij <- nrow(el) / (vcs[i] * vcs[j])
         cmd[i,j] <- ifelse(length(crossden_ij)>0, crossden_ij, 0)
       } else if ( i == j ) {
         cmd[i,j] <- dens[i]
       }
-    }
-  }
+    })
+  })
   ##------------------ RISK COMPUTATION ------------------------------
   ## 1. DISTANCES Matrix excluding current competition (-1)
   D <- igraph::distances(g, mode="all") - 1
@@ -1168,8 +1186,8 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
   })
   ## 2. W  already has same-market density on diags, cross-market density off-diag
   D <- D * (1-W)
-  ## RISK: inverse of sum of distances (of firms outside focal firm's NPM)
-  r <- 1 / (colSums(D)/2)
+  ## RISK: inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by N for cross-network comparison
+  r <- nrow(D) / (colSums(D)/2)
   if (risk.center)
     r <- r - mean(r, na.rm = T)
   if (risk.scale)
@@ -1179,7 +1197,7 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
   #-------------------------------------------------------------------
   if(out.dist)
     return(D)
-  g <- igraph::set.graph.attribute(g, 'noNPMdist', D)
+  g <- igraph::set.graph.attribute(g, 'NpmWeightDist', D)
   if(out.graph)
     return(g)
   df.r <- data.frame(name=V(g)$name,envrisk=V(g)$envrisk)
@@ -1289,12 +1307,19 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
 
 
 
-
-
-
-
-
-
-
+# 
+# for (i in 1:length(coms)) {
+#   for (j in 1:length(coms)) {
+#     if ( i != j ) {
+#       el <- get.edgelist(g, names=F)
+#       el <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
+#                       | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
+#       crossden_ij <- nrow(el) / (vcs[i] * vcs[j])
+#       cmd[i,j] <- ifelse(length(crossden_ij)>0, crossden_ij, 0)
+#     } else if ( i == j ) {
+#       cmd[i,j] <- dens[i]
+#     }
+#   }
+# }
 
 

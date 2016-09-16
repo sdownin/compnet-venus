@@ -245,21 +245,24 @@ for (i in 1:length(mp.names)) {
 ###############################################################################
 
 k.vec <- c(3,4,3,3)
-
+krisk <- 6
 for (i in 1:length(single.prod)) {
   name_i <- single.prod[i]
   k <- k.vec[i]
   gs.sm <- getEgoGraphList(gl1, name_i, k, safe=TRUE)
+  gs.sm.r <- getEgoGraphList(gl1, name_i, krisk, safe=TRUE)
   ## plot k-th order ego net time slices
-  filename <- file.path(img_dir,sprintf('ego_compnet_%s_k%s_timeslices.png',name_i,k))
-  png(filename, height=14,width=14,units='in',res=350)
+  filename <- file.path(img_dir,sprintf('ego_compnet_%s_k%s_timeslices_r.png',name_i,k))
+  png(filename, height=11,width=14,units='in',res=350)
   par(mfrow=c(3,3),mar=c(.1,.1,.1,.1))
   # for(i in (5+2*c(0,1,2,3,4,5)) ) {
   tstart <- which(as.numeric(names(gs.sm))==2007)
   tend <- which(as.numeric(names(gs.sm))==2015)
   yrs <- seq(tstart,tend,by=2)
   for(i in 1:length(gs.sm) ) {
-    g_i <- gs.sm[[i]]
+    g_i <- gs.sm[[i]]; g_i_r <- gs.sm.r[[i]]
+    g_i_r <- envRisk(g_i_r, single.prod.names=single.prod,multi.prod.names=multi.prod,
+                   risk.center=F,risk.scale=F,out.graph=T)
     set.seed(1111)
     if (all( !is.na(g_i) ) & class(g_i)=='igraph') {
       if(ecount(g_i)>0)
@@ -269,10 +272,12 @@ for (i in 1:length(single.prod)) {
     } else {
       plot.new()
     }
-    legend('topright',legend=sprintf('t=%s (k=%s)',names(gs.sm)[i], k),bty='n', cex=1.6)
+    r <- ifelse(class(g_i_r)=='igraph',V(g_i_r)[V(g_i_r)$name==name_i]$envrisk,NA)
+    legend.text <- sprintf('t = %s\nr(k=6) = %s',names(gs.sm)[i],ifelse(!is.na(r),round(r,2),''))
+    legend('topright',legend=legend.text,bty='n', cex=1.6)
   }
   dev.off()
-}
+}; dev.off()
 
 
 
@@ -406,11 +411,11 @@ for(i in 1:length(com)) {
 membership <- com$multilevel$membership
 gx <- gl1[[length(gl1)]]
 g.sub <- igraph::make_ego_graph(gx, k, V(gx)[V(gx)$name==name_i],mode = 'all')[[1]]
-filename <- file.path(img_dir,sprintf('single_ego_compnet_nofocalcolor_%s_k%d.png',name_i,k))
+filename <- file.path(img_dir,sprintf('single_ego_compnet_nofocalcolor_%s_k%s.png',name_i,k))
 png(filename, height=5.5,width=6,units='in',res=350)
   par(mfrow=c(1,1), mar=c(.1,.1,0,0))
-  plotCompNet(g.sub, focal.firm = name_i, focal.color=FALSE, membership = membership, vertex.log.base = 1+exp(k)*.05, label.log.base = 1+exp(k)*.4 )
-  legend('topright',legend=sprintf('t=%d (k=%d)',periods[length(periods)], k),bty='n', cex=1.3)
+  plotCompNet(g.sub, focal.firm = name_i, focal.color=FALSE, membership = membership, vertex.log.base = 1+exp(k)*.8, label.log.base = 1+exp(k)*1.2 )
+  legend('topright',legend=sprintf('t=%s (k=%s)',periods[length(periods)], k),bty='n', cex=1.3)
 dev.off()
 
 
@@ -493,20 +498,25 @@ dev.off()
 ##   ENVELOPMENT RISK
 ################################################################
 
-name_i <- 'netflix'
-krisk <- 5
-kplot <- 2
+name_i <- 'dropbox'
+krisk <- 6
+kplot <- 1
 tmp.list <- getEgoGraphList(gl1, name_i, kplot, safe=T)
 plotnames <- V(tmp.list[[length(tmp.list)]])$name
 g.list <- getEgoGraphList(gl1, name_i, krisk, safe=T)
+# quick look
 print(vcount(g.list[[length(g.list)]]))
+. <- sapply(1:12, function(x){
+  . <-  make_ego_graph(g.full,x,nodes = V(g.full)[V(g.full)$name==name_i])
+  return(c(e=ecount(.[[1]]),v=vcount(.[[1]])))
+}); matplot(diff(t(.)), type='b',pch=16, main=name_i, xlab='k', ylab='Size Diff'); legend('topright',legend=c('relations','firms'),col=1:2,lty=1:2,pch=16)
 ###
 ## YEARLY LIST OF RISK DATAFRAME
-r.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
-                                           multi.prod.names = multi.prod,
-                                           risk.center=TRUE, risk.scale=TRUE,
-                                           out.df = TRUE
-))
+risk.std <- FALSE
+r.list <- lapply(g.list,function(g){
+  envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod,
+          risk.center=risk.std, risk.scale=risk.std, out.df = TRUE)
+})
 ## MERGE COMBINED LIST OF RISK
 df.r.m <- data.frame(name=NA)
 for (i in 1:length(r.list)) {
@@ -528,29 +538,30 @@ risk.check <- rowMeans(df.tmp[,(split+1):ncols], na.rm = T) - rowMeans(df.tmp[,1
 # risk.check <- rowMeans(df.tmp[,(ncol(df.tmp)-1):ncol(df.tmp)]) > 0
 #
 df.r.m$risk <- ifelse( risk.check, 'Increasing', 'Decreasing')
-df.r.melt <- reshape2::melt(data = df.r.m, id.vars=c('name','type','risk'), value.name='Std Envelopment Risk')
+df.r.melt <- reshape2::melt(data = df.r.m, id.vars=c('name','type','risk'))
 
 ## ------------PLOTTING--------------------------------
-X <- na.omit( subset(df.r.melt, subset=( name %in% plotnames )) )
+X <- subset(df.r.melt, subset=( name %in% plotnames & df.r.melt$type=='Single-Product' ))
 # X <- df.r.melt
-cols <- rainbow(length(unique(df.r.melt[!is.na(df.r.melt$value),'variable'])), s=.8, v=.8, alpha=.95)
+cols <- rainbow(length(unique(X[!is.na(X$risk),'name'])), s=.7, v=.7, alpha=.95)
 trel.r1 <- direct.label( xyplot(
-  value ~ variable | type + risk, groups= name, data=X,
+  value ~ variable | risk, groups= name, data=X,
   type='b', pch=16, na.rm=T, col=cols,
-  main=sprintf('%s Risk from %s-Order Network (showing %s of %s firms)',str_to_upper(name_i),krisk,length(unique(X$name)),vcount(g.list[[length(g.list)]]) ),
+  ylab='Standardized Envelopement Risk', xlab='Period',
+  main=sprintf('%s\'s %s-Order Network (showing %s of %s firms)',str_to_title(name_i),th(krisk),length(cols),vcount(g.list[[length(g.list)]]) ),
   par.settings=list(strip.background=list(col=c('lightgrey','darkgrey'))),
   panel=function(x,y,groups,...){
     panel.xyplot(x,y,groups,...);
     panel.lines(x=0:(length(unique(X$variable))*2),y=0,col='black',lty=2);
-  }), 'last.qp'); #print(trel.r1)
+  }), 'last.polygons'); #print(trel.r1)
 
-filename <- file.path(img_dir, sprintf('risk_timeseries_lattice_%s_k%s_k%s.png',name_i,krisk,kplot))
-lattice::trellis.device(device='png', filename=filename, height=8, width=12, units='in', res=200)
+filename <- file.path(img_dir, sprintf('risk_timeseries_lattice_%s_k%s_k%s_risk_%s_2.png',name_i,krisk,kplot,risk.std))
+lattice::trellis.device(device='png', filename=filename, height=5, width=10, units='in', res=200)
 print(trel.r1)
 dev.off()
 
 
-bwplot(value ~ variable | type + risk, groups= name, data=X,
+bwplot(value ~ variable | risk, groups= name, data=X,
        panel=function(x,y,groups,...){
          panel.bwplot(x,y,...);
          panel.lines(x=0:(length(unique(X$variable))*2),y=0,lty=2,col='black');
@@ -975,7 +986,54 @@ plot(gf9)
 ################################################################################
 
 
+name_i <- 'medallia'
+fl <- list()
+for (k in 2:5) {
+  g.list <-  getEgoGraphList(graph.list = gl1, name =  name_i, order = k, safe = TRUE)
+  g <- g.list[[length(g.list)]]
+  #V(g)$type <- factor(ifelse(V(g)$name %in% multi.prod, 'MultiProd', 'SingleProd'))
+  er <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod)
+  g <- er$g
+  print(g)
+  ##
+  net <- getNetFromIgraph(g)
+  net <- network::set.network.attribute(net, 'envrisk', value = get.graph.attribute(g, 'envrisk'))
+  founded_year_filled <- net %v% 'founded_year'
+  founded_year_filled[is.na(founded_year_filled)] <- median(founded_year_filled, na.rm = T)
+  net %v% 'founded_year_filled' <-  founded_year_filled
+  net %v% 'type' <- ifelse(net%v%'vertex.names' %in% multi.prod, 'MultiProd', 'SingleProd')
+  rdf <-  envRisk(g.list[[i-1]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
+  net %v% 'envrisk_lag1' <- rdf$envrisk
+  rdf <-  envRisk(g.list[[i-2]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
+  net %v% 'envrisk_lag2' <- rdf$envrisk
+  # print(net)
+  
+  fl[[k-1]] <- ergm(net ~ nodecov("envrisk") + nodecov("envrisk_lag1") + nodecov("envrisk_lag2") 
+             + nodematch("type", diff=TRUE)
+             + edges + nodematch("market2", diff=FALSE) 
+             + absdiff("founded_year_filled")
+  )
+}
+
+screenreg(fl)
+
+dev.off(); plot.new();par(mfrow=c(2,2))
+plot(gof(fl[length(fl)]))
 
 
 
-    
+
+f4 <- ergm(net ~ nodecov("envrisk") + nodematch("type", diff=TRUE)
+           + edges + nodematch("market2", diff=FALSE) 
+           + absdiff("founded_year_filled")
+)
+f5 <- ergm(net ~ nodecov("envrisk") + nodecov("envrisk_lag1") 
+           + nodematch("type", diff=TRUE)
+           + edges + nodematch("market2", diff=FALSE) 
+           + absdiff("founded_year_filled")
+)
+f5g <- ergm(net ~ nodecov("envrisk") + nodecov("envrisk_lag1") + nodecov("envrisk_lag2") 
+            + nodematch("type", diff=TRUE) + gwesp(0.1, fixed=F)
+            + edges + nodematch("market2", diff=FALSE) 
+            + absdiff("founded_year_filled")
+)
