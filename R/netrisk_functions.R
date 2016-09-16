@@ -1118,10 +1118,15 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
                          risk.center = FALSE, risk.scale=FALSE,
                          out.dist=FALSE, out.graph=FALSE, out.df=FALSE)
 {
-  if(class(g)!='igraph')
-    return(NA)
-  if(ecount(g)==0)
-    return(NA)
+  if(class(g)!='igraph') {
+    cat('not a graph object, skipping...\n')
+    return(NA)    
+  }
+  if(ecount(g)==0) {
+    cat('no edges, skipping ...\n')
+    return(NA)    
+  }
+  cat(sprintf('%s edges\n',ecount(g)))
   ## ------------ NOISY PRODUCT MARKETS --------------------------
   com.ml <- do.call(community.type, list(graph=g))
   V(g)$community <- com.ml$membership
@@ -1135,7 +1140,7 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
   vcs <- sapply(npms, igraph::vcount)
   ecs <- sapply(npms, igraph::ecount)
   dens <- sapply(npms,igraph::graph.density)
-  ## find cross market density
+  ## find cross market DENSITIES 
   cmd <- matrix(NA, nrow=length(coms), ncol=length(coms))
   for (i in 1:length(coms)) {
     for (j in 1:length(coms)) {
@@ -1143,7 +1148,8 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
         el <- get.edgelist(g, names=F)
         el <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
                   | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
-        cmd[i,j] <- nrow(el) / (vcs[i] * vcs[j])
+        crossden_ij <- nrow(el) / (vcs[i] * vcs[j])
+        cmd[i,j] <- ifelse(length(crossden_ij)>0, crossden_ij, 0)
       } else if ( i == j ) {
         cmd[i,j] <- dens[i]
       }
@@ -1155,15 +1161,13 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
   diag(D) <- 0
   ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
   d.man <- as.matrix(dist(V(g)$community, method='manhattan')) ## manhattan distance=0 if same
-  D[which(d.man == 0)] <- cmd[ V(g) , ]  ## set 0-distance (same community) risk to (1 * density)
-  
   W <- sapply(V(g)$community, function(x){
     sapply(V(g)$community, function(y){
       cmd[x,y]
     })
   })
-  
-
+  ## 2. W  already has same-market density on diags, cross-market density off-diag
+  D <- D * (1-W)
   ## RISK: inverse of sum of distances (of firms outside focal firm's NPM)
   r <- 1 / (colSums(D)/2)
   if (risk.center)
@@ -1277,7 +1281,11 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
 
 
 
-
+# ## 2.1.  set  0-distance (same community) risk = (1-density)
+# D[which(d.man == 0)] <- 1 - W[ which(d.man == 0) ]  
+# ## 2.2.  set >0-distance (diff community) risk = (Distance * (1-density))
+# D[which(d.man != 0)] <- (D * (1-W))[ which(d.man != 0) ] 
+##
 
 
 

@@ -494,7 +494,7 @@ dev.off()
 ################################################################
 
 name_i <- 'netflix'
-krisk <- 7
+krisk <- 5
 kplot <- 2
 tmp.list <- getEgoGraphList(gl1, name_i, kplot, safe=T)
 plotnames <- V(tmp.list[[length(tmp.list)]])$name
@@ -502,7 +502,7 @@ g.list <- getEgoGraphList(gl1, name_i, krisk, safe=T)
 print(vcount(g.list[[length(g.list)]]))
 ###
 ## YEARLY LIST OF RISK DATAFRAME
-r.list <- lapply(g.list,function(g)envRisk(g, krisk, single.prod.names = single.prod,
+r.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
                                            multi.prod.names = multi.prod,
                                            risk.center=TRUE, risk.scale=TRUE,
                                            out.df = TRUE
