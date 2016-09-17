@@ -16,6 +16,52 @@ mat.degree<-function(x)
 } 
 
 ##
+# get the coefficient by name from a model fit summary
+##
+getCoef <- function(fit, coef=NA)
+{
+  m <- summary(fit)
+  if (is.na(coef)) {
+    coef <- row.names(m$coefs)
+  }
+  cvec <- sapply(coef, function(coef_i){
+    m$coefs$Estimate[row.names(m$coefs)==coef_i]
+  })
+  names(cvec) <- coef
+  return(cvec)
+}
+
+##
+#  remove ergm terms from coeff names
+##
+removeErgmTerms <- function(x, add.terms=NA)
+{
+  patterns <- c('nodecov','nodematch','absdiff','gwesp','fixed','edges','[.]','0','alpha')
+  if(any( !is.na(add.terms)))
+    patterns <- c(patterns, add.terms)
+  sapply(patterns, function(pattern){
+    x <<- str_replace_all(x, pattern, "")
+  })
+  return(x)
+}
+
+##
+# Convenience function: Print out sumary of logit model results
+##
+explainLogit <- function(b)
+{
+  for (i in 1:length(b)){
+    b_i <- b[i]
+    cat(sprintf('%s:\n',names(b)[i]))
+    cat(sprintf('            b:     log-odds: %.4f\n',    b_i))
+    cat(sprintf('       exp(b):         odds: %.4f\n',    exp(b_i)))
+    cat(sprintf('1/(1+exp(-b)):  probability: %.4f\n',    1/(1+exp(-b_i))))
+    cat(sprintf('                    percent: %.2f%s\n\n',100/(1+exp(-b_i)),'%'))
+  }
+}
+
+
+##
 # Convert dataframe to lowcase column-wise
 ##
 df2lower <- function(df)
@@ -1184,9 +1230,9 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
       cmd[x,y]
     })
   })
-  ## 2. W  already has same-market density on diags, cross-market density off-diag
+  ## 3. W  already has same-market density on diags, cross-market density off-diag
   D <- D * (1-W)
-  ## RISK: inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by N for cross-network comparison
+  ## 4. inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by N for cross-network comparison
   r <- nrow(D) / (colSums(D)/2)
   if (risk.center)
     r <- r - mean(r, na.rm = T)
