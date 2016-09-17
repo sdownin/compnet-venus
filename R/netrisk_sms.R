@@ -24,7 +24,7 @@ img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition network
 #
 if( !('gl1' %in% ls()) )
   load('netrisk_sms_full_pd_graph.RData')
-# save.image(file= 'netrisk_sms_full_pd_graph.RData')
+#  
 #
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
@@ -498,7 +498,7 @@ dev.off()
 ##   ENVELOPMENT RISK
 ################################################################
 
-name_i <- 'dropbox'
+name_i <- 'netflix'
 krisk <- 6
 kplot <- 1
 tmp.list <- getEgoGraphList(gl1, name_i, kplot, safe=T)
@@ -547,7 +547,7 @@ cols <- rainbow(length(unique(X[!is.na(X$risk),'name'])), s=.7, v=.7, alpha=.95)
 trel.r1 <- direct.label( xyplot(
   value ~ variable | risk, groups= name, data=X,
   type='b', pch=16, na.rm=T, col=cols,
-  ylab='Standardized Envelopement Risk', xlab='Period',
+  ylab='Envelopement Risk', xlab='Period',
   main=sprintf('%s\'s %s-Order Network (showing %s of %s firms)',str_to_title(name_i),th(krisk),length(cols),vcount(g.list[[length(g.list)]]) ),
   par.settings=list(strip.background=list(col=c('lightgrey','darkgrey'))),
   panel=function(x,y,groups,...){
@@ -986,42 +986,102 @@ plot(gf9)
 ################################################################################
 
 
-name_i <- 'medallia'
+name_i <- 'netflix'
 fl <- list()
-for (k in 2:5) {
+for (k in 3:5) {
   g.list <-  getEgoGraphList(graph.list = gl1, name =  name_i, order = k, safe = TRUE)
   g <- g.list[[length(g.list)]]
   #V(g)$type <- factor(ifelse(V(g)$name %in% multi.prod, 'MultiProd', 'SingleProd'))
   er <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod)
   g <- er$g
-  print(g)
   ##
   net <- getNetFromIgraph(g)
   net <- network::set.network.attribute(net, 'envrisk', value = get.graph.attribute(g, 'envrisk'))
-  founded_year_filled <- net %v% 'founded_year'
-  founded_year_filled[is.na(founded_year_filled)] <- median(founded_year_filled, na.rm = T)
-  net %v% 'founded_year_filled' <-  founded_year_filled
+  age_filled <- net %v% 'age'
+  age_filled[is.na(age_filled)] <- median(age_filled, na.rm = T)
+  net %v% 'age_filled' <-  age_filled
   net %v% 'type' <- ifelse(net%v%'vertex.names' %in% multi.prod, 'MultiProd', 'SingleProd')
   rdf <-  envRisk(g.list[[i-1]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
   net %v% 'envrisk_lag1' <- rdf$envrisk
-  rdf <-  envRisk(g.list[[i-2]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
-  net %v% 'envrisk_lag2' <- rdf$envrisk
+  # rdf <-  envRisk(g.list[[i-2]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
+  # net %v% 'envrisk_lag2' <- rdf$envrisk
   # print(net)
   
-  fl[[k-1]] <- ergm(net ~ nodecov("envrisk") + nodecov("envrisk_lag1") + nodecov("envrisk_lag2") 
+  fl[[k-1]] <- ergm(net ~ nodecov("envrisk") 
+             + nodecov("envrisk_lag1") 
              + nodematch("type", diff=TRUE)
-             + edges + nodematch("market2", diff=FALSE) 
-             + absdiff("founded_year_filled")
+             + edges 
+             + gwesp(0, fixed=T) # + degree(c(2,4,8))
+             + nodematch("market2", diff=FALSE) 
+             + absdiff("age_filled")
   )
-}
+}; names(fl) <- sapply(2:5,function(k)sprintf('k=%s(N=%s)',k,vcount(g.list[[k]])))
 
-screenreg(fl)
+screenreg(fl[2:4], custom.coef.names = c('Env.Risk',
+                                'Env.Risk: Lag(1)',
+                                'Edges',
+                                'GWESP(fixed)',
+                                'Homophily(Multi-Prod)',
+                                'Homophily(Single-Prod)',
+                                'Homophily(Region)',
+                                'Age Diff'))
+htmlreg(fl[2:4], custom.coef.names = c('Env.Risk',
+                            'Env.Risk: Lag(1)',
+                            'Edges',
+                            'GWESP(fixed)',
+                            'Homophily(Multi-Prod)',
+                            'Homophily(Single-Prod)',
+                            'Homophily(Region)',
+                            'Age Diff'))
 
 dev.off(); plot.new();par(mfrow=c(2,2))
 plot(gof(fl[length(fl)]))
 
+# fl2
+# fl.good
+# fl.good.deg
+# fl.use
+# fl.gwesp0 <- fl[2:4]
+
+# > mean(degree(getIgraphFromNet(net)))
+# [1] 3.621362
+# > mean(net %v% 'envrisk')
+# [1] 0.3835154
+# > mean(net %v% 'envrisk_lag1')
+# [1] 0.3619397
+
+mu1 <-  c( mean((net %v% 'envrisk')), 
+          mean((net %v% 'envrisk_lag1')), 
+    1, 0, mean(degree(getIgraphFromNet(net))),
+    0, # ??
+    0,
+    0)
+mu1std <-  c( mean((net %v% 'envrisk')) + sd((net %v% 'envrisk')), 
+           mean((net %v% 'envrisk_lag1')), 
+           1, 0, mean(degree(getIgraphFromNet(net))),
+           0, # ??
+           0,
+           0)
+b1 <- c(3.631853, 0.130217,1.683311,-0.728211, -9.887887, 
+        2.028685, 0.537109, 0.006603 )
+
+1 / (1 + exp(- b1 %*% mu1))
+1 / (1 + exp(- b1 %*% mu1std))
 
 
+tmpf <- function(x)
+{
+  mu1 <-  c( x, 
+             mean((net %v% 'envrisk_lag1')), 
+             1, 0, mean(degree(getIgraphFromNet(net))),
+             0, # ??
+             0,
+             0)
+  b1 <- c(3.631853, 0.130217,1.683311,-0.728211, -9.887887, 
+          2.028685, 0.537109, 0.006603 )
+  
+  return(1 / (1 + exp(- b1 %*% mu1)))
+}
 
 f4 <- ergm(net ~ nodecov("envrisk") + nodematch("type", diff=TRUE)
            + edges + nodematch("market2", diff=FALSE) 
