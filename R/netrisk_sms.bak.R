@@ -20,11 +20,11 @@ library(latticeExtra, quietly = T)
 library(directlabels, quietly = T)
 library(ggplot2, quietly = T)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
-img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
+img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment"
 #
 if( !('gl1' %in% ls()) )
   load('netrisk_sms_full_pd_graph.RData')
-# save.image('netrisk_sms_full_pd_graph.RData')
+#  
 #
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
@@ -572,152 +572,474 @@ bwplot(value ~ variable | risk, groups= name, data=X,
 ##############################################################################
 
 
-##############################################################################
-#----------------------------- ERGM (1 year) ---------------------------------
-##############################################################################
 
-name_i <- 'medallia'
+##_--------------------------------------------------------------------------
+# df.r.m.t <- t(df.r.m[,-1])
+# colnames(df.r.m.t) <- df.r.m$name
+# df.diff <- diff(df.r.m.t)
+
+
+##
+g <- g.list$`2015`
+tmp <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod, normalize.risk = FALSE)
+g <- tmp$g
+r <- tmp$risk
+df.r <- tmp$df.r
+head(df.r)
+membership <- multilevel.community(g)$membership
+filename <- file.path(img_dir,sprintf('single_ego_compnet_nofocalcolor_%s_k%s.png',name_i,k))
+png(filename, height=5.5,width=6,units='in',res=350)
+par(mfrow=c(1,1), mar=c(.1,.1,0,0))
+plotCompNetRisk(g, focal.firm = name_i, focal.color=FALSE, membership = membership, vertex.size = 1+V(g)$envrisk*((vcount(g)/20)/max(V(g)$envrisk)), vertex.label.cex=vcount(g)/400 )
+#legend('topright',legend=sprintf('t=%s (k=%s)',periods[length(periods)], k),bty='n', cex=1.3)
+dev.off()
+##
+
+##
+# g.list <- lapply(g.list,function(g)envRisk(g, single.prod.names = single.prod,
+#                                            multi.prod.names = multi.prod,
+#                                            only.single.prod = T,out.graph = TRUE
+#                                             ) )
+
+
+
+# g <- gs.sm$`2007`[[1]]
+# 
+# ##  NPM community membership
+# com$multilevel <- igraph::multilevel.community(g)
+# V(g)$com.ml <- com$multilevel$membership
+# ## NPM density
+# ucoms <- unique(V(g)$com.ml)
+# com.den <- sapply(ucoms, function(x)graph.density(induced.subgraph(g,vids=which(V(g)$com.ml==x))) )
+# ## NPM density weighted risk
+# 
+# V(g)$risk <- com.den[V(g)$com.ml] * igraph::closeness(g) * 10000
+# 
+# 
+# clo <- igraph::closeness(g) %>% sort()
+# rsk <- V(g)$risk 
+# names(rsk) <- V(g)$name
+# rsk <- sort(rsk)
+# 
+# png(file.path(img_dir,'closeness_risk_metric_compare_3.png'),height=6,width=12,units='in',res=250)
+# par(mar=c(8,3,2,1), mfrow=c(2,1))
+# barplot(height=clo, las=2, cex.names = .55, main='Closeness')
+# par(mar=c(8,3,2,1))
+# barplot(height=rsk, las=2, cex.names = .55,main='NPM Density-Weighted Closeness')
+# dev.off()
+# 
+# # r2 <- sapply(seq_len(vcount(g)), function(i)V(g)$closeness[i]  )
+# ## x relative dyadic attributes
+# 
+# # df.close.risk <- data.frame(
+# #   name=V(g)$name,
+# #   `Closeness`=igraph::closeness(g) %>% sort(decreasing=T),
+# #   `NPM-Weighted-Closeness`=V(g)$risk %>% sort(decreasing=T)
+# # )
+# # df.close.risk.melt <- reshape2::melt(data = df.close.risk, id.vars='name')
+# # 
+# # lattice::dotplot(value ~ name | variable, data=df.close.risk.melt, layout=c(1,2),
+# #                  scales=list(y=list(log=10)))
+
+
+
+################################################################
+
+## CHECKING HERGM
+tmp <- names(edge.attributes(g))
+edgeAttrs <- tmp[which( !(tmp%in%'weight') )]
+for (attr in edgeAttrs) {
+  if (all(is.null(igraph::get.edge.attribute(g,attr))) 
+      | all(is.na(igraph::get.edge.attribute(g,attr))) ) {
+    g <- remove.edge.attribute(g, attr)      
+  }
+}
+net <- getNetFromIgraph(g)
+
+
+hf1 <- hergm(net ~ edges_ij  ,verbose = F)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##---------------------------------------------------------
+
+
+##---------------------------------------------------------
+
+
+###-------------------------------------------------------------------
+
+
+dis.df <- data.frame(dropbox=dis[[l]]$dropbox,
+                    surveymonkey=dis[[l]]$surveymonkey,
+                    netflix=dis[[l]]$netflix,
+                    medallia=dis[[l]]$medallia)
+do.call(rbind, lapply(dis, data.frame, stringsAsFactors=FALSE))
+
+
+for(i in (5+2*c(0,1,2,3,4,5)) ) {
+  set.seed(1111)
+  gs.sm <- sapply(gl1, function(g)igraph::make_ego_graph(g, k, V(g)[V(g)$name==name_i],mode = 'all'), simplify = T)
+  g_i <- ifelse(class(gs.sm[[i]])=='igraph', gs.sm[[i]],  gs.sm[[i]][[1]] )
+
+  print(g_i)
+}
+
+
+
+
+
+
+
+# ##-----------------------------------------------------------------------
+# ## example company ego plots by k order
+# ##-----------------------------------------------------------------------
+# #####
+# ## Netflix
+# png(file.path(img_dir,'netflix_ego_plot.png'), height=6, width=18, units='in',res=350)
+# par(mfrow=c(1,3))
+# for (k in 1:3) {
+#   g.netflix <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='netflix'])[[1]]
+#   plotCompNet(g.netflix, multi.prod = 'netflix')
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# ## Medallia
+# png(file.path(img_dir,'medallia_ego_plot.png'), height=12, width=12, units='in',res=350)
+# par(mfrow=c(2,2))
+# for (k in 1:4) {
+#   g.medallia <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='medallia'])[[1]]
+#   plotCompNet(g.medallia, multi.prod = 'medallia')
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# ## surveymonkey
+# png(file.path(img_dir,'surveymonkey_ego_plot.png'), height=12, width=12, units='in',res=350)
+# par(mfrow=c(2,2))
+# for (k in 1:4) {
+#   g.sm <- igraph::make_ego_graph(graph = g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
+#   plotCompNet(g.sm, multi.prod = 'surveymonkey',vertex.log.base = 2^k, label.log.base = 3*2^k)
+#   legend('topright',legend=sprintf('k=%s',k),bty='n')
+# }
+# dev.off()
+# 
+# ## shortest paths
+# gx <- g.sm
+# igraph::get.shortest.paths(graph=gx, 
+#                            from = V(gx)[V(gx)$name=='surveymonkey'], 
+#                            to=V(gx)[V(gx)$name=='google'],output = 'both')
+# #####
+
+
+
+# ##------------------- PLOTS----------------------------------------------
+# gk <- list()
+# for (k in 1:12) {
+#   mp.egonet <- getMultiProdEgoNet(g.full, multi.prod, k=k, include.competitor.egonet = T)
+#   gk[[k]] <- igraph::induced.subgraph(g.full, vids=mp.egonet$vids)
+# }
+# net.size <- getNetSizeChange(gk, showPlot = F)
+#
+# # Plot comp net size cumulative distribution
+# png('comp_net_3by1_size_k_order_ego_net.png', width = 5, height=7, units = 'in', res = 200)
+# par(mfrow=c(3,1),mar=c(4.5,4.5,1.5,1))
+# matplot(net.size, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),ylab=expression('Comp Net Size'))
+# legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+# #
+# matplot(net.size.pct, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
+#         ylab=expression('Comp Net Proportion of Total'),  ylim=c(0,1))
+# legend(x='topleft',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+# #
+# matplot(net.size.diff, pch=16:17, type='o',xlab = expression(k^'th'~Order~Ego~Net),
+#         ylab=expression('Change in Comp Net Size by Order (k)'))
+# legend(x='topright',legend=names(net.size),pch=16:17,col=1:2,lty=1:2)
+# dev.off()
+# 
+# # Plot comp net k=1, k=2
+# png('comp_net_3by1_ego_net_plot_k1_k2.png', width = 14, height=8, units = 'in', res = 200)
+# par(mfrow=c(1,2),mar=c(.1,.1,.1,.1))
+#   plotCompNet(l[[1]],multi.prod)
+#   legend(x='topright',legend='k = 1',bty='n')
+#   #
+#   plotCompNet(l[[2]],multi.prod, label.log.base = 20)
+#   legend(x='topright',legend='k = 2',bty='n')
+# dev.off()
+##
+
+# ##------------------- PLOTTING PERIOD SUGRAPHS ---------------------
+# png("comp_net_4_pd_subgraph_change_k2.png",width=10, height=12, units='in', res=200)
+# par(mfrow=c(2,2),mar=c(.2,.2,.2,.2))
+#   for (t in 1:length(gl)) {
+#     gx <- gl[[t]]
+#     yr <- names(gl)[t]
+#     plotCompNet(gx, multi.prod, vertex.log.base = 20, label.log.base = 20)
+#     legend(x='topright',legend=sprintf('Yr = %s',yr),bty='n')
+#   }
+# dev.off()
+# ##-------------------------------------------------------------
+
+
+
+
+# Make Network Dynamic
+net.list <- lapply(X = gl, FUN = function(x)getNetFromIgraph(x))
+nd <- networkDynamic(network.list = net.list, onsets = periods[1:(length(periods)-1)], termini = periods[-1])
+
+# save.image(file = 'netrisk_sms_image_with_tergm_fit.RData')
+
+formation <- ~ edges
+dissolution <- ~ edges
+sm1 <- stergm(net,
+              formation=formation, 
+              dissolution=dissolution, 
+              estimate="CMLE", 
+              times=2001:2002)
+
+
+
+
+
+
+
+# Estimte ERGM models
+f1 <- net ~ edges + nodecov("degree") + gwdegree(.5)
+m1 <- ergm(formula = f1)
+summary(m1)
+
+f2 <- net ~ edges + nodecov("degree") + triangle()
+m2 <- ergm(formula = f2)
+summary(m2)
+
+f3 <- net ~ edges + nodecov("degree") + dsp(1:3)
+m3 <- ergm(formula = f3)
+summary(m3)
+
+
+
+
+## ------------------- NETWORKDYNAMIC PLOTS -----------------------------
+data("short.stergm.sim")
+ss <- short.stergm.sim
+ndtv::timeline(ss)
+ndtv::timePrism(ss, at=seq(1,10,by=3))
+ndtv::filmstrip(ss, frames=9, mfrow=c(3,3))
+ndtv::render.d3movie(ss, filename = )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##################################################################################
+#                        MAIN NETWORK COMPUTATION
+##################################################################################
+## starting values and params
+yrpd <- 1
+startYr <- 1996
+endYr <- 2000
+periods <- seq(startYr,endYr,yrpd)
+company.name <- 'company_name_unique'
+verbose <- TRUE
+df.in <- co
+
+##--------------------- MAKE NETRISK SUBGRAPH ALGORITHM -------------------------
+## ## 1.  Choose Multi-Product firms
+multi.prod <- c("google","microsoft") #,"ibm","oracle","amazon")
+## ## 2. choose kth order for ego-net
+k <- 1
+## ## 3. get ego net from multi-product firms chosen above
+mp.egonet <- getMultiProdEgoNet(g.full, multi.prod, k=k, include.competitor.egonet = FALSE)
+
+V(g.full)$firm_type <- ifelse(V(g.full)$name%in%multi.prod,'MP',
+                              ifelse( V(g.full)$name%in%mp.egonet$names,'SP',
+                                      'Other') )
+## ## 4. get 2015 ego net igraph object
+g <- igraph::induced.subgraph(g.full, vids=mp.egonet$vids)
+
+print(g)
+
+##--------------------- MAIN DYNAMIC NETWORK CREATION -----------------------------  
+## make network object
+net <- getNetFromIgraph(g, matrix.type = 'edgelist', vertex.pid.string='vertex.names') 
+# net <- networkDynamic::activate.edges(x = net, onset = start, terminus = end, e = seq_len(length(net$mel)) )
+# net <- networkDynamic::activate.vertices(x = net,onset = start,terminus = end, v = seq_len(length(net$gal$n)) )
+
+## loop through periods and ACTIVATE edges that exist in the period
+for(t in 2:length(periods)) {
+  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
+  net <- setPdActivity(net=net, g=g, start=periods[t-1], end=periods[t]) 
+}
+## END MAIN LOOP 
+
+
+# ## get Net Size Change (with plot)
+# net.size <- getNetSizeChange(gl)
+
+# ## plot comp net subgraphs
+# plotCompNet(gl[[1]],multi.prod)
+
+# ## plot filmstrip
+# filmstrip( net, displaylabels=F, frames = 2)
+
+## PLOT ACTIVE EDGES BY YEAR
+ec <- c()
+for ( t in 2:length(periods) ) {
+  ec[t] <- sum(network.extract(net, onset=periods[t-1], terminus=periods[t], rule = 'any')[,]) / 2
+};  plot(periods,ec,type='o',pch=16,log='',ylab="Active Competitive Relations")
+
+
+## CMLE
+## EGMME
+## CMPLE
+sfit1 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type"), 
+                dissolution= ~edges + nodefactor("firm_type"),
+                estimate="CMLE", times = periods[c(1,length(periods))])
+
+summary(sfit1)
+
+sfit1b <- stergm(net, 
+                 formation= ~edges + nodefactor("firm_type"), 
+                 dissolution= ~density  + triangle,
+                 estimate="CMLE", times = periods[c(1,length(periods))])
+
+summary(sfit1b)
+
+sfit2 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type") , 
+                dissolution= ~density + triangle + nodefactor("has_funding"),  #localtriangle
+                estimate="CMLE", times = periods[c(1,length(periods))])
+summary(sfit2)
+
+sfit5 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type") , 
+                dissolution= ~ density + triangle + nodefactor("has_funding"),  #localtriangle
+                estimate="CMLE", times = periods[c(1,5)])
+summary(sfit5)
+gf5 <- gof(sfit5)
+plot(gf5)
+
+sfit6 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type") , 
+                dissolution= ~ triangle + nodefactor("has_funding"),  #localtriangle
+                estimate="CMLE", times = periods[2:4])
+summary(sfit6)
+gf6 <- gof(sfit6)
+plot(gf6)
+
+sfit7 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type") , 
+                dissolution= ~edges + nodefactor("has_funding"),  #localtriangle
+                estimate="CMLE", times = periods[2:4])
+summary(sfit7)
+gf7 <- gof(sfit7)
+plot(gf7)
+
+sfit8 <- stergm(net, 
+                formation= ~edges + nodefactor("firm_type")  + gwesp(0, fixed=T), 
+                dissolution= ~edges,  #localtriangle
+                estimate="CMLE", times = periods[2:4])
+summary(sfit8)
+gf8 <- gof(sfit8)
+plot(gf8)
+
+
+png('test_heatmap_1.png',height=15,width=15,units='in',res=250)
+heatmap(net[,])
+dev.off()
+
+
+sfit9 <- stergm(ss, 
+                formation= ~ kstar(3), 
+                dissolution= ~edges,  #localtriangle
+                estimate="CMLE", times = 10:12)
+summary(sfit9)
+gf9 <- gof(sfit9)
+plot(gf9)
+
+
+################################################################################
+#                       // end main network computation
+################################################################################
+
+
+name_i <- 'netflix'
 fl <- list()
-counter <- 1
-kvec <- 2:5
-for (k in kvec) {
+for (k in 3:5) {
   g.list <-  getEgoGraphList(graph.list = gl1, name =  name_i, order = k, safe = TRUE)
   g <- g.list[[length(g.list)]]
-  g.lag1 <- g.list[[length(g.list)-1]]
-  # g.lag2 <- g.list[[length(g.list)-2]]
+  #V(g)$type <- factor(ifelse(V(g)$name %in% multi.prod, 'MultiProd', 'SingleProd'))
   er <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod)
   g <- er$g
-  ## ------------- Add node attrs to network object ------------------------------
+  ##
   net <- getNetFromIgraph(g)
   net <- network::set.network.attribute(net, 'envrisk', value = get.graph.attribute(g, 'envrisk'))
   age_filled <- net %v% 'age'
   age_filled[is.na(age_filled)] <- median(age_filled, na.rm = T)
   net %v% 'age_filled' <-  age_filled
   net %v% 'type' <- ifelse(net%v%'vertex.names' %in% multi.prod, 'MultiProd', 'SingleProd')
-  rdf <-  envRisk(g.lag1, single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
+  rdf <-  envRisk(g.list[[i-1]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
   net %v% 'envrisk_lag1' <- rdf$envrisk
-  # rdf <-  envRisk(g.lag2, single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
+  # rdf <-  envRisk(g.list[[i-2]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
   # net %v% 'envrisk_lag2' <- rdf$envrisk
-  ## --------------- fit model (depending on number of firm type) ----------------------------
-  if ( sum(net%v%'type'=='MultiProd') < 5 ) {
-    fit <- ergm(net ~ nodecov("envrisk") 
-      + nodecov("envrisk_lag1") 
-      # + nodecov("envrisk_lag2") 
-      + edges + gwesp(0, fixed=T) # + degree(c(2,4,8))
-      + nodematch("market2", diff=FALSE) + absdiff("age_filled")
-    )
-  } else {
-    fit <- ergm(net ~ nodecov("envrisk") 
-      + nodecov("envrisk_lag1") 
-      # + nodecov("envrisk_lag2") 
-      + nodematch("type", diff=TRUE)
-      + edges + gwesp(0, fixed=T) # + degree(c(2,4,8))
-      + nodematch("market2", diff=FALSE) + absdiff("age_filled")
-    )
-  }
-  fl[[counter]] <- fit
-  counter <- counter + 1 
-}; names(fl) <- sapply(kvec,function(k)sprintf('k=%s(N=%s)',k,vcount( getEgoGraphList(list(g.full), name_i, k)[[1]] )))
+  # print(net)
+  
+  fl[[k-1]] <- ergm(net ~ nodecov("envrisk") 
+             + nodecov("envrisk_lag1") 
+             + nodematch("type", diff=TRUE)
+             + edges 
+             + gwesp(0, fixed=T) # + degree(c(2,4,8))
+             + nodematch("market2", diff=FALSE) 
+             + absdiff("age_filled")
+  )
+}; names(fl) <- sapply(2:5,function(k)sprintf('k=%s(N=%s)',k,vcount(g.list[[k]])))
 
-## compare models
-screenreg(fl)
-## plot model diagnostics (simulate nets from model results; compare median to observed)
-#dev.off();plot.new();par(mfrow=c(2,2));plot(gof(fl[[length(fl)]],GOF = ~ model + degree + espartners + distance))
-dev.off();plot.new();par(mfrow=c(2,2));plot(gof(fl[[length(fl)]],GOF = ~ degree + espartners + distance))
-
-####
-# fl.netflix 
-# fl.medallia 
-###
-
-## interpret model results
-explainLogit(getCoef(fl[[length(fl)]]))
-
-screenreg(fl, custom.coef.names = c('Env.Risk',
-                                'Env.Risk:Lag(1)',
+screenreg(fl[2:4], custom.coef.names = c('Env.Risk',
+                                'Env.Risk: Lag(1)',
                                 'Edges',
                                 'GWESP(fixed)',
-                                'Homophily(Region)',
-                                'Age Diff',
                                 'Homophily(Multi-Prod)',
-                                'Homophily(Single-Prod)'))
-htmlreg(fl, custom.coef.names = c('Env.Risk',
-                                  'Env.Risk:Lag(1)',
-                                  'Edges',
-                                  'GWESP(fixed)',
-                                  'Homophily(Region)',
-                                  'Age Diff',
-                                  'Homophily(Multi-Prod)',
-                                  'Homophily(Single-Prod)'))
-
-## SAVE EFFECT PLOTS
-filename <- file.path(img_dir,sprintf('%s_ergm_enrisk_effect_probability_plots.png',name_i))
-png(filename, height=7, width=8, units='in',res=200)
-par(mfrow=c(2,1), mar=c(4.2,4.2,3.5,2))
-b <- getCoef(fl[[length(fl)]])
-predictors <- c('envrisk','envrisk_lag1')  ## have to be in order of predictors in model
-predictor.names <- c('Env. Risk', 'Env. Risk Lag 1')
-for (i in 1:length(predictors)) {
-  predictor <- predictors[i]
-  predictor.name <- predictor.names[i]
-  #--------------- BUILD MEDIAN OBSERVATION ------------
-  net <- net
-  mu <- list(); var.check <- c()
-  net.g <- getIgraphFromNet(net)
-  for (var in removeErgmTerms(names(b),c('MultiProd','SingleProd'))) {
-    if (var != "" &  !(var %in% var.check)) {
-      x <- na.omit( net %v% var )
-      if (is.character(x)) {
-        cnt <- plyr::count(x)
-        mu[[var]] <- as.character(cnt[which.max(cnt$freq),'x'])      
-      } else {
-        mu[[var]] <- median(x, na.rm = T)      
-      }
-    }  
-    var.check <- c(var.check, var)
-  }
-  mu$edges <- median(igraph::degree(net.g), na.rm = T)
-  medtri <- median(igraph::count_triangles(net.g), na.rm=T)
-  mu$gwesp <- ifelse(medtri>0,medtri,max(1,mean(igraph::count_triangles(net.g), na.rm=T)/2))
-  ###----------------------------------------------------------
-  X1 <- c(mu$envrisk, mu$envrisk_lag1,        
-         0, 1, # no multi-prod, yes single-prod
-         mu$edges, mu$gwesp,
-         1, # same market
-         2 # age diff median
-  )
-  b <- getCoef(fl[[length(fl)]])
-  samp <- net %v% predictor
-  r.range <- range(samp)
-  r <- seq(r.range[1],r.range[2],length.out = 100)
-  X2 <- t(sapply(r, function(x)c(x,X1[-i])))
-  Xb <- X2%*%b
-  eff.med <- 1 / (1 + exp( - c(median(samp), X1[-i]) %*% b ) )
-  eff.med.p1 <- 1 / (1 + exp( - c(median(samp)+sd(samp), X1[-i]) %*% b ) )
-  eff.diff <- eff.med.p1 - eff.med
-  eff.pct <- (eff.diff / eff.med) * 100
-  effect <- median(samp) + sd(samp)
-  plot(r,1/(1+exp(-Xb)), main=sprintf('Effect on Relation Probability of 1 StDev Increase above Median %s:\n%e (+%.1f%s)',
-                                      predictor.names[i],eff.diff,eff.pct,'%'), 
-       type='l', lty=1,col='darkred',lwd=2, ylab='Probability',xlab='Envelopment Risk\n(dotted lines mark sample quantiles 0,25,50,75,100)')
-  abline(v=quantile(samp, probs = c(0,.25,.5,.75,1)), lty=2)  
-}
-dev.off()
-
-
-
-
-
-# b <- getCoef(fl[[4]],'nodecov.envrisk_lag1')
-# samp <- net %v% 'envrisk_lag1'
-# r.range <- range(samp, na.rm = T)
-# #x <- seq(min(r.range),max(r.range), length.out = 100)
-# x <- seq(-1,1,length.out = 100)
-# plot(x,1/(1+exp(-b*x)), type='l', lty=1,col='darkred',lwd=2,ylim=c(0,1),ylab='Probability',xlab='Envelopment Risk Lag(1)\n(dotted lines mark sample quantiles 0,25,50,75,100)')
-# abline(v=quantile(samp, probs = c(0,.25,.5,.75,1)), lty=2)
-
-
-
+                                'Homophily(Single-Prod)',
+                                'Homophily(Region)',
+                                'Age Diff'))
+htmlreg(fl[2:4], custom.coef.names = c('Env.Risk',
+                            'Env.Risk: Lag(1)',
+                            'Edges',
+                            'GWESP(fixed)',
+                            'Homophily(Multi-Prod)',
+                            'Homophily(Single-Prod)',
+                            'Homophily(Region)',
+                            'Age Diff'))
 
 dev.off(); plot.new();par(mfrow=c(2,2))
 plot(gof(fl[length(fl)]))
@@ -785,7 +1107,7 @@ f5g <- ergm(net ~ nodecov("envrisk") + nodecov("envrisk_lag1") + nodecov("envris
 
 
 
-############################################################################
+
 #--------------------- DYNAMIC NETWORK------------------------------
 ############################################################################
 
@@ -821,23 +1143,4 @@ fn1 <- stergm(nd,
               + edges + nodematch("market2", diff=F) ,
               dissolution= ~ edges ,
               estimate="CMLE",times = 2015:2016)
-
-
-
-## ------------------- NETWORKDYNAMIC PLOTS -----------------------------
-data("short.stergm.sim")
-ss <- short.stergm.sim
-ndtv::timeline(ss)
-ndtv::timePrism(ss, at=seq(1,10,by=3))
-ndtv::filmstrip(ss, frames=9, mfrow=c(3,3))
-ndtv::render.d3movie(ss, filename = )
-
-
-
-
-
-
-
-
-
 
