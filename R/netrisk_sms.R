@@ -576,7 +576,7 @@ bwplot(value ~ variable | risk, groups= name, data=X,
 #----------------------------- ERGM (1 year) ---------------------------------
 ##############################################################################
 
-name_i <- 'netflix'
+name_i <- 'medallia'
 fl <- list()
 counter <- 1
 kvec <- 2:5
@@ -617,7 +617,7 @@ for (k in kvec) {
   }
   fl[[counter]] <- fit
   counter <- counter + 1 
-}; names(fl) <- sapply(kvec,function(k)sprintf('k=%s(N=%s)',k,vcount(g.list[[k]])))
+}; names(fl) <- sapply(kvec,function(k)sprintf('k=%s(N=%s)',k,vcount( getEgoGraphList(list(g.full), name_i, k)[[1]] )))
 
 ## compare models
 screenreg(fl)
@@ -625,9 +625,13 @@ screenreg(fl)
 #dev.off();plot.new();par(mfrow=c(2,2));plot(gof(fl[[length(fl)]],GOF = ~ model + degree + espartners + distance))
 dev.off();plot.new();par(mfrow=c(2,2));plot(gof(fl[[length(fl)]],GOF = ~ degree + espartners + distance))
 
+####
+# fl.netflix 
+# fl.medallia 
+###
+
 ## interpret model results
-for (i in 1:length(fl))
-    explainLogit(getCoef(fl[[i]]))
+explainLogit(getCoef(fl[[length(fl)]]))
 
 screenreg(fl, custom.coef.names = c('Env.Risk',
                                 'Env.Risk:Lag(1)',
@@ -648,9 +652,9 @@ htmlreg(fl, custom.coef.names = c('Env.Risk',
 
 ## SAVE EFFECT PLOTS
 filename <- file.path(img_dir,sprintf('%s_ergm_enrisk_effect_probability_plots.png',name_i))
-png(filename, height=8, width=8, units='in',res=200)
-par(mfrow=c(2,1), mar=c(4.2,4.2,3.5,1))
-b <- getCoef(fl[[2]])
+png(filename, height=7, width=8, units='in',res=200)
+par(mfrow=c(2,1), mar=c(4.2,4.2,3.5,2))
+b <- getCoef(fl[[length(fl)]])
 predictors <- c('envrisk','envrisk_lag1')  ## have to be in order of predictors in model
 predictor.names <- c('Env. Risk', 'Env. Risk Lag 1')
 for (i in 1:length(predictors)) {
@@ -682,7 +686,7 @@ for (i in 1:length(predictors)) {
          1, # same market
          2 # age diff median
   )
-  b <- getCoef(fl[[4]])
+  b <- getCoef(fl[[length(fl)]])
   samp <- net %v% predictor
   r.range <- range(samp)
   r <- seq(r.range[1],r.range[2],length.out = 100)
