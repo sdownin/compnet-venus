@@ -1190,7 +1190,7 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
     cat('no edges, skipping ...\n')
     return(NA)    
   }
-  cat(sprintf('%s edges\n',ecount(g)))
+  cat(sprintf('%s nodes  %s edges\n',vcount(g),ecount(g)))
   ## ------------ NOISY PRODUCT MARKETS --------------------------
   com.ml <- do.call(community.type, list(graph=g))
   V(g)$community <- com.ml$membership
@@ -1201,10 +1201,10 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
     com.names <-com.ml$names[which(com.ml$membership==c_i)]
     npms[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
   }
-  vcs <- sapply(npms, igraph::vcount)  #vertices
-  ecs <- sapply(npms, igraph::ecount)  #edges
+  vcs <- sapply(npms, igraph::vcount)         #vertices
+  ecs <- sapply(npms, igraph::ecount)         #edges
   dens <- sapply(npms,igraph::graph.density)  #densities
-  ## find cross market DENSITIES 
+  ## find CROSS MARKET DENSITIES   (set diagonals to densities)
   cmd <- matrix(NA, nrow=length(coms), ncol=length(coms))
   cmd <- sapply(1:length(coms), function(i){
     sapply(1:length(coms), function(j){
@@ -1224,16 +1224,15 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
   D <- igraph::distances(g, mode="all") - 1
   diag(D) <- 0
   ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
-  d.man <- as.matrix(dist(V(g)$community, method='manhattan')) ## manhattan distance=0 if same
   W <- sapply(V(g)$community, function(x){
     sapply(V(g)$community, function(y){
       cmd[x,y]
     })
   })
-  ## 3. W  already has same-market density on diags, cross-market density off-diag
-  D <- D * (1-W)
-  ## 4. inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by N for cross-network comparison
-  r <- nrow(D) / (colSums(D)/2)
+  ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
+  Z <- D * (1-W)
+  ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
+  r <- (nrow(Z)-1) / (colSums(Z)/2)
   if (risk.center)
     r <- r - mean(r, na.rm = T)
   if (risk.scale)
@@ -1242,8 +1241,8 @@ envRisk <- function(g, single.prod.names, multi.prod.names,
   V(g)$envrisk <- r
   #-------------------------------------------------------------------
   if(out.dist)
-    return(D)
-  g <- igraph::set.graph.attribute(g, 'NpmWeightDist', D)
+    return(Z)
+  g <- igraph::set.graph.attribute(g, 'NpmWeightDist', Z)
   if(out.graph)
     return(g)
   df.r <- data.frame(name=V(g)$name,envrisk=V(g)$envrisk)

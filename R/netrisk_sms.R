@@ -587,6 +587,7 @@ for (k in kvec) {
   # g.lag2 <- g.list[[length(g.list)-2]]
   er <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod)
   g <- er$g
+  rm(er);gc()
   ## ------------- Add node attrs to network object ------------------------------
   net <- getNetFromIgraph(g)
   net <- network::set.network.attribute(net, 'envrisk', value = get.graph.attribute(g, 'envrisk'))
@@ -601,15 +602,18 @@ for (k in kvec) {
   ## --------------- fit model (depending on number of firm type) ----------------------------
   if ( sum(net%v%'type'=='MultiProd') < 5 ) {
     fit <- ergm(net ~ nodecov("envrisk") 
-      + nodecov("envrisk_lag1") 
+      + absdiff("envrisk_lag1") 
       # + nodecov("envrisk_lag2") 
+      + absdiff("envrisk")
+      ## NO nodematch('type') ##
       + edges + gwesp(0, fixed=T) # + degree(c(2,4,8))
       + nodematch("market2", diff=FALSE) + absdiff("age_filled")
     )
   } else {
     fit <- ergm(net ~ nodecov("envrisk") 
-      + nodecov("envrisk_lag1") 
+      + absdiff("envrisk_lag1") 
       # + nodecov("envrisk_lag2") 
+      + absdiff("envrisk")
       + nodematch("type", diff=TRUE)
       + edges + gwesp(0, fixed=T) # + degree(c(2,4,8))
       + nodematch("market2", diff=FALSE) + absdiff("age_filled")
@@ -651,13 +655,14 @@ htmlreg(fl, custom.coef.names = c('Env.Risk',
                                   'Homophily(Single-Prod)'))
 
 ## SAVE EFFECT PLOTS
-filename <- file.path(img_dir,sprintf('%s_ergm_enrisk_effect_probability_plots.png',name_i))
+filename <- file.path(img_dir,sprintf('%s_ergm_enrisk_effect_probability_plots_riskabsdiff_1_3.png',name_i))
 png(filename, height=7, width=8, units='in',res=200)
 par(mfrow=c(2,1), mar=c(4.2,4.2,3.5,2))
 b <- getCoef(fl[[length(fl)]])
-predictors <- c('envrisk','envrisk_lag1')  ## have to be in order of predictors in model
-predictor.names <- c('Env. Risk', 'Env. Risk Lag 1')
-for (i in 1:length(predictors)) {
+predictors <- c('envrisk','envrisk_lag1','envrisk')  ## have to be in order of predictors in model
+predictor.names <- c('Env. Risk', 'Env. Risk Lag 1','Env. Risk Diff.')
+# for (i in 1:length(predictors)) {
+for (i in c(1,3)) {
   predictor <- predictors[i]
   predictor.name <- predictor.names[i]
   #--------------- BUILD MEDIAN OBSERVATION ------------
@@ -680,7 +685,7 @@ for (i in 1:length(predictors)) {
   medtri <- median(igraph::count_triangles(net.g), na.rm=T)
   mu$gwesp <- ifelse(medtri>0,medtri,max(1,mean(igraph::count_triangles(net.g), na.rm=T)/2))
   ###----------------------------------------------------------
-  X1 <- c(mu$envrisk, mu$envrisk_lag1,        
+  X1 <- c(mu$envrisk, mu$envrisk_lag1, .2,   
          0, 1, # no multi-prod, yes single-prod
          mu$edges, mu$gwesp,
          1, # same market
@@ -698,7 +703,7 @@ for (i in 1:length(predictors)) {
   eff.pct <- (eff.diff / eff.med) * 100
   effect <- median(samp) + sd(samp)
   plot(r,1/(1+exp(-Xb)), main=sprintf('Effect on Relation Probability of 1 StDev Increase above Median %s:\n%e (+%.1f%s)',
-                                      predictor.names[i],eff.diff,eff.pct,'%'), 
+                                      predictor.name,eff.diff,eff.pct,'%'), 
        type='l', lty=1,col='darkred',lwd=2, ylab='Probability',xlab='Envelopment Risk\n(dotted lines mark sample quantiles 0,25,50,75,100)')
   abline(v=quantile(samp, probs = c(0,.25,.5,.75,1)), lty=2)  
 }
@@ -792,35 +797,50 @@ f5g <- ergm(net ~ nodecov("envrisk") + nodecov("envrisk_lag1") + nodecov("envris
 
 
 name_i <- 'medallia'
-k <- 3
+k <- 2
 afterlag <- 2
-g.list <-  getEgoGraphList(gl1[6:length(gl1)], name =  name_i, order = k, safe = TRUE)
+nPeriods <- length(gl1)
+g.list <-  getEgoGraphList(gl1, name =  name_i, order = k, safe = TRUE)
 nl <- list()
-for (i in afterlag:length(g.list)) {
+nlnames <- c()
+counter <- 1
+for (i in afterlag:nPeriods) {
   g <- g.list[[i]]
-  #V(g)$type <- factor(ifelse(V(g)$name %in% multi.prod, 'MultiProd', 'SingleProd'))
-  er <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod)
-  g <- er$g
-  ##
-  nl[[i]] <- getNetFromIgraph(g)
-  nl[[i]] <- network::set.network.attribute(nl[[i]], 'envrisk', value = get.graph.attribute(g, 'envrisk'))
-  founded_year_filled <- nl[[i]] %v% 'founded_year'
-  founded_year_filled[is.na(founded_year_filled)] <- median(founded_year_filled, na.rm = T)
-  nl[[i]] %v% 'founded_year_filled' <-  founded_year_filled
-  nl[[i]] %v% 'type' <- ifelse(nl[[i]] %v% 'vertex.names' %in% multi.prod, 'MultiProd', 'SingleProd')
-  rdf <-  envRisk(g.list[[i-1]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
-  nl[[i]]  %v% 'envrisk_lag1' <- rdf$envrisk
-}; nl <- nl[afterlag:length(g.list)]
+  if(class(g)=='igraph') {
+    if(ecount(g) > 1) {
+      #V(g)$type <- factor(ifelse(V(g)$name %in% multi.prod, 'MultiProd', 'SingleProd'))
+      er <- envRisk(g, single.prod.names = single.prod, multi.prod.names = multi.prod)
+      g <- er$g
+      ##
+      nl[[counter]] <- getNetFromIgraph(g)
+      nl[[counter]] <- network::set.network.attribute(nl[[counter]], 'envrisk', value = get.graph.attribute(g, 'envrisk'))
+      founded_year_filled <- nl[[counter]] %v% 'founded_year'
+      founded_year_filled[is.na(founded_year_filled)] <- median(founded_year_filled, na.rm = T)
+      nl[[counter]] %v% 'founded_year_filled' <-  founded_year_filled
+      nl[[counter]] %v% 'type' <- ifelse(nl[[counter]] %v% 'vertex.names' %in% multi.prod, 'MultiProd', 'SingleProd')
+      rdf <-  envRisk(g.list[[i-1]], single.prod.names = single.prod, multi.prod.names = multi.prod, out.df = T)
+      nl[[counter]]  %v% 'envrisk_lag1' <- ifelse(any(is.na(rdf)), NA, rdf$envrisk)
+      nl[[counter]] <- network::set.network.attribute(nl[[counter]],'period',names(g.list[i]))
+      nlnames[counter] <- names(g.list[i])
+      #
+      counter <- counter + 1
+    }
+  }
+  cat(sprintf('i %s  counter %s  year %s\n',i,counter,names(g.list[i])))
+}
+names(nl) <- nlnames
+nl <- nl[ ! sapply(nl, is.null) ]
 
-nd <- networkDynamic::networkDynamic(network.list=nl, vertex.pid = 'vertex.names', create.TEAs = T,
-                                     start = as.numeric(names(g.list)[afterlag]), 
-                                     end= as.numeric(names(g.list)[length(g.list)]))
 
-fn1 <- stergm(nd,
-              formation= ~nodecov("envrisk_lag1") 
-              + edges + nodematch("market2", diff=F) ,
+nd <- networkDynamic::networkDynamic(network.list=nl, vertex.pid = 'vertex.names', 
+                                     create.TEAs = T,
+                                     start = as.numeric(names(nl)[1]), 
+                                     end= as.numeric(names(nl)[length(nl)]) )
+
+f1 <- stergm(nd,
+              formation= ~edges ,
               dissolution= ~ edges ,
-              estimate="CMLE",times = 2015:2016)
+              estimate="CMLE",times = 2014:2016)
 
 
 
