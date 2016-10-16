@@ -628,7 +628,8 @@ endYr <- 2015
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
-k <- 2
+k <- 3
+nd <- NA
 #-----------------------------------
 #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
 g.base <- g.full
@@ -636,8 +637,11 @@ g.k.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$na
 gd <- list()
 for(t in 2:length(periods)) {
   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
-  gd[[t]] <- makeIgraphPdSubgraphAllNActivateEdges(g.k.sub, start=periods[t-1], end=periods[t],acq=acq,rou=rou,br=br)
-}; names(gd) <- periods;  gd <- gd[2:length(gd)]
+  # gd[[t]] <- makeIgraphPdSubgraphAllNActivateEdges(g.k.sub, start=periods[t-1], end=periods[t],acq=acq,rou=rou,br=br)
+  
+  net.k.sub <- getNetFromIgraph(g.k.sub)
+  nd <- updateNetworkDynamicPdActivateEdges(net = net.k.sub, nd = nd, start=periods[t-1], end=periods[t])
+}; #names(gd) <- periods;  gd <- gd[2:length(gd)]
 
 # save.image(file='netrisk_sms_dynamic_net_remove_edges_keep_all_N.RData')
 # 
@@ -693,8 +697,12 @@ nd <- networkDynamic::networkDynamic(network.list=nl, vertex.pid = 'vertex.names
 f1 <- stergm(nd,
               formation= ~ edges ,
               dissolution= ~ edges ,
-              estimate="CMLE",times = 2014:2016)
+              estimate="CMLE",times = 2013:2016)
 
+f2 <- stergm(nd,
+             formation= ~ edges + gwesp(0, fixed=T) + cycle(4:5),
+             dissolution= ~ edges + gwesp(0, fixed=T) + cycle(4:5),
+             estimate="CMLE",times = 2013:2016)
 
 
 ## ------------------- NETWORKDYNAMIC PLOTS -----------------------------

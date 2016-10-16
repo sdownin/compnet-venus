@@ -601,21 +601,33 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
                                               vertClosedAttr='company_closed_on',
                                               vertAcquiredAttr='acquired_at',
                                               edgeCreatedAttr='relation_created_at',
+                                              deactivateVertices=FALSE,
                                               acq=NA,rou=NA,br=NA)
 {
   cat('collecting edges to remove...\n')
   vertAttrs <- network::list.vertex.attributes(net)
-  edgeAttrs <- network::list.vertex.attributes(net)
-  inactiveEdges <- c()
+  edgeAttrs <- network::list.edge.attributes(net)
+  inactiveEdges <- c(); inactiveVertsEdges;
   inactiveVerts <- c()
-  if (is.na(nd) | !('networkDynamic' %in% class(nd)) ) {
-      cat(sprintf('\ninitializing networkDynamic at %s-%s:\n',start,end))
-      nd <- networkDynamic::networkDynamic(network.list = list(net),
-                                            start = start, end = end, 
-                                            vertex.pid = 'vertex.names', create.TEAs = T,
-                                            active.default=FALSE
-                                            )
+  if ( !('networkDynamic' %in% class(nd)) ) {
+    cat(sprintf('\ninitializing networkDynamic at %s-%s:\n',start,end))
+    nd <- networkDynamic::networkDynamic(network.list = list(net),
+                                         start = start, end = end, 
+                                         vertex.pid = 'vertex.names', create.TEAs = T,
+                                         active.default=FALSE
+    )
   }
+  ##------------------ COLLECT EDGES TO REMOVE -----------
+  ## REMOVE EDGES CREATED AT
+  if (edgeCreatedAttr %in% edgeAttrs) {
+    tmp <- network::get.edge.attribute(net, edgeCreatedAttr)
+    eids <- which(tmp > end)
+    inactiveEdges <- c(inactiveEdges, eids)
+  }
+  # ## ---------------GET UNIQUE ACTIVE EDGES ----------------
+  activeEdges <- unique(  which(!(net %v% 'id' %in% inactiveEdges))  )
+  nd <- networkDynamic::activate.edges(x = nd, onset = start, terminus = end, e = activeEdges )
+  nd <- networkDynamic::deactivate.edges(x = nd, onset = start, terminus = end, e = inactiveEdges )
   ##------------------ COLLECT VERTICES TO REMOVE ------- 
   ##  REMOVE VERTICES founded_on > `end`
   if(vertFoundedAttr %in% vertAttrs) {
@@ -637,77 +649,60 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   }
   # ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
   activeVerts <- unique(  which(!(net %v% 'id' %in% inactiveVerts))  )
-  nd <- networkDynamic::activate.vertices(x = nd, onset = start,terminus = end, v = activeVerts)
-  nd <- networkDynamic::deactivate.vertices(x = nd, onset = start,terminus = end, v = inactiveVerts )
+  nd <- networkDynamic::activate.vertices(x = nd, onset = start, terminus = end, v = activeVerts)
+  if (deactivateVertices) {
+      nd <- networkDynamic::deactivate.vertices(x = nd, onset = start, terminus = end, v = inactiveVerts )
+  }
+  # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
+  el <- network::as.edgelist(net)
+  inactiveVertsEdges <-  which(el[,1]  %in% inactiveVerts | el[,1]  %in% inactiveVerts )
+  nd <- networkDynamic::deactivate.edges(x = nd, onset = start, terminus = end, e = inactiveVertsEdges )
   
-  ## deactivate inactive edges
-  # net <- networkDynamic::deactivate.edges(x = net, onset = start, terminus = end, e = as.vector(inactiveEdges) )
- 
-  ## set active edges
-  net <- networkDynamic::activate.edges(x = net, onset = start, terminus = end, e = as.vector(activeEdges) )
-  # net <- networkDynamic::activate.vertices(x = net, onset = start, terminus = end, v = as.vector(activeVerts) )
-  
-  #------------------ REMOVE EDGES TO INACTIVE VERTICES ------------
-  el <- igraph::get.edgelist(g,names=F)
-  inactiveVertsEdges <- which(el[,1]  %in% inactiveVerts | el[,1]  %in% inactiveVerts )
-  g <- igraph::delete.edges(g, edges = inactiveVertsEdges)
-  ##------------------ COLLECT EDGES TO REMOVE -----------
-  ## REMOVE EDGES CREATED AT
-  if (edgeCreatedAttr %in% edgeAttrs) {
-    tmp <- igraph::get.edge.attribute(g,edgeCreatedAttr)
-    eids <- E(g)[which(tmp > end)]
-    inactiveEdges <- c(inactiveEdges, eids)
-    
-  }
-  ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
-  # activeEdges <- unique(  E(g)[ !(E(g)%in%inactiveEdges) ]  )
-  ## -------------- UPDATE SUBGRAPH PRUNING EDGES -------------
-  g <- igraph::delete.edges(g, edges=inactiveEdges)
-  ##----------------------DYNAMIC ATTRS-----------------------
-  ## AGE
-  agediff <- end - V(g)$founded_year
-  V(g)$age <- ifelse( agediff >= 0, agediff, NA)
-  ## funding rounds
-  if(any( !is.na(rou) )) {
-    cat('optional: aggregating funding rounds...\n')
-    x <- ply.vert.attr(rou, g, 'funded_year', 'ply.rou', start, end)
-    check <- nrow(x) > 0 & all(c('funding_total_usd') %in% names(x))
-    if(check) {
-      V(g)$funding_total_usd <- ifelse(check, ifelse( is.na(x$funding_total_usd), 0, x$funding_total_usd), 0)
-    } else {
-      V(g)$funding_total_usd <- 0
-    }
-    V(g)$log_funding_total_usd <- log(V(g)$funding_total_usd + 1)
-    V(g)$has_fund <- ifelse(V(g)$funding_total_usd>0,1,0)
-  }
-  ## acquisitions
-  if(any( !is.na(acq) )) {
-    cat('optional: aggregating acquisitions...\n')
-    x <-  ply.vert.attr(acq, g, 'acquired_year', 'ply.acq', start, end)
-    check <- nrow(x) > 0 & all(c('acquisitions_count','acquisitions_concat') %in% names(x))
-    if(check) {
-      V(g)$acquisitions <- x$acquisitions_concat
-      V(g)$acquisitions_count <- ifelse( is.na(x$acquisitions_count)|x$acquisitions_count=="", 0, x$acquisitions_count)
-    } else {
-      V(g)$acquisitions <- NA
-      V(g)$acquisitions_count <- 0
-    }
-  }
-  ## branches
-  if(any( !is.na(br) )) {
-    cat('optional: aggregating branches...\n')
-    x <- ply.vert.attr(br, g, 'created_year', 'ply.br', start, end)
-    check <- nrow(x) > 0 & all(c('branches_count','branches_concat') %in% names(x))
-    if(check) {
-      V(g)$branches <- x$branches_concat
-      V(g)$branches_count <- ifelse(x$branches_count<1,1,0)      
-    } else {
-      V(g)$branches <- NA
-      V(g)$branches_count <- 0 
-    }
-  }
-  
-  return(g)
+  # ##----------------------DYNAMIC ATTRS-----------------------
+  # ## AGE
+  # agediff <- end - V(g)$founded_year
+  # V(g)$age <- ifelse( agediff >= 0, agediff, NA)
+  # ## funding rounds
+  # if(any( !is.na(rou) )) {
+  #   cat('optional: aggregating funding rounds...\n')
+  #   x <- ply.vert.attr(rou, g, 'funded_year', 'ply.rou', start, end)
+  #   check <- nrow(x) > 0 & all(c('funding_total_usd') %in% names(x))
+  #   if(check) {
+  #     V(g)$funding_total_usd <- ifelse(check, ifelse( is.na(x$funding_total_usd), 0, x$funding_total_usd), 0)
+  #   } else {
+  #     V(g)$funding_total_usd <- 0
+  #   }
+  #   V(g)$log_funding_total_usd <- log(V(g)$funding_total_usd + 1)
+  #   V(g)$has_fund <- ifelse(V(g)$funding_total_usd>0,1,0)
+  # }
+  # ## acquisitions
+  # if(any( !is.na(acq) )) {
+  #   cat('optional: aggregating acquisitions...\n')
+  #   x <-  ply.vert.attr(acq, g, 'acquired_year', 'ply.acq', start, end)
+  #   check <- nrow(x) > 0 & all(c('acquisitions_count','acquisitions_concat') %in% names(x))
+  #   if(check) {
+  #     V(g)$acquisitions <- x$acquisitions_concat
+  #     V(g)$acquisitions_count <- ifelse( is.na(x$acquisitions_count)|x$acquisitions_count=="", 0, x$acquisitions_count)
+  #   } else {
+  #     V(g)$acquisitions <- NA
+  #     V(g)$acquisitions_count <- 0
+  #   }
+  # }
+  # ## branches
+  # if(any( !is.na(br) )) {
+  #   cat('optional: aggregating branches...\n')
+  #   x <- ply.vert.attr(br, g, 'created_year', 'ply.br', start, end)
+  #   check <- nrow(x) > 0 & all(c('branches_count','branches_concat') %in% names(x))
+  #   if(check) {
+  #     V(g)$branches <- x$branches_concat
+  #     V(g)$branches_count <- ifelse(x$branches_count<1,1,0)      
+  #   } else {
+  #     V(g)$branches <- NA
+  #     V(g)$branches_count <- 0 
+  #   }
+  # }
+  # 
+  return(nd)
 } 
 
 ###
