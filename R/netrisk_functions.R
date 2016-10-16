@@ -594,19 +594,28 @@ filterNet <- function(filtered, attr='id')
 # Sets active edges for the period in a network object 
 # using attributes from an igraph object
 ##
-updateNetworkDynamicActivateEdges <- function(net, start, end, 
-                                          vertFoundedAttr='founded_at',
-                                          vertClosedAttr='company_closed_on',
-                                          vertAcquiredAttr='acquired_at',
-                                          edgeCreatedAttr='relation_created_at',
-                                          acq=NA,rou=NA,br=NA
-                                          )
+updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
+                                              nd=NA,  # [[networkDynamic]]
+                                              start=NA, end=NA, 
+                                              vertFoundedAttr='founded_at',
+                                              vertClosedAttr='company_closed_on',
+                                              vertAcquiredAttr='acquired_at',
+                                              edgeCreatedAttr='relation_created_at',
+                                              acq=NA,rou=NA,br=NA)
 {
   cat('collecting edges to remove...\n')
   vertAttrs <- network::list.vertex.attributes(net)
   edgeAttrs <- network::list.vertex.attributes(net)
   inactiveEdges <- c()
   inactiveVerts <- c()
+  if (is.na(nd) | !('networkDynamic' %in% class(nd)) ) {
+      cat(sprintf('\ninitializing networkDynamic at %s-%s:\n',start,end))
+      nd <- networkDynamic::networkDynamic(network.list = list(net),
+                                            start = start, end = end, 
+                                            vertex.pid = 'vertex.names', create.TEAs = T,
+                                            active.default=FALSE
+                                            )
+  }
   ##------------------ COLLECT VERTICES TO REMOVE ------- 
   ##  REMOVE VERTICES founded_on > `end`
   if(vertFoundedAttr %in% vertAttrs) {
@@ -624,12 +633,12 @@ updateNetworkDynamicActivateEdges <- function(net, start, end,
   if(vertAcquiredAttr %in% vertAttrs) {
     tmp <- igraph::get.vertex.attribute(g,vertAcquiredAttr) 
     vids <- which( tmp < start )  # V(g)[which(tmp < start)]
-    inactiveVerts <- c(inactiveVerts, vids)
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   # ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
   activeVerts <- unique(  which(!(net %v% 'id' %in% inactiveVerts))  )
-  net <- networkDynamic::deactivate.vertices(x = net, onset = start, terminus = end, v = inactiveVerts )
-  net <- networkDynamic::activate.vertices(x = net, onset = start, terminus = end, v = activeVerts)
+  nd <- networkDynamic::activate.vertices(x = nd, onset = start,terminus = end, v = activeVerts)
+  nd <- networkDynamic::deactivate.vertices(x = nd, onset = start,terminus = end, v = inactiveVerts )
   
   ## deactivate inactive edges
   # net <- networkDynamic::deactivate.edges(x = net, onset = start, terminus = end, e = as.vector(inactiveEdges) )
