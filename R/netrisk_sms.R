@@ -703,7 +703,17 @@ f2 <- stergm(nd,
              formation= ~ edges + gwesp(0, fixed=T) + cycle(4:5),
              dissolution= ~ edges + gwesp(0, fixed=T) + cycle(4:5),
              estimate="CMLE",times = 2013:2016)
+summary(f2)
+gof2 <- gof(f2)
+plot(gof2)
 
+f3 <- stergm(nd,
+             formation= ~ edges + gwesp(0, fixed=T) + cycle(4:6),
+             dissolution= ~ edges + kstar(3:5) + triangle,
+             estimate="CMLE",times = 2010:2016)
+summary(f3)
+gof3 <- gof(f3)
+plot(gof3)
 
 ## ------------------- NETWORKDYNAMIC PLOTS -----------------------------
 data("short.stergm.sim")
