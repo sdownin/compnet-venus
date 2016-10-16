@@ -578,7 +578,19 @@ f5g <- ergm(net ~ nodecov("envrisk") + nodecov("envrisk_lag1") + nodecov("envris
 
 
 
-
+#------------------------------------------------------------------
+fit <- ergm(net ~ nodecov("envrisk") 
+            + absdiff("envrisk_lag1") 
+            # + nodecov("envrisk_lag2") 
+            + absdiff("envrisk")
+            ## NO nodematch('type') ##
+            + edges 
+            + gwesp(0, fixed=T)
+            + cycle(4:5)
+            + nodematch("market2", diff=FALSE) 
+            + absdiff("age_filled")
+            )
+#------------------------------------------------------------------
 
 
 
@@ -616,7 +628,7 @@ endYr <- 2015
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
-k <- 3
+k <- 2
 #-----------------------------------
 #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
 g.base <- g.full

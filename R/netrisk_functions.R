@@ -231,13 +231,14 @@ getIgraphFromNet <- function(net)
 #  WARNING: DOES NOT HANDLE BIPARTITE OR LOOPY NETWORKS
 #  WARNING:  MUST USE matrix.type='edgelist'; !!adjacency & incidence not working
 ##
-getNetFromIgraph <- function(ig, add.vertex.name=FALSE, matrix.type='edgelist', 
+getNetFromIgraph <- function(ig, add.vertex.name=FALSE, matrix.type='adjacency', 
                              vertex.pid.string='vertex.names')
 {
   ##  INPUTS CHECK
   if (matrix.type=='adjacency') {
     mat <- igraph::as_adjacency_matrix(ig, type='both',names=T, sparse=F)
   } else if (matrix.type == 'edgelist') {
+    stop(sprintf('conversion from edgelist misses isolate edges'))
     mat <- igraph::as_edgelist(ig, names=T)
   } else if (matrix.type == 'incidence') {
     # mat <- igraph::as_incidence_matrix(ig, types='both', names=T, sparse=F)
@@ -268,6 +269,7 @@ getNetFromIgraph <- function(ig, add.vertex.name=FALSE, matrix.type='edgelist',
                           directed=igraph::is.directed(ig),
                           loops = any(igraph::is.loop(ig)),
                           bipartite = igraph::is.bipartite(ig))
+  net %v% 'id' <- seq_len(net$gal$n)
   
   if (vertex.pid.string %in% network::list.vertex.attributes(net))
       net <- set.network.attribute(net, 'vertex.pid', vertex.pid.string)
@@ -576,57 +578,66 @@ setPdActivity <- function(net, g, start, end,
   return(net)
 }
 
+##
+# Filter a network object
+##
+filterNet <- function(filtered, attr='id')
+{
+  return(unname(unlist(sapply(filtered, function(x){
+    x[attr]
+  }, simplify=TRUE))))
+}
+
 ###
 # FOR USE IN TERMG (STERGM) where node set must remain constant
 # here we only remove the edges going backward in time
 # Sets active edges for the period in a network object 
 # using attributes from an igraph object
 ##
-makeIgraphPdSubgraphAllNActivateEdges <- function(g, start, end, 
-                                                vertFoundedAttr='founded_at',
-                                                vertClosedAttr='company_closed_on',
-                                                vertAcquiredAttr='acquired_at',
-                                                edgeCreatedAttr='relation_created_at',
-                                                acq=NA,rou=NA,br=NA)
+updateNetworkDynamicActivateEdges <- function(net, start, end, 
+                                          vertFoundedAttr='founded_at',
+                                          vertClosedAttr='company_closed_on',
+                                          vertAcquiredAttr='acquired_at',
+                                          edgeCreatedAttr='relation_created_at',
+                                          acq=NA,rou=NA,br=NA
+                                          )
 {
   cat('collecting edges to remove...\n')
-  vertAttrs <- names(igraph::vertex.attributes(g))
-  edgeAttrs <- names(igraph::edge.attributes(g))
+  vertAttrs <- network::list.vertex.attributes(net)
+  edgeAttrs <- network::list.vertex.attributes(net)
   inactiveEdges <- c()
   inactiveVerts <- c()
   ##------------------ COLLECT VERTICES TO REMOVE ------- 
   ##  REMOVE VERTICES founded_on > `end`
   if(vertFoundedAttr %in% vertAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,vertFoundedAttr) 
-    vids <- V(g)[which(tmp > end)]
-    inactiveVerts <- c(inactiveVerts, vids)
+    tmp <- network::get.vertex.attribute(net, vertFoundedAttr) 
+    vids <- which(tmp > end) #(g)[which(tmp > end)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ##  REMOVE VERTICES closed_on < `start`
   if(vertClosedAttr %in% vertAttrs) {
     tmp <- igraph::get.vertex.attribute(g,vertClosedAttr) 
-    vids <- V(g)[which(tmp < start)]
-    inactiveVerts <- c(inactiveVerts, vids)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ##  REMOVE VERTICES acquired_at < `start`
   if(vertAcquiredAttr %in% vertAttrs) {
     tmp <- igraph::get.vertex.attribute(g,vertAcquiredAttr) 
-    vids <- V(g)[which(tmp < start)]
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
     inactiveVerts <- c(inactiveVerts, vids)
   }
   # ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
-  # activeVerts <- unique(  V(g)[ !(V(g)%in%inactiveVerts) ]  )
-  # ##-----------------MAKE SUBGRAPH ---------------------------
-  # cat('inducing subgraph...\n')
-  # g <- igraph::induced.subgraph(g, vids = activeVerts)
-  #################################
-  #
-  #
-  #
-  #   Make Edges Inactive / Active
-  #
-  #
-  #
-  #################################
+  activeVerts <- unique(  which(!(net %v% 'id' %in% inactiveVerts))  )
+  net <- networkDynamic::deactivate.vertices(x = net, onset = start, terminus = end, v = inactiveVerts )
+  net <- networkDynamic::activate.vertices(x = net, onset = start, terminus = end, v = activeVerts)
+  
+  ## deactivate inactive edges
+  # net <- networkDynamic::deactivate.edges(x = net, onset = start, terminus = end, e = as.vector(inactiveEdges) )
+ 
+  ## set active edges
+  net <- networkDynamic::activate.edges(x = net, onset = start, terminus = end, e = as.vector(activeEdges) )
+  # net <- networkDynamic::activate.vertices(x = net, onset = start, terminus = end, v = as.vector(activeVerts) )
+  
   #------------------ REMOVE EDGES TO INACTIVE VERTICES ------------
   el <- igraph::get.edgelist(g,names=F)
   inactiveVertsEdges <- which(el[,1]  %in% inactiveVerts | el[,1]  %in% inactiveVerts )
