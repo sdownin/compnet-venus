@@ -164,6 +164,7 @@ f1 <- stergm(nd,
              formation= ~ edges ,
              dissolution= ~ edges ,
              estimate="CMLE",times = 2008:2016)
+write.summary(f1); plot(gof(f1))
 
 f2 <- stergm(nd,
              formation= ~ edges + gwesp(0, fixed=T) + cycle(4:5),
@@ -179,14 +180,15 @@ write.summary(f3); plot(gof(f3))
 
 f4 <- stergm(nd,
              formation = ~ edges + gwesp(0, fixed=T) + kstar(3:6)  + cycle(4:6),
-             dissolution = ~ edges + gwesp(0, fixed=T) + kstar(2:6) + cycle(4:6),
+             dissolution = ~ edges + gwesp(0, fixed=T) + kstar(3:6) + cycle(4:6),
              estimate="CMLE",times = 2008:2016)
 write.summary(f4); plot(gof(f4))
 
-## CUREVED EXPONENTIAL FAMILY fixed=F
+## CUREVED EXPONENTIAL FAMILY fixed=FALSE  breaks the stergm 
+## [error msg: "if(any(bad.stat))" evals to TRUE]
 f5 <- stergm(nd,
-             formation   = ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=F) + kstar(2:6),
-             dissolution = ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=F) + kstar(2:6),
+             formation = ~ edges + gwesp(0, fixed=T) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:5),
+             dissolution = ~ edges + gwesp(0, fixed=T) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:5), 
              estimate="CMLE",times = 2008:2016)
 write.summary(f5); plot(gof(f5))
 
@@ -200,15 +202,19 @@ comMat[dmat == 0] <- 1  ## same community -->  =  0 distance
 comMat[dmat >  0] <- 0  ## diff community -->  >= 1 distance
 f6 <- stergm(nd,
             formation = ~ edges 
-             + gwesp(0, fixed=F) 
-             # + gwdegree(0, fixed=F) 
-             + kstar(2:5) 
-             + localtriangle(comMat),
+             + gwesp(0, fixed=T) 
+             # + gwdegree(0, fixed=T)
+             + kstar(3:6) 
+             # + cycle(4:5)
+             + localtriangle(comMat)
+            ,
             dissolution = ~ edges 
-             + gwesp(0, fixed=F) 
-             # + gwdegree(0, fixed=F) 
-             + kstar(2:5) 
-             + localtriangle(comMat),
+             + gwesp(0, fixed=T) 
+             # + gwdegree(0, fixed=T) 
+             + kstar(3:6) 
+             # + cycle(4:5)
+             + localtriangle(comMat)
+            ,
             estimate="CMLE", times=2008:2016)
 write.summary(f6);plot(gof(f6))
 

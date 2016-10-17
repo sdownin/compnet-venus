@@ -612,12 +612,15 @@ filterNet <- function(filtered, attr='id')
 }
 
 ##
-#
+# INITIALIZE NetworkDynamic object
 ##
-initNetworkDynamic <- function(net, start, end) {
-  cat(sprintf('\ninitializing networkDynamic at %s-%s:\n',start,end))
-  nd <- networkDynamic::networkDynamic(network.list = list(net), start = start, end = end, 
-                                       vertex.pid = 'vertex.names', create.TEAs = T)
+initNetworkDynamic <- function(net, start, end, create.TEAs=FALSE) {
+  net.obs.period <- list(observations=list( c(start,end)), 
+                         mode="discrete", time.increment=1,time.unit="step")
+  nd <- networkDynamic::networkDynamic(network.list = list(net), 
+                                       net.obs.period = net.obs.period,
+                                       vertex.pid = 'vertex.names', 
+                                       create.TEAs = create.TEAs )
   nd <- networkDynamic::deactivate.edges(nd, onset=-Inf, terminus = Inf, e = seq_len(length(net$mel)))
   nd <- networkDynamic::deactivate.vertices(nd, onset=-Inf, terminus = Inf, v = seq_len(net$gal$n))
   return(nd)
