@@ -8,7 +8,7 @@
 #
 ##########################################################################################
 setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
-.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
+#.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 #
 library(plyr, quietly = T)
 # library(dplyr)

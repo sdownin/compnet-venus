@@ -6,7 +6,7 @@
 # @date     May 2015
 #
 ##########################################################################################
-.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
+#.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 library(igraph)
 
 #---------- convenience function ------------

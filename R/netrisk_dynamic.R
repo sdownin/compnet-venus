@@ -1,5 +1,6 @@
 setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
-.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
+# .libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
+library(parallel)
 library(statnet, quietly = T)
 library(network, quietly = T)
 library(ergm, quietly = T)
@@ -153,35 +154,52 @@ for(t in length(periods):2) {
 # names(nl) <- nlnames
 # nl <- nl[ ! sapply(nl, is.null) ]
 #-------------------------------------------------------
+############################################################################
+#--------------------- BTERGM ------------------------------
+############################################################################
+
+nets <- list()
+pds <- 2007:2016
+for (i in 2:length(pds)) {
+  nets[[i]] <- network(network.extract(nd, onset=pds[i-1], terminus=pds[i])[,], directed = F, hyper = F, multiple = F, loops = F, bipartite = F)
+}; names(nets) <- pds; nets <- nets[-1]
+
+fb1 <- btergm(nets ~ edges + gwesp(0, fixed=T) + kstar(3:6), 
+              R = 500, parallel = "multicore", ncpus = detectCores())
+fb2 <- btergm(nets ~ edges + gwesp(0, fixed=T) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
+              R = 500, parallel = "multicore", ncpus = detectCores())
+
+
+texreg::screenreg(list(fb1=fb1,fb2=fb2), single.row = T, ci.force = F)
 
 ############################################################################
 #--------------------- STERGM ------------------------------
 ############################################################################
+c.s <- control.stergm(seed = 1111, parallel = 4, parallel.version.check = T)
 
-
-
-f1 <- stergm(nd,
+# baseline check
+f1 <- stergm(nd, 
              formation= ~ edges ,
              dissolution= ~ edges ,
-             estimate="CMLE",times = 2008:2016)
+             estimate="CMLE", control = c.s, times = 2008:2016)
 write.summary(f1); plot(gof(f1))
 
 f2 <- stergm(nd,
-             formation= ~ edges + gwesp(0, fixed=T) + cycle(4:5),
-             dissolution= ~ edges + gwesp(0, fixed=T) + cycle(4:5),
-             estimate="CMLE",times = 2008:2016)
+             formation= ~ edges + gwesp(0, fixed=T) + kstar(3:6),
+             dissolution= ~ edges + gwesp(0, fixed=T) + kstar(3:6),
+             estimate="CMLE",control = c.s, times = 2008:2016)
 write.summary(f2); plot(gof(f2))
 
 f3 <- stergm(nd,
              formation= ~ edges + gwesp(0, fixed=T) + cycle(4:6),
              dissolution= ~ edges + kstar(3:5) + triangle,
-             estimate="CMLE",times = 2008:2016)
+             estimate="CMLE",control = c.s, times = 2008:2016)
 write.summary(f3); plot(gof(f3))
 
 f4 <- stergm(nd,
              formation = ~ edges + gwesp(0, fixed=T) + kstar(3:6)  + cycle(4:6),
              dissolution = ~ edges + gwesp(0, fixed=T) + kstar(3:6) + cycle(4:6),
-             estimate="CMLE",times = 2008:2016)
+             estimate="CMLE",control = c.s, times = 2008:2016)
 write.summary(f4); plot(gof(f4))
 
 ## CUREVED EXPONENTIAL FAMILY fixed=FALSE  breaks the stergm 
@@ -189,7 +207,7 @@ write.summary(f4); plot(gof(f4))
 f5 <- stergm(nd,
              formation = ~ edges + gwesp(0, fixed=T) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:5),
              dissolution = ~ edges + gwesp(0, fixed=T) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:5), 
-             estimate="CMLE",times = 2008:2016)
+             estimate="CMLE",control = c.s, times = 2008:2016)
 write.summary(f5); plot(gof(f5))
 
 # ## LOCAL TRIANGLE -- where COMMUNITY GIVEN BY NPM (COMMUNITY) PARTITIONING
@@ -215,8 +233,12 @@ f6 <- stergm(nd,
              # + cycle(4:5)
              + localtriangle(comMat)
             ,
-            estimate="CMLE", times=2008:2016)
+            estimate="CMLE",control = c.s, times=2008:2016)
 write.summary(f6);plot(gof(f6))
+
+
+#-----------------------------------------------------------------------
+texreg::screenreg(list(btergm=fb1, stergm=f2), stars=c(.001,.01,.05,.1), single.row = F)
 
 
 ## ------------------- NETWORKDYNAMIC PLOTS -----------------------------
@@ -228,3 +250,134 @@ ndtv::filmstrip(ss, frames=9, mfrow=c(3,3))
 ndtv::render.d3movie(ss, filename = )
 
 
+
+
+
+# library("statnet")
+# set.seed(5)
+# 
+# networks <- list()
+# for(i in 1:10){            # create 10 random networks with 10 actors
+#   mat <- matrix(rbinom(100, 1, .25), nrow = 10, ncol = 10)
+#   diag(mat) <- 0           # loops are excluded
+#   nw <- network(mat)       # create network object
+#   networks[[i]] <- nw      # add network to the list
+# }
+# 
+# covariates <- list()
+# for (i in 1:10) {          # create 10 matrices as covariate
+#   mat <- matrix(rnorm(100), nrow = 10, ncol = 10)
+#   covariates[[i]] <- mat   # add matrix to the list
+# }
+# 
+# fit <- btergm(networks ~ edges + istar(2) +
+#                 edgecov(covariates), R = 100)
+# 
+# summary(fit)               # show estimation results
+# 
+# # The same example using MCMC MLE:
+# 
+# fit2 <- mtergm(networks ~ edges + istar(2) + 
+#                  edgecov(covariates))
+# 
+# summary(fit2)
+# 
+# # For an example with real data, see help("knecht").
+# 
+# 
+# # Examples for parallel processing:
+# 
+# # Some preliminaries: 
+# # - "Forking" means running the code on multiple cores in the same 
+# #   computer. It's fast but consumes a lot of memory because all 
+# #   objects are copied for each node. It's also restricted to 
+# #   cores within a physical computer, i.e. no distribution over a 
+# #   network or cluster. Forking does not work on Windows systems.
+# # - "MPI" is a protocol for distributing computations over many 
+# #   cores, often across multiple physical computers/nodes. MPI 
+# #   is fast and can distribute the work across hundreds of nodes 
+# #   (but remember that R can handle a maximum of 128 connections, 
+# #   which includes file access and parallel connections). However, 
+# #   it requires that the Rmpi package is installed and that an MPI 
+# #   server is running (e.g., OpenMPI).
+# # - "PSOCK" is a TCP-based protocol. It can also distribute the 
+# #   work to many cores across nodes (like MPI). The advantage of 
+# #   PSOCK is that it can as well make use of multiple nodes within 
+# #   the same node or desktop computer (as with forking) but without 
+# #   consuming too much additional memory. However, the drawback is 
+# #   that it is not as fast as MPI or forking.
+# # The following code provides examples for these three scenarios.
+# 
+# # btergm works with clusters via the parallel package. That is, the 
+# # user can create a cluster object (of type "PSOCK", "MPI", or 
+# # "FORK") and supply it to the 'cl' argument of the 'btergm' 
+# # function. If no cluster object is provided, btergm will try to 
+# # create a temporary PSOCK cluster (if parallel = "snow") or it 
+# # will use forking (if parallel = "multicore").
+# 
+# # To use a PSOCK cluster without providing an explicit cluster 
+# # object:
+# require("parallel")
+# fit <- btergm(networks ~ edges + istar(2) + edgecov(covariates), 
+#               R = 100, parallel = "snow", ncpus = 25)
+# 
+# # Equivalently, a PSOCK cluster can be provided as follows:
+# require("parallel")
+# cores <- 25
+# cl <- makeCluster(cores, type = "PSOCK")
+# fit <- btergm(networks ~ edges + istar(2) + edgecov(covariates), 
+#               R = 100, parallel = "snow", ncpus = cores, cl = cl)
+# stopCluster(cl)
+# 
+# # Forking (without supplying a cluster object) can be used as 
+# # follows.
+# require("parallel")
+# cores <- 25
+# fit <- btergm(networks ~ edges + istar(2) + edgecov(covariates), 
+#               R = 100, parallel = "multicore", ncpus = cores)
+# stopCluster(cl)
+# 
+# # Forking (by providing a cluster object) works as follows:
+# require("parallel")
+# cores <- 25
+# cl <- makeCluster(cores, type = "FORK")
+# fit <- btergm(networks ~ edges + istar(2) + edgecov(covariates), 
+#               R = 100, parallel = "snow", ncpus = cores, cl = cl)
+# stopCluster(cl)
+# 
+# # To use MPI, a cluster object MUST be created beforehand. In 
+# # this example, a MOAB HPC server is used. It stores the number of 
+# # available cores as a system option:
+# require("parallel")
+# cores <- as.numeric(Sys.getenv("MOAB_PROCCOUNT"))
+# cl <- makeCluster(cores, type = "MPI")
+# fit <- btergm(networks ~ edges + istar(2) + edgecov(covariates), 
+#               R = 100, parallel = "snow", ncpus = cores, cl = cl)
+# stopCluster(cl)
+# 
+# # In the following example, the Rmpi package is used to create a 
+# # cluster. This may not work on all systems; consult your local 
+# # support staff or the help files on your HPC server to find out how 
+# # to create a cluster object on your system.
+# 
+# # snow/Rmpi start-up
+# if (!is.loaded("mpi_initialize")) {
+#   library("Rmpi")
+# }
+# library(snow);
+# 
+# mpirank <- mpi.comm.rank (0)
+# if (mpirank == 0) {
+#   invisible(makeMPIcluster())
+# } else {
+#   sink (file="/dev/null")
+#   invisible(slaveLoop (makeMPImaster()))
+#   mpi.finalize()
+#   q()
+# }
+# # End snow/Rmpi start-up
+# 
+# cl <- getMPIcluster()
+# 
+# fit <- btergm(networks ~ edges + istar(2) + edgecov(covariates), 
+#               R = 100, parallel = "snow", ncpus = 25, cl = cl)
