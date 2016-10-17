@@ -8,6 +8,29 @@
 ##########################################################################################
 
 ##
+# Summary(fit) output to text file
+##
+write.summary <- function(fit, filename=NA, append=FALSE, show=FALSE, split=TRUE)
+{
+  if(is.na(filename))
+    filename <- deparse(substitute(fit))
+  isText <- grepl(pattern = '.txt',x = filename,ignore.case = T)
+  if(!isText) {
+    name <- stringr::str_split(filename, "[.]")[[1]][1]
+    stamp <- gsub("\\D", "", Sys.time(), perl = T)
+    filename <- sprintf('%s_%s.txt',name,stamp )
+  }
+  con <- file(description = filename, open="w" )
+  sink(con, append = append, split=split)
+  print(summary(fit))
+  sink()
+  close(con)
+  if(show)
+    file.show(filename)
+}
+
+
+##
 # Adjacency matrix degree function
 ##
 mat.degree<-function(x)
@@ -588,6 +611,18 @@ filterNet <- function(filtered, attr='id')
   }, simplify=TRUE))))
 }
 
+##
+#
+##
+initNetworkDynamic <- function(net, start, end) {
+  cat(sprintf('\ninitializing networkDynamic at %s-%s:\n',start,end))
+  nd <- networkDynamic::networkDynamic(network.list = list(net), start = start, end = end, 
+                                       vertex.pid = 'vertex.names', create.TEAs = T)
+  nd <- networkDynamic::deactivate.edges(nd, onset=-Inf, terminus = Inf, e = seq_len(length(net$mel)))
+  nd <- networkDynamic::deactivate.vertices(nd, onset=-Inf, terminus = Inf, v = seq_len(net$gal$n))
+  return(nd)
+}
+
 ###
 # FOR USE IN TERMG (STERGM) where node set must remain constant
 # here we only remove the edges going backward in time
@@ -607,16 +642,8 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   cat('collecting edges to remove...\n')
   vertAttrs <- network::list.vertex.attributes(net)
   edgeAttrs <- network::list.edge.attributes(net)
-  inactiveEdges <- c(); inactiveVertsEdges;
+  inactiveEdges <- c(); inactiveVertsEdges <- c();
   inactiveVerts <- c()
-  if ( !('networkDynamic' %in% class(nd)) ) {
-    cat(sprintf('\ninitializing networkDynamic at %s-%s:\n',start,end))
-    nd <- networkDynamic::networkDynamic(network.list = list(net),
-                                         start = start, end = end, 
-                                         vertex.pid = 'vertex.names', create.TEAs = T,
-                                         active.default=FALSE
-    )
-  }
   ##------------------ COLLECT EDGES TO REMOVE -----------
   ## REMOVE EDGES CREATED AT
   if (edgeCreatedAttr %in% edgeAttrs) {
@@ -626,8 +653,8 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   }
   # ## ---------------GET UNIQUE ACTIVE EDGES ----------------
   activeEdges <- unique(  which(!(net %v% 'id' %in% inactiveEdges))  )
-  nd <- networkDynamic::activate.edges(x = nd, onset = start, terminus = end, e = activeEdges )
   nd <- networkDynamic::deactivate.edges(x = nd, onset = start, terminus = end, e = inactiveEdges )
+  nd <- networkDynamic::activate.edges(x = nd, onset = start, terminus = end, e = activeEdges )
   ##------------------ COLLECT VERTICES TO REMOVE ------- 
   ##  REMOVE VERTICES founded_on > `end`
   if(vertFoundedAttr %in% vertAttrs) {
@@ -637,25 +664,25 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   }
   ##  REMOVE VERTICES closed_on < `start`
   if(vertClosedAttr %in% vertAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,vertClosedAttr) 
+    tmp <- network::get.vertex.attribute(net, vertClosedAttr) 
     vids <- which( tmp < start )  # V(g)[which(tmp < start)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ##  REMOVE VERTICES acquired_at < `start`
   if(vertAcquiredAttr %in% vertAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,vertAcquiredAttr) 
+    tmp <- network::get.vertex.attribute(net, vertAcquiredAttr) 
     vids <- which( tmp < start )  # V(g)[which(tmp < start)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   # ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
   activeVerts <- unique(  which(!(net %v% 'id' %in% inactiveVerts))  )
-  nd <- networkDynamic::activate.vertices(x = nd, onset = start, terminus = end, v = activeVerts)
   if (deactivateVertices) {
       nd <- networkDynamic::deactivate.vertices(x = nd, onset = start, terminus = end, v = inactiveVerts )
   }
+  nd <- networkDynamic::activate.vertices(x = nd, onset = start, terminus = end, v = activeVerts)
   # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
   el <- network::as.edgelist(net)
-  inactiveVertsEdges <-  which(el[,1]  %in% inactiveVerts | el[,1]  %in% inactiveVerts )
+  inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
   nd <- networkDynamic::deactivate.edges(x = nd, onset = start, terminus = end, e = inactiveVertsEdges )
   
   # ##----------------------DYNAMIC ATTRS-----------------------
@@ -1294,7 +1321,7 @@ distWeightReach <- function(g,
           d[l] <- 1 / ( length(dp)-1 )
         }
       }
-      D[k] <- sum(d)r
+      D[k] <- sum(d)
     }
   } #end vertex loop
   
@@ -1329,7 +1356,7 @@ distWeightReachPerNode <- function(g, mode='all')
         d[l] <- 1 / ( length(dp)-1 )
       }
     } ## end other vertex l loop
-    D[k] <- sum(d)r
+    D[k] <- sum(d)
 
   R <- sum(D) / vcount(g)
   cat(sprintf('nodes %d edges %d reach: %.3f\n',vcount(g),ecount(g),R))
