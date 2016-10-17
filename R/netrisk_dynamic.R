@@ -21,7 +21,7 @@ library(directlabels, quietly = T)
 library(ggplot2, quietly = T)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
-if( !('g.full' %in% ls()) )
+if( !('net' %in% ls()) )
   load('netrisk_dynamic_1.RData')
 ###
 # save.image('netrisk_dynamic_1.RData')
