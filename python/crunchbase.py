@@ -14,7 +14,7 @@ import numpy as np
 class CrunchBase(object):
     
     def __init__(self, user_key=None, endpoint='organizations', logfile='crunchbase.log'):
-        self._user_key = user_key if user_key is not None else '898192bfa39ebe42a7e1886e755bc9fc'
+        self._user_key = user_key if user_key is not None else '_user_key_'
         self.baseUrl = 'https://api.crunchbase.com/v/3/'
         self.endpoint = endpoint
         logging.basicConfig(filename=logfile, level=logging.INFO)
