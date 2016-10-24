@@ -3,7 +3,8 @@
 @author: sdowning
 """
 import os, glob
-os.chdir('C:/users/sdowning/Google Drive/PhD/Dissertation/competition networks')
+os.chdir('C:/users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet/python')
+import crunchbase
 import pandas as pd
 import numpy as np
 from bs4 import BeautifulSoup
@@ -13,6 +14,7 @@ import time
 import matplotlib.pyplot as plt
 import arrow as ar
 import requests
+os.chdir('C:/users/sdowning/Google Drive/PhD/Dissertation/competition networks')
 #import pycrunchbase as pc
 
 #def postRequestJson(url, *args, **kwargs):
@@ -53,8 +55,9 @@ def cbRelation2df(endpoint, entity, relation, paramDict):
     if not response.ok:
         ps = BeautifulSoup(response.content).find_all('p')
         errorText = '. '.join([p.text for p in ps])
-        raise ValueError(errorText)
-    if not 'data' not in list(response.json().keys()):
+        print(errorText)
+        return (None, None, None)
+    if 'data' not in list(response.json().keys()):
         return (None, None, None)
     data = response.json()['data']
     if 'items' not in list(data.keys()) and 'item' not in list(data.keys()): 
@@ -152,12 +155,11 @@ comp = pd.read_csv('cb_cem_competitors_3.csv', parse_dates=False, index_col=None
 #-----------------------------------------------------------------
 #       Competitors of ALL Companies 
 #-----------------------------------------------------------------
-os.chdir('C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks')
+os.chdir('C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase')
 relations = ['competitors']  # 'members','memberships'
-cb_co_all = pd.read_csv('crunchbase_export_20160106_companies.csv',parse_dates=True)
-
+cb_co_all = pd.read_csv('cb_export_with_competitors_20160106_companies.csv',encoding='utf-8',parse_dates=True)
 # LOOP THROUGH RELATIONS AND COMPANIES ---------------------------
-start = 64958   # xxvii   # loop = 64668
+start = 0   # xxvii   # loop = 64668
 for rel in relations:        
     loop = 0
     for co in cb_co_all.unique_uri.values[start:len(cb_co_all.unique_uri.values)]:
@@ -178,7 +180,7 @@ for rel in relations:
         df_all = df.copy() if loop == 0 else pd.concat( (df_all, df), axis=0)
 
         # if file does not exist write header         
-        path = 'cb_cem_{rel}_ALL.csv'.format(rel=rel)
+        path = 'crunchbase_export_20160106_{rel}.csv'.format(rel=rel)
         if df.shape[0] > 0:
             if not os.path.isfile(path):
                 df.to_csv(path, index=False, header ='column_names', encoding='utf-8')
@@ -364,14 +366,78 @@ dfb.to_csv('cb_company_branches_fullendsave.csv',sep=',',index=False)
 
 
 
+#------------- PAGINATED RESULTS-----------------------------
+def getPaginatedFromCb(companies, relations):
+    endpoint = 'organizations'
+    li_full = []
+    for rel in relations:
+        for co in companies:
+            li = []
+            if str(co) == 'nan':
+                continue
+            ## 1. FIRST API CALL -----------------------
+            page = 1
+            paramDict = {'user_key':cb_user_key, 'page':page}
+            try:
+                response = getCbRelation(endpoint,co,rel,paramDict)
+                if response is None:
+                    continue
+            except Exception as e:
+                print('exception: %s from company %s relation %s' % (e,co,rel))
+                continue
+            items = [response['item']]  if 'item' in response.keys() else response['items']         
+            for item in items:
+                itemProps = item['properties']
+                itemProps['relation'] = rel
+                itemProps['company'] = co
+                li.extend([itemProps])
+            paging = response['paging']
+            ## 2. HANDLE PAGINATION ---------------------------
+            while paging['current_page'] < paging['number_of_pages']:
+                page += 1
+                paramDict = {'user_key':cb_user_key, 'page':page}
+                try:
+                    response = getCbRelation(endpoint,co,rel,paramDict)
+                    if response is None:
+                        continue
+                except Exception as e:
+                    print('exception: %s from company %s relation %s' % (e,co,rel))
+                    continue
+                items = [response['item']]  if 'item' in response.keys() else response['items']         
+                for item in items:
+                    itemProps = item['properties']
+                    itemProps['relation'] = rel
+                    itemProps['company'] = co
+                    li.extend([itemProps])
+                paging = response['paging']
+                
+            file_path = 'crunchbase_export_20160106_{rel}_NEWEST.csv'.format(rel=rel)
+            with open(file_path, 'a+', encoding='utf-8') as f:
+                df = pd.DataFrame(li)
+                df.to_csv(f, header=False, line_terminator='\n', index=False)
+            li_full.extend(li)
+        print('completed company: %s' % co)
+    print('completed relation: %s' % rel)
+    df = pd.DataFrame(li)
+    df.drop_duplicates(inplace=True)
+    return df
 
 
 
 
 
 
+#--------------- --------------------------------------
+#    CrunchBase class
+#    GET IPS, PRODUCTS, etc
+#-------------------------------------------------------
+os.chdir('C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase')
+relations = ['ipo','products','owned_by','sub_organizations','investors','investments','board_members_and_advisors']     ## ['competitors']  # 'members','memberships'
+co_names =  pd.read_csv('g_full_company_name_unique.csv',encoding='utf-8')
+companies = co_names.name.values
 
-
+cb = crunchbase.CrunchBase()
+cb.getPaginatedResults(companies, relations)
 
 
 

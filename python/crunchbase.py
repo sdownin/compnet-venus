@@ -1,0 +1,120 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 24 04:33:14 2016
+
+@author: sdowning
+"""
+
+import os, requests, string, logging
+#import arrow as ar
+import pandas as pd
+import numpy as np
+
+
+class CrunchBase(object):
+    
+    def __init__(self, user_key=None, endpoint='organizations', logfile='crunchbase.log'):
+        self._user_key = user_key if user_key is not None else '898192bfa39ebe42a7e1886e755bc9fc'
+        self.baseUrl = 'https://api.crunchbase.com/v/3/'
+        self.endpoint = endpoint
+        logging.basicConfig(filename=logfile, level=logging.INFO)
+
+    def _getParams(self, paramDict, withQuestionMark=False):
+        paramList = []
+        q = '?' if withQuestionMark else ''
+        for key in paramDict:
+            paramList.append( key + '=' + paramDict[key] )
+        return q + '&'.join(paramList)
+    
+    def getCbUrl(self, entity, relation, endpoint=None,paramDict=None):
+        endpoint = endpoint if endpoint is not None else self.endpoint
+        paramDict = paramDict if paramDict is not None else dict(user_key=self._user_key)
+        params = '' if paramDict is None else '?' + self._getParams(paramDict)
+        return self.baseUrl + '{endpoint}/{entity}/{relation}{params}'.format(
+                endpoint=endpoint,entity=entity,relation=relation,params=params)
+
+    def getCbRelation(self, entity, relation, endpoint=None, paramDict=None,dataOnly=True):
+        endpoint = endpoint if endpoint is not None else self.endpoint
+        paramDict = paramDict if paramDict is not None else dict(user_key=self._user_key)
+        url = self.getCbUrl(entity, relation)
+        response = requests.get(url=url, params=paramDict)
+        if response.ok:
+            return response.json()['data'] if dataOnly else response.json()
+        else: 
+            return None
+    
+    def _processCbRelation(self, li, co, rel, paramDict):
+        try:
+            response = self.getCbRelation(co,rel,paramDict)
+            if response is None:
+                return False, li
+        except Exception as e:
+            print('exception: %s from company %s relation %s' % (e,co,rel))
+            return False, li
+        items = [response['item']]  if 'item' in response.keys() else response['items']         
+        for item in items:
+            itemProps = item['properties']
+            itemProps['relation'] = rel
+            itemProps['company'] = co
+            li.extend([itemProps])
+        return response, li
+
+    def saveToDf(self, li, basePath, rel):
+        file_path = '{basePath}_{rel}.csv'.format(basePath=basePath, rel=rel)
+        df = pd.DataFrame(li)
+        if not os.path.isfile(file_path):
+            df.to_csv(file_path, index=False, header = True, encoding='utf-8', mode='w', line_terminator='\n')
+        else: # else it exists so append without writing the header
+            df.to_csv(file_path, index=False, header = False, encoding='utf-8',mode='a', line_terminator='\n')
+
+    
+    def getPaginatedResults(self, companies, relations, endpoint=None, saveDf=True, saveBasePath='crunchbase_export_20160106'):
+        # 'cb_export_with_competitors_20160106'        
+        endpoint = self.endpoint if endpoint is None else endpoint
+        companies = companies if isinstance(companies,(list,np.ndarray)) else [companies]
+        relations = relations if isinstance(relations,(list,np.ndarray)) else [relations]
+        li_full = []
+        for rel in relations:
+            msg = '\nstarting relation: {rel}\n'.format(rel=rel)
+            msg = ''.join(filter(lambda x: x in string.printable, msg))
+            logging.info(msg); print(msg)
+            for co in companies:
+                msg = 'starting company: {co}'.format(co=co)
+                msg = ''.join(filter(lambda x: x in string.printable, msg))
+                logging.info(msg); print(msg)
+                li = []
+                if str(co) == 'nan':
+                    continue
+                ## MAIN GET LOOP --------------------------
+                page = 1
+                num_pages = 1;
+                while page <= num_pages:
+                    paramDict = {'user_key':self._user_key, 'page':page}
+                    # print('processing %s %s %s' %(co, rel, page))
+                    response, li = self._processCbRelation(li, co, rel, paramDict)
+                    page += 1
+                    if response:
+                        num_pages = response['paging']['number_of_pages']
+                ## EXPORT AND EXTEND ---------------------------
+                if saveDf and len(li) > 0:
+                    self.saveToDf(li, saveBasePath, rel)
+                li_full.extend(li)
+        self.li_full = li_full
+        self.df = pd.DataFrame(li_full)
+        self.df.drop_duplicates(inplace=True)
+    
+    
+    
+##--------------------------------------------------------
+if __name__ == '__main__':
+#    relations = ['ipo','products']
+#    companies = ['google','dropbox']
+#    cb = CrunchBase()
+#    cb.getPaginatedResults(companies, relations)
+    os.chdir('C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase')
+    relations = ['ipo','products','owned_by','sub_organizations','investors','investments','board_members_and_advisors']     ## ['competitors']  # 'members','memberships'
+    co_names =  pd.read_csv('g_full_company_name_unique.csv',encoding='utf-8')
+    companies = co_names.name.values
+    start_index = 6799  # 0
+    cb = CrunchBase()
+    cb.getPaginatedResults(companies[start_index:], relations)
