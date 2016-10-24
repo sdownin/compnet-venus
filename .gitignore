@@ -23,3 +23,6 @@
 *.rhes
 *.shess
 glmmadmb/*
+
+# CPython bitcode cache
+python/__pycache__/*
