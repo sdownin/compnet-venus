@@ -65,7 +65,7 @@ g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founde
                                                                 | V(g.full)$founded_year=='' ) ] )
 g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2016-01-01')])
 ## change NA funding to 0
-V(g.full)[is.na(V(g.full)$funding_total_usd)]$funding_total_usd <- 0
+# V(g.full)[is.na(V(g.full)$funding_total_usd)]$funding_total_usd <- 0
 ## Make list of attributes functions to simplify duplicate edges
 # to.min <- c('relation_created_at','competitor_founded_on','competitor_closed_on','founded_at','founded_month','founded_quarter','founded_year','acquired_at')
 # to.collapse <- c('funding_total_usd','category_list','country_code','state_code','city')

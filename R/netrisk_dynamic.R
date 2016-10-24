@@ -57,7 +57,7 @@ g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founde
                                                                 | V(g.full)$founded_year=='' ) ] )
 g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2016-01-01')])
 ## change NA funding to 0
-V(g.full)[is.na(V(g.full)$funding_total_usd)]$funding_total_usd <- 0
+# V(g.full)[is.na(V(g.full)$funding_total_usd)]$funding_total_usd <- 0
 ## Make list of attributes functions to simplify duplicate edges
 # to.min <- c('relation_created_at','competitor_founded_on','competitor_closed_on','founded_at','founded_month','founded_quarter','founded_year','acquired_at')
 # to.collapse <- c('funding_total_usd','category_list','country_code','state_code','city')
@@ -79,6 +79,8 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
                                                  relation_created_at='min',
                                                  competitor_founded_on='min',
                                                  competitor_closed_on='min'))
+
+
 
 
 
@@ -110,8 +112,12 @@ net.k.sub <- getNetFromIgraph(g.k.sub)
 net <- net.k.sub
 nd <- NA
 nd <- initNetworkDynamic(net.k.sub, periods[1], periods[length(periods)])
-
-#-----------------------------------
+#--------------- iGraph ------------------------
+gl <- list()
+for(t in 2:length(periods)) {
+  gl[[t]] <- makeIgraphPdSubgraphKeepNA(g.k.sub, start = periods[t-1], end=periods[t], acq=acq, rou=rou, br=br)
+}; gl <- gl[-1]; names(gl) <- periods[-length(periods)]
+#-----------NetworkDynamic------------------------
 gd <- list()
 for(t in length(periods):2) {
   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
@@ -164,13 +170,53 @@ for (i in 2:length(pds)) {
   nets[[i]] <- network(network.extract(nd, onset=pds[i-1], terminus=pds[i])[,], directed = F, hyper = F, multiple = F, loops = F, bipartite = F)
 }; names(nets) <- pds; nets <- nets[-1]
 
-fb1 <- btergm(nets ~ edges + gwesp(0, fixed=T) + kstar(3:6), 
+fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + kstar(3:6), 
               R = 500, parallel = "multicore", ncpus = detectCores())
-fb2 <- btergm(nets ~ edges + gwesp(0, fixed=T) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
+fb2 <- btergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
+              R = 500, parallel = "multicore", ncpus = detectCores())
+fb3 <- btergm(nets ~ edges + density + gwesp(2, fixed=F) + gwdegree(2, fixed=F) + altkstar(2, fixed=F) + cycle(4:6), 
               R = 500, parallel = "multicore", ncpus = detectCores())
 
+fbm2 <- mtergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
+              parallel = "multicore", ncpus = detectCores())
 
-texreg::screenreg(list(fb1=fb1,fb2=fb2), single.row = T, ci.force = F)
+# texreg::screenreg(list(fb1=fb1,fb2=fb2), single.row = T, ci.force = F)
+
+texreg::screenreg(list(b=fb2,m=fbm2), single.row = T, ci.force = F)
+
+#_-------------------------------------------------------------
+#                       Compare STERGM, BTERG, MTERGM
+#--------------------------------------------------------------
+bt2 <- btergm(nets ~ edges + kstar(3:6) + cycle(4:5), 
+              R = 500, parallel = "multicore", ncpus = detectCores())
+mt1 <- mtergm(nets ~ edges + kstar(3:6) + cycle(4:5), 
+              parallel = "multicore", ncpus = detectCores())
+c.s <- control.stergm(seed = 1111, parallel = 4, parallel.version.check = T)
+st1 <- stergm(nd, 
+             formation= ~ edges + kstar(3:6) + cycle(4:5) ,
+             dissolution= ~ edges + kstar(3:6) + cycle(4:5) ,
+             estimate="CMLE", control = c.s, times = 2008:2016)
+
+texreg::screenreg(list(bt=bt1,mt=mt1,st=st1), single.row = T, ci.force = F)
+
+
+#-------------------------------------------------------------------#
+#                        Curved Exponential Family
+#_-------------------------------------------------------------------
+ceb2 <- btergm(nets ~ edges 
+              + gwesp(1, fixed=F) 
+              + gwdsp(1, fixed=F) 
+              + gwdegree(1, fixed=F) 
+              + cycle(4:6), 
+              R = 500, parallel = "multicore", ncpus = detectCores())
+cem2 <- mtergm(nets ~ edges 
+               + gwesp(1, fixed=F) 
+               + gwdsp(1, fixed=F) 
+               + gwdegree(1, fixed=F) 
+               + cycle(4:6), 
+               R = 500, parallel = "multicore", ncpus = detectCores())
+
+screenreg(list(b=ce2,m=cem2))
 
 ############################################################################
 #--------------------- STERGM ------------------------------
@@ -178,10 +224,17 @@ texreg::screenreg(list(fb1=fb1,fb2=fb2), single.row = T, ci.force = F)
 c.s <- control.stergm(seed = 1111, parallel = 4, parallel.version.check = T)
 
 # baseline check
-f1 <- stergm(nd, 
+f0 <- stergm(nd, 
              formation= ~ edges ,
              dissolution= ~ edges ,
              estimate="CMLE", control = c.s, times = 2008:2016)
+write.summary(f0); plot(gof(f0))
+
+
+f1 <- stergm(nd, 
+              formation= ~ edges + nodematch('market2') + nodemix('status'),
+              dissolution= ~ edges + nodematch('market2') + nodemix('status'),
+              estimate="CMLE", control = c.s, times = 2008:2016)
 write.summary(f1); plot(gof(f1))
 
 f2 <- stergm(nd,

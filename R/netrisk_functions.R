@@ -621,12 +621,12 @@ initNetworkDynamic <- function(net, start, end, create.TEAs=FALSE) {
                                        net.obs.period = net.obs.period,
                                        vertex.pid = 'vertex.names', 
                                        create.TEAs = create.TEAs )
-  nd <- networkDynamic::deactivate.edges(nd, onset=-Inf, terminus = Inf, e = seq_len(length(net$mel)))
-  nd <- networkDynamic::deactivate.vertices(nd, onset=-Inf, terminus = Inf, v = seq_len(net$gal$n))
+  nd <- networkDynamic::deactivate.edges(nd, onset=start, terminus = end, e = seq_len(length(net$mel)))
+  nd <- networkDynamic::deactivate.vertices(nd, onset=start, terminus = end, v = seq_len(net$gal$n))
   return(nd)
 }
 
-###
+### ***********NETWORK PERIOD FUNCTION**************
 # FOR USE IN TERMG (STERGM) where node set must remain constant
 # here we only remove the edges going backward in time
 # Sets active edges for the period in a network object 
@@ -635,6 +635,8 @@ initNetworkDynamic <- function(net, start, end, create.TEAs=FALSE) {
 updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
                                               nd=NA,  # [[networkDynamic]]
                                               start=NA, end=NA, 
+                                              vertActiveAttrs=c('status','market2'),
+                                              edgeActiveAttrs=c(),
                                               vertFoundedAttr='founded_at',
                                               vertClosedAttr='company_closed_on',
                                               vertAcquiredAttr='acquired_at',
@@ -687,7 +689,19 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   el <- network::as.edgelist(net)
   inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
   nd <- networkDynamic::deactivate.edges(x = nd, onset = start, terminus = end, e = inactiveVertsEdges )
-  
+  # ##------------------------- DYNAMIC TEAs-----------------------
+  if( length(vertActiveAttrs) > 0) {
+    for (attr in vertActiveAttrs) {
+      val <- net %v% attr
+      activate.vertex.attribute(x = nd, prefix = attr, value = val, onset=start, terminus = end)
+    }
+  }
+  if( length(edgeActiveAttrs) > 0) {
+    for (attr in edgeActiveAttrs) {
+      val <- net %v% attr
+      activate.edge.attribute(x = nd, prefix = attr, value = val, onset=start, terminus = end)
+    }
+  }
   # ##----------------------DYNAMIC ATTRS-----------------------
   # ## AGE
   # agediff <- end - V(g)$founded_year
@@ -735,18 +749,175 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   return(nd)
 } 
 
+
+### ********IGRAPH PERIOD FUNCTION**********
+# Sets active edges for the period in a network object 
+# using attributes from an igraph object
+##
+makeIgraphPdSubgraphKeepNA <- function(g, start, end, 
+                          vertFoundedAttr='founded_at',
+                          vertClosedAttr='company_closed_on',
+                          vertAcquiredAttr='acquired_at',
+                          edgeCreatedAttr='relation_created_at',
+                          removeIsolates=TRUE,
+                          acq=NA,rou=NA,br=NA)
+{
+  tryCatch(cat(sprintf('\nmaking period %s-%s:\n', start,end)))
+  vertAttrs <- names(igraph::vertex.attributes(g))
+  edgeAttrs <- names(igraph::edge.attributes(g))
+  inactiveEdges <- c()
+  inactiveVerts <- c()
+  ##------------------ COLLECT VERTICES TO REMOVE ------- 
+  ##  REMOVE VERTICES founded_on > `end`
+  if(vertFoundedAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,vertFoundedAttr) 
+    vids <- V(g)[which(tmp > end)]
+    inactiveVerts <- c(inactiveVerts, vids)
+  }
+  ##  REMOVE VERTICES closed_on < `start`
+  if(vertClosedAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,vertClosedAttr) 
+    vids <- V(g)[which(tmp < start)]
+    inactiveVerts <- c(inactiveVerts, vids)
+  }
+  ##  REMOVE VERTICES acquired_at < `start`
+  if(vertAcquiredAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g,vertAcquiredAttr) 
+    vids <- V(g)[which(tmp < start)]
+    inactiveVerts <- c(inactiveVerts, vids)
+  }
+  ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
+  activeVerts <- unique(  V(g)[ !(V(g)%in%inactiveVerts) ]  )
+  ##-----------------MAKE SUBGRAPH ---------------------------
+  cat('inducing subgraph...\n')
+  g <- igraph::induced.subgraph(g, vids = activeVerts)
+  ##------------------ COLLECT EDGES TO REMOVE -----------
+  ## REMOVE EDGES CREATED AT
+  if (edgeCreatedAttr %in% edgeAttrs) {
+    tmp <- igraph::get.edge.attribute(g,edgeCreatedAttr)
+    eids <- E(g)[which(tmp > end)]
+    inactiveEdges <- c(inactiveEdges, eids)
+    
+  }
+  ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
+  # activeEdges <- unique(  E(g)[ !(E(g)%in%inactiveEdges) ]  )
+  ## -------------- UPDATE SUBGRAPH PRUNING EDGES -------------
+  g <- igraph::delete.edges(g, edges=inactiveEdges)
+  #-----------------------------------------------------------
+  if(removeIsolates)
+    g <- igraph::induced.subgraph(graph=g, vids=V(g)[which(igraph::degree(g) > 0)] )
+  #------------------------ENV-RISK--------------------------
+  g <- igraph::set.graph.attribute(g, 'distances', igraph::distances(g, mode='all'))
+  g <- envRisk(g, out.graph = T)
+  ##----------------------DYNAMIC ATTRS-----------------------
+  ## AGE
+  agediff <- end - V(g)$founded_year
+  V(g)$age <- ifelse( agediff >= 0, agediff, NA)
+  ## funding rounds
+  if(any( !is.na(rou) )) 
+    g <- setRouAttrs(g, rou, start, end)
+  ## acquisitions
+  if(any( !is.na(acq) )) 
+    g <- setAcqAttrs(g, acq, start, end)
+  ## branches
+  if(any( !is.na(br) )) 
+    g <- setBrAttrs(g, br, start, end)
+  return(g)
+} 
+##----- dependent functions in makeIgraphPdSubgraphKeepNA() --------
+setAcqAttrs <- function(g, acq, start, end)
+{
+  cat('optional: aggregating acquisitions...\n')
+  x <-  ply.vert.attr(acq, g, 'acquired_year', 'ply.acq', start, end)
+  check <- nrow(x) > 0 & all(c('acquisitions_count','acquisitions_concat') %in% names(x))
+  if(check) {
+    V(g)$acquisitions <- x$acquisitions_concat
+    V(g)$acquisitions_count <- x$acquisitions_count
+  } else {
+    V(g)$acquisitions <- NA
+    V(g)$acquisitions_count <- 0
+  }
+  V(g)[which(is.na(V(g)$acquisitions_count) | V(g)$acquisitions=="" )]$acquisitions_count <- 0
+  return(g)
+}
+setRouAttrs <- function(g, rou, start, end)
+{
+  cat('optional: aggregating funding rounds...\n')
+  x <- ply.vert.attr(rou, g, 'funded_year', 'ply.rou', start, end)
+  check <- nrow(x) > 0 & all(c('funding_total_usd') %in% names(x))
+  if(check)
+    V(g)$funding_total_usd <- x$funding_total_usd
+  else
+    V(g)$funding_total_usd <- 0
+  V(g)[is.na(V(g)$funding_total_usd)]$funding_total_usd <- 0
+  V(g)$log_funding_total_usd <- log(V(g)$funding_total_usd + 1)
+  V(g)$has_fund <- ifelse(V(g)$funding_total_usd>0,1,0)
+  return(g)
+}
+setBrAttrs <- function(g, br, start, end)
+{
+  cat('optional: aggregating branches...\n')
+  x <- ply.vert.attr(br, g, 'created_year', 'ply.br', start, end)
+  check <- nrow(x) > 0 & all(c('branches_count','branches_concat') %in% names(x))
+  if(check) {
+    V(g)$branches <- x$branches_concat
+    V(g)$branches_count <- x$branches_count      
+  } else {
+    V(g)$branches <- NA
+    V(g)$branches_count <- 0 
+  }
+  V(g)[which(is.na(V(g)$branches_count) 
+             | V(g)$branches=="" 
+             | V(g)$branches=="_" )]$branches_count <- 0
+}
+##
+ply.vert.attr <- function(df, g, filterPdVar, FUN, start, end)
+{
+  if( !('company_name_unique'%in% names(df)) )
+    stop('df must have name column (`company_name_unique`)')
+  if( !(filterPdVar %in% names(df)) )
+    stop(sprintf('filterPdVar `%s` must be a column in `df`',filterPdVar))
+  df.sub <- df[which( df[,filterPdVar] <= end), ]
+  tmp.name <- data.frame(company_name_unique=V(g)$name, stringsAsFactors = F)
+  tmp.ply <- do.call(what = FUN, args = list(df.sub=df.sub))
+  tmp.merge <- merge(tmp.name, tmp.ply, by='company_name_unique', all.x=T, all.y=F)
+  # for(column in 2:ncol(tmp.merge))
+  #   tmp.merge[is.na(tmp.merge[,column]), column] <- 0
+  return(tmp.merge)
+}
+ply.rou <- function(df.sub)  # 'funded_year'
+{
+  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
+              funding_total_usd=sum(raised_amount_usd, na.rm=TRUE))
+}
+ply.acq <- function(df.sub)  # 'acquired_year'
+{
+  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
+              acquisitions_count=length(company_name_unique),
+              acquisitions_concat=paste(acquired_name_unique, collapse = "|") )
+}
+ply.br <- function(df.sub)   # 'created_year
+{
+  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
+              branches_count=length(company_name_unique),
+              branches_concat=paste(market2, collapse = "|") )
+}
+#----// dependent functions -----------
+
+
+
 ###
 # FOR USE IN TERMG (STERGM) where node set must remain constant
 # here we only remove the edges going backward in time
 # Sets active edges for the period in a network object 
 # using attributes from an igraph object
 ##
-makeIgraphPdSubgraphAllNDeleteEdges <- function(g, start, end, 
-                                       vertFoundedAttr='founded_at',
-                                       vertClosedAttr='company_closed_on',
-                                       vertAcquiredAttr='acquired_at',
-                                       edgeCreatedAttr='relation_created_at',
-                                       acq=NA,rou=NA,br=NA)
+# makeIgraphPdSubgraphAllNDeleteEdges <- function(g, start, end, 
+#                                        vertFoundedAttr='founded_at',
+#                                        vertClosedAttr='company_closed_on',
+#                                        vertAcquiredAttr='acquired_at',
+#                                        edgeCreatedAttr='relation_created_at',
+#                                        acq=NA,rou=NA,br=NA)
 {
   cat('collecting edges to remove...\n')
   vertAttrs <- names(igraph::vertex.attributes(g))
@@ -772,11 +943,11 @@ makeIgraphPdSubgraphAllNDeleteEdges <- function(g, start, end,
     vids <- V(g)[which(tmp < start)]
     inactiveVerts <- c(inactiveVerts, vids)
   }
-      # ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
-      # activeVerts <- unique(  V(g)[ !(V(g)%in%inactiveVerts) ]  )
-      # ##-----------------MAKE SUBGRAPH ---------------------------
-      # cat('inducing subgraph...\n')
-      # g <- igraph::induced.subgraph(g, vids = activeVerts)
+  # ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
+  # activeVerts <- unique(  V(g)[ !(V(g)%in%inactiveVerts) ]  )
+  # ##-----------------MAKE SUBGRAPH ---------------------------
+  # cat('inducing subgraph...\n')
+  # g <- igraph::induced.subgraph(g, vids = activeVerts)
   #------------------ REMOVE EDGES TO INACTIVE VERTICES ------------
   el <- igraph::get.edgelist(g,names=F)
   inactiveVertsEdges <- which(el[,1]  %in% inactiveVerts | el[,1]  %in% inactiveVerts )
@@ -839,140 +1010,6 @@ makeIgraphPdSubgraphAllNDeleteEdges <- function(g, start, end,
   
   return(g)
 } 
-
-
-###
-# Sets active edges for the period in a network object 
-# using attributes from an igraph object
-##
-makeIgraphPdSubgraphKeepNA <- function(g, start, end, 
-                          vertFoundedAttr='founded_at',
-                          vertClosedAttr='company_closed_on',
-                          vertAcquiredAttr='acquired_at',
-                          edgeCreatedAttr='relation_created_at',
-                          acq=NA,rou=NA,br=NA)
-{
-  cat('collecting vertices to remove...\n')
-  vertAttrs <- names(igraph::vertex.attributes(g))
-  edgeAttrs <- names(igraph::edge.attributes(g))
-  inactiveEdges <- c()
-  inactiveVerts <- c()
-  ##------------------ COLLECT VERTICES TO REMOVE ------- 
-  ##  REMOVE VERTICES founded_on > `end`
-  if(vertFoundedAttr %in% vertAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,vertFoundedAttr) 
-    vids <- V(g)[which(tmp > end)]
-    inactiveVerts <- c(inactiveVerts, vids)
-  }
-  ##  REMOVE VERTICES closed_on < `start`
-  if(vertClosedAttr %in% vertAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,vertClosedAttr) 
-    vids <- V(g)[which(tmp < start)]
-    inactiveVerts <- c(inactiveVerts, vids)
-  }
-  ##  REMOVE VERTICES acquired_at < `start`
-  if(vertAcquiredAttr %in% vertAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,vertAcquiredAttr) 
-    vids <- V(g)[which(tmp < start)]
-    inactiveVerts <- c(inactiveVerts, vids)
-  }
-  ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
-  activeVerts <- unique(  V(g)[ !(V(g)%in%inactiveVerts) ]  )
-  ##-----------------MAKE SUBGRAPH ---------------------------
-  cat('inducing subgraph...\n')
-  g <- igraph::induced.subgraph(g, vids = activeVerts)
-  ##------------------ COLLECT EDGES TO REMOVE -----------
-  ## REMOVE EDGES CREATED AT
-  if (edgeCreatedAttr %in% edgeAttrs) {
-    tmp <- igraph::get.edge.attribute(g,edgeCreatedAttr)
-    eids <- E(g)[which(tmp > end)]
-    inactiveEdges <- c(inactiveEdges, eids)
-    
-  }
-  ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
-  # activeEdges <- unique(  E(g)[ !(E(g)%in%inactiveEdges) ]  )
-  ## -------------- UPDATE SUBGRAPH PRUNING EDGES -------------
-  g <- igraph::delete.edges(g, edges=inactiveEdges)
-  ##----------------------DYNAMIC ATTRS-----------------------
-  ## AGE
-  agediff <- end - V(g)$founded_year
-  V(g)$age <- ifelse( agediff >= 0, agediff, NA)
-  ## funding rounds
-  if(any( !is.na(rou) )) {
-    cat('optional: aggregating funding rounds...\n')
-    x <- ply.vert.attr(rou, g, 'funded_year', 'ply.rou', start, end)
-    check <- nrow(x) > 0 & all(c('funding_total_usd') %in% names(x))
-    if(check) {
-        V(g)$funding_total_usd <- ifelse(check, ifelse( is.na(x$funding_total_usd), 0, x$funding_total_usd), 0)
-    } else {
-        V(g)$funding_total_usd <- 0
-    }
-    V(g)$log_funding_total_usd <- log(V(g)$funding_total_usd + 1)
-    V(g)$has_fund <- ifelse(V(g)$funding_total_usd>0,1,0)
-  }
-  ## acquisitions
-  if(any( !is.na(acq) )) {
-    cat('optional: aggregating acquisitions...\n')
-    x <-  ply.vert.attr(acq, g, 'acquired_year', 'ply.acq', start, end)
-    check <- nrow(x) > 0 & all(c('acquisitions_count','acquisitions_concat') %in% names(x))
-    if(check) {
-        V(g)$acquisitions <- x$acquisitions_concat
-        V(g)$acquisitions_count <- ifelse( is.na(x$acquisitions_count)|x$acquisitions_count=="", 0, x$acquisitions_count)
-    } else {
-        V(g)$acquisitions <- NA
-        V(g)$acquisitions_count <- 0
-    }
-  }
-  ## branches
-  if(any( !is.na(br) )) {
-    cat('optional: aggregating branches...\n')
-    x <- ply.vert.attr(br, g, 'created_year', 'ply.br', start, end)
-    check <- nrow(x) > 0 & all(c('branches_count','branches_concat') %in% names(x))
-    if(check) {
-        V(g)$branches <- x$branches_concat
-        V(g)$branches_count <- ifelse(x$branches_count<1,1,0)      
-    } else {
-        V(g)$branches <- NA
-        V(g)$branches_count <- 0 
-    }
-  }
-  
-  return(g)
-} 
-##----- dependent functions in makeIgraphPdSubgraphKeepNA() --------
-ply.vert.attr <- function(df, g, filterPdVar, FUN, start, end)
-{
-  if( !('company_name_unique'%in% names(df)) )
-    stop('df must have name column (`company_name_unique`)')
-  if( !(filterPdVar %in% names(df)) )
-    stop(sprintf('filterPdVar `%s` must be a column in `df`',filterPdVar))
-  df.sub <- df[which( df[,filterPdVar] <= end), ]
-  tmp.name <- data.frame(company_name_unique=V(g)$name, stringsAsFactors = F)
-  tmp.ply <- do.call(what = FUN, args = list(df.sub=df.sub))
-  tmp.merge <- merge(tmp.name, tmp.ply, by='company_name_unique', all.x=T, all.y=F)
-  # for(column in 2:ncol(tmp.merge))
-  #   tmp.merge[is.na(tmp.merge[,column]), column] <- 0
-  return(tmp.merge)
-}
-ply.rou <- function(df.sub)  # 'funded_year'
-{
-  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
-              funding_total_usd=sum(raised_amount_usd, na.rm=TRUE))
-}
-ply.acq <- function(df.sub)  # 'acquired_year'
-{
-  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
-              acquisitions_count=length(company_name_unique),
-              acquisitions_concat=paste(acquired_name_unique, collapse = "|") )
-}
-ply.br <- function(df.sub)   # 'created_year
-{
-  plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
-              branches_count=length(company_name_unique),
-              branches_concat=paste(market2, collapse = "|") )
-}
-#----// dependent functions -----------
-
 
 
 #-------- Dependend Functions  Previous versions -----

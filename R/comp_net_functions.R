@@ -429,7 +429,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
                       competitorFoundedName='competitor_founded_on',
                       competitorClosedName='competitor_closed_on',
                       vertAttrs=c('founded_at','founded_month','founded_quarter',
-                                  'founded_year','acquired_at','company_closed_on','age','funding_total_usd',
+                                  'founded_year','acquired_at','company_closed_on','status',
                                   'category_list','country_code','state_code','city','market2') )
 {
   el <- data.frame(source=comp[,name], 
