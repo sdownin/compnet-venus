@@ -59,6 +59,18 @@ class CrunchBase(object):
             li.extend([itemProps])
         return response, li
 
+    def _paginateCbRelation(self, co, rel):
+        li = []
+        page = 1
+        num_pages = 1;
+        while page <= num_pages:
+            paramDict = {'user_key':self._user_key, 'page':page}
+            response, li = self._processCbRelation(li, co, rel, paramDict)
+            page += 1
+            if response:
+                num_pages = response['paging']['number_of_pages']
+        return li
+
     def saveToDf(self, li, basePath, rel):
         file_path = '{basePath}_{rel}.csv'.format(basePath=basePath, rel=rel)
         df = pd.DataFrame(li)
@@ -82,20 +94,11 @@ class CrunchBase(object):
                 msg = 'starting company: {co}'.format(co=co)
                 msg = ''.join(filter(lambda x: x in string.printable, msg))
                 logging.info(msg); print(msg)
-                li = []
                 if str(co) == 'nan':
                     continue
-                ## MAIN GET LOOP --------------------------
-                page = 1
-                num_pages = 1;
-                while page <= num_pages:
-                    paramDict = {'user_key':self._user_key, 'page':page}
-                    # print('processing %s %s %s' %(co, rel, page))
-                    response, li = self._processCbRelation(li, co, rel, paramDict)
-                    page += 1
-                    if response:
-                        num_pages = response['paging']['number_of_pages']
-                ## EXPORT AND EXTEND ---------------------------
+                ##---------- MAIN GET METHOD ---------
+                li = self._paginateCbRelation(co, rel)
+                ##------------------------------------
                 if saveDf and len(li) > 0:
                     self.saveToDf(li, saveBasePath, rel)
                 li_full.extend(li)
