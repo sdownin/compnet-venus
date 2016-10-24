@@ -87,11 +87,8 @@ class CrunchBase(object):
         relations = relations if isinstance(relations,(list,np.ndarray)) else [relations]
         li_full = []
         for rel in relations:
-            msg = '\nstarting relation: {rel}\n'.format(rel=rel)
-            msg = ''.join(filter(lambda x: x in string.printable, msg))
-            logging.info(msg); print(msg)
             for co in companies:
-                msg = 'starting company: {co}'.format(co=co)
+                msg = 'starting  relation: {rel}  company: {co}'.format(co=co, rel=rel)
                 msg = ''.join(filter(lambda x: x in string.printable, msg))
                 logging.info(msg); print(msg)
                 if str(co) == 'nan':
@@ -120,11 +117,11 @@ if __name__ == '__main__':
     companies = args.companies.split(',') if ',' in args.companies else [args.companies]
     relations = args.relations.split(',') if ',' in args.relations else [args.relations]
     ##-------------------
-#    os.chdir('C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase')
-#    relations = ['ipo','products','owned_by','sub_organizations','investors','investments','board_members_and_advisors']     ## ['competitors']  # 'members','memberships'
-#    co_names =  pd.read_csv('g_full_company_name_unique.csv',encoding='utf-8')
-#    start_index = 6799  # 0
-#    companies = co_names.name.values[start_index:]
+    os.chdir('C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase')
+    relations = 'products' #['products','owned_by','sub_organizations','investors','investments','board_members_and_advisors'] # ['ipo']    ## ['competitors']  # 'members','memberships'
+    co_names =  pd.read_csv('g_full_company_name_unique.csv',encoding='utf-8')
+    start_index = 13371 # 15599  # 6799  # 0
+    companies = co_names.name.values[start_index:]
     ##-------------------
     cb = CrunchBase(user_key)
     cb.getPaginatedResults(companies, relations)
