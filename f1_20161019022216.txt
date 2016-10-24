@@ -1,0 +1,38 @@
+
+==============================
+Summary of formation model fit 
+==============================
+
+Formula:   ~edges
+
+Iterations:  7 out of 20 
+
+Monte Carlo MLE Results:
+      Estimate Std. Error MCMC % p-value    
+edges  -5.2666     0.1895      0  <1e-04 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+     Null Deviance: 7559.5  on 5453  degrees of freedom
+ Residual Deviance:  351.1  on 5452  degrees of freedom
+ 
+AIC: 353.1    BIC: 359.7    (Smaller is better.) 
+
+================================
+Summary of dissolution model fit
+================================
+
+Formula:   ~edges
+
+Iterations:  5 out of 20 
+
+Monte Carlo MLE Results:
+      Estimate Std. Error MCMC % p-value    
+edges   1.2869     0.1857      0  <1e-04 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+     Null Deviance: 237.1  on 171  degrees of freedom
+ Residual Deviance: 178.6  on 170  degrees of freedom
+ 
+AIC: 180.6    BIC: 183.8    (Smaller is better.) 
