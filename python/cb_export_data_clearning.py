@@ -39,10 +39,6 @@ def fillNA(df):
     return df
 #-------------------------------------------------
 
-files = [file for file in os.listdir() if '.csv' in file]
-
-#-------------------------------------------------
-
 ##-------------------------------------------------
 ##   1.0 ORGANIZATIONS
 ##-------------------------------------------------
@@ -75,6 +71,27 @@ op.updated_at = op.updated_at.apply(lambda x: getDateSafe(x))
 op = fillNA(op)
 #
 op.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
+
+
+
+##-------------------------------------------------
+##   1.1 ORGANIZATION BRANCHES
+##      **AGGREGATES**
+##-------------------------------------------------
+file_name = 'branches.csv'
+in_path  = dir_source + '/' + file_name
+out_path = dir_output + '/' + file_name
+br = pd.read_csv(in_path, sep=",", parse_dates=True, low_memory=False,  na_values=['','NA',None], keep_default_na=False, encoding='utf-8')
+#
+br.created_at = br.created_at.apply(lambda x: getDateSafe(x))
+br.updated_at = br.updated_at.apply(lambda x: getDateSafe(x))
+#
+br.drop(labels=['city_web_path','relation'], axis=1, inplace=True)
+br = fillNA(br)
+#
+br.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
+
+
 
 
 ##-------------------------------------------------
@@ -357,8 +374,8 @@ in_path  = dir_source + '/' + file_name
 out_path = dir_output + '/' + file_name
 ppl = pd.read_csv(in_path, sep=",", parse_dates=True, low_memory=False,  na_values=['','NA',None], keep_default_na=False, encoding='utf-8')
 #
-ppl['person_name_unique'] = ppl.cb_url.apply(lambda x: x.split("/")[-1])
 ppl.drop_duplicates(inplace=True)
+ppl['person_name_unique'] = ppl.cb_url.apply(lambda x: x.split("/")[-1])
 #
 ppl.created_at = ppl.created_at.apply(lambda x: getDateSafe(x))
 ppl.updated_at = ppl.updated_at.apply(lambda x: getDateSafe(x))
@@ -375,8 +392,11 @@ ppl.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-M
 file_name = 'people_descriptions.csv'
 in_path  = dir_source + '/' + file_name
 out_path = dir_output + '/' + file_name
-ppl = pd.read_csv(in_path, sep=",", parse_dates=True, low_memory=False,  na_values=['','NA',None], keep_default_na=False, encoding='utf-8')
+ppldesc = pd.read_csv(in_path, sep=",", parse_dates=True, low_memory=False,  na_values=['','NA',None], keep_default_na=False, encoding='utf-8')
 #
+ppldesc.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
+
+
 
 
 

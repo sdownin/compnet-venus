@@ -11,11 +11,18 @@ setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/comp
 #.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 #
 library(plyr, quietly = T)
+# library(dplyr)
 library(magrittr, quietly = T)
+library(texreg, quietly = T)
 library(reshape2, quietly = T)
 library(lubridate, quietly = T)
 library(stringr, quietly = T)
-data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
+#
+#source(file.path(getwd(),'R','comp_net_functions.R'))
+#
+#load(file.path(getwd(),'R','acquisitions_data_analysis.RData'))
+# save.image('acquisitions_data_analysis.RData')
 
 ##--------- Conversion functions---------------
 
@@ -38,48 +45,19 @@ convertMdySlashToYmdDash <- function(df, cols.to.fix)
 ##_--------------------------------------------
 
 ##--------------------------------------------------------
-## Sources
+## LOAD DATA; CLEAN DATA
 ##---------------------------------------------------------
-##---- entities
-# csv.jobs <- 'jobs.csv'
-# csv.ppl <- 'people.csv'
-# csv.ppl_desc <- 'people_descriptions.csv'
-csv.co <- 'organizations.csv'
-csv.co_comp <- 'competitors.csv'
-csv.co_cust <- 'customers.csv'
-csv.co_parent <- 'org_parents.csv'
-csv.co_prod <- 'products.csv'
-csv.co_acq <- 'acquisitions.csv'
-csv.co_br <- 'branches.csv'
-csv.co_rou <- 'funding_rounds.csv'  ## company--funding_round
-csv.co_ipo <- 'ipos.csv'
-csv.fund <- 'funds.csv'
-csv.inv <- 'investors.csv'
-csv.inv_rou <- 'investments.csv'  ## investor--funding_round
-csv.inv_part <- 'investment_partners.csv'
-csv.ev <- 'events.csv'
-csv.ev_rel <- 'event_relationships.csv'
-csv.category <- 'category_groups.csv'
-#----------------------------------
-#  Data import
-#----------------------------------
-co <- read.table(file.path(data_dir, csv.co), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-co_comp <- read.table(file.path(data_dir, csv.co_comp), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-co_cust <- read.table(file.path(data_dir, csv.co_cust), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-co_parent <- read.table(file.path(data_dir, csv.co_parent), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-co_prod <- read.table(file.path(data_dir, csv.co_prod), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-co_acq <- read.table(file.path(data_dir, csv.co_acq), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-co_br <- read.table(file.path(data_dir, csv.co_br), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-co_rou <- read.table(file.path(data_dir, csv.co_rou), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-co_ipo <- read.table(file.path(data_dir, csv.co_ipo), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-fund <- read.table(file.path(data_dir, csv.fund), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-inv <- read.table(file.path(data_dir, csv.inv), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-inv_rou <- read.table(file.path(data_dir, csv.inv_rou), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-inv_part <- read.table(file.path(data_dir, csv.inv_part), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-ev <- read.table(file.path(data_dir, csv.ev), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-ev_rel <- read.table(file.path(data_dir, csv.ev_rel), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-category <- read.table(file.path(data_dir, csv.category), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
+csv.companies <- 'cb_export_with_competitors_20160106_companies.csv'
+csv.acquisitions <- 'cb_export_with_competitors_20160106_acquisitions.csv'
+csv.competitors <- 'cb_export_with_competitors_20160106_competitors.csv'
+csv.funding <- 'cb_export_with_competitors_20160106_rounds.csv'
+csv.branches <- 'cb_export_with_competitors_20160725_branches.csv'
 
+co <- read.table(file.path(data_dir, csv.companies), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
+acq <- read.table(file.path(data_dir,csv.acquisitions), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
+comp <- read.table(file.path(data_dir,csv.competitors), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
+rou <- read.table(file.path(data_dir,csv.funding), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
+br <- read.table(file.path(data_dir,csv.branches), sep=",",header=T, quote='"', stringsAsFactors = F, fill=T)
 
 
 # xlsx.FINAL <- 'cb_export_with_competitors_20160725_FINAL.xlsx'

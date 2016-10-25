@@ -1,4 +1,3 @@
-#---------------------------------------------------------------------
 setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
 # .libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 library(parallel)
@@ -21,7 +20,7 @@ library(lattice, quietly = T)
 library(latticeExtra, quietly = T)
 library(directlabels, quietly = T)
 library(ggplot2, quietly = T)
-data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/"
+data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 if( !('net' %in% ls()) )
   load('netrisk_dynamic_1.RData')
@@ -45,46 +44,6 @@ multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-pac
 single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
 ###########################################################################
 
-#---------------------------------------------------------------------
-#   1.0 ORGANIZATIONS
-##   1.1 ORGANIZATION PARENT
-##      **RELATION**
-
-##   2 ACQUISITIONS
-##      **RELATION**
-##      **AGGREGATE**
-
-##   3. PRODUCTS
-##      **AGGREGATE**
-
-##   4 Category group -- ALL OK
-
-##   5 COMPETITORS
-##      **RELATION**
-
-##   6 CUSTOMERS
-##      **RELATION**
-
-##   7.1 EVENTS
-##   7.2 EVENTS RELATIONSHIPS
-##      **RELATIONS**
-
-##   8.1 FUNDS
-##   8.2 FUNDING ROUNDS
-##      **RELATION**
-##      **AGGREGATE**
-##   8.3 IPOs
-
-##   9.1 INVESTORS
-##   9.2 INVESTMENTS
-##      **RELATION**
-##   9.3 INVESTMENT PARTNERS
-##      **RELATION**
-
-##   10 JOBS
-
-##   11.1 PEOPLE
-##   11.2 PEOPLE  DESCRIPTIONS
 
 #####################################################################################
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
