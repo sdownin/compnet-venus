@@ -51,7 +51,8 @@ co.created_at = co.created_at.apply(lambda x: getDateSafe(x))
 co.updated_at = co.updated_at.apply(lambda x: getDateSafe(x))
 #
 co['company_name_unique'] = co.cb_url.apply(lambda x: x.split("/")[-1])
-co.drop(labels=['twitter_url','facebook_url','cb_url','profile_image_url','logo_url'], axis=1, inplace=True)
+co['company_uuid'] = co.uuid.copy()
+co.drop(labels=['twitter_url','facebook_url','cb_url','profile_image_url','logo_url','uuid'], axis=1, inplace=True)
 co  = fillNA(co)
 #
 co.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')

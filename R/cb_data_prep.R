@@ -59,7 +59,7 @@ csv.inv_rou <- 'investments.csv'  ## investor--funding_round
 csv.inv_part <- 'investment_partners.csv'
 csv.ev <- 'events.csv'
 csv.ev_rel <- 'event_relationships.csv'
-csv.category <- 'category_groups.csv'
+csv.categ <- 'category_groups.csv'
 #----------------------------------
 #  Data import
 #----------------------------------
@@ -78,7 +78,7 @@ inv_rou <- read.table(file.path(data_dir, csv.inv_rou), sep=",",header=T, quote=
 inv_part <- read.table(file.path(data_dir, csv.inv_part), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
 ev <- read.table(file.path(data_dir, csv.ev), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
 ev_rel <- read.table(file.path(data_dir, csv.ev_rel), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
-category <- read.table(file.path(data_dir, csv.category), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
+categ <- read.table(file.path(data_dir, csv.categ), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
 
 
 
