@@ -63,6 +63,7 @@ csv.categ <- 'category_groups.csv'
 #----------------------------------
 #  Data import
 #----------------------------------
+cat('\nloading dataframes...\n')
 co <- read.table(file.path(data_dir, csv.co), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
 co_comp <- read.table(file.path(data_dir, csv.co_comp), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
 co_cust <- read.table(file.path(data_dir, csv.co_cust), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
@@ -80,35 +81,52 @@ ev <- read.table(file.path(data_dir, csv.ev), sep=",",header=T, quote='"' , stri
 ev_rel <- read.table(file.path(data_dir, csv.ev_rel), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
 categ <- read.table(file.path(data_dir, csv.categ), sep=",",header=T, quote='"' , stringsAsFactors = F, fill=T)
 
-
-
-# xlsx.FINAL <- 'cb_export_with_competitors_20160725_FINAL.xlsx'
-# 
-# co   <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "companies")
-# acq  <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "acquisitions")
-# comp <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "competitors")
-# rou  <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "rounds")
-# br   <- read_excel(file.path(data_dir,xlsx.FINAL), sheet = "branches")
-
+# MULTI_MARKET_CONTACT CODE
+co_br$mmc_code <- apply(co_br[,c('country_code3','region_code2')],1,function(x){
+  paste(x, collapse="_")
+})
 
 # ##  DROP COMPANY row with mising name
 co <- co[which(co$company_name_unique!="" & !is.na(co$company_name_unique)), ]
 
+# ## ADD ACQUISITION DATE to COMPETITOR RELATION
+# cat('\nadding acquisition date to competitor relation...\n')
+# co.company <- co[,c('company_uuid','company_name_unique')]
+# co.competitor <- data.frame(company_uuid=co$company_uuid, competitor_name_unique=co$company_name_unique,
+#                             stringsAsFactors = F)
+# co_comp <- merge(co_comp, co.company, by.x='entity_uuid', by.y='company_uuid', all.x=F, all.y=F )
+# co_comp <- merge(co_comp, co.competitor, by.x='competitor_uuid', by.y='company_uuid', all.x=T, all.y=F)
+# 
+# co_comp_tmp <- merge(co_comp[,c('entity_uuid','competitor_uuid')], co_acq[,c('acquiree_uuid','acquired_on')], 
+#                      by.x='entity_uuid', by.y='acquiree_uuid', all.x=T, all.y=F)
+# co_comp_tmp <- merge(co_comp_tmp, co_acq[,c('acquiree_uuid','acquired_on')], 
+#                      by.x='competitor_uuid', by.y='acquiree_uuid', all.x=T, all.y=F)
+# # co_comp_tmp_sub <- subset(co_comp_tmp, subset=(competitor_uuid %in% co_comp$competitor_uuid
+# #                                                |entity_uuid %in% co_comp$entity_uuid))
+# ### check dups
+# df.dup <- data.frame(x=apply(co_comp_tmp,1, function(x)paste(x,collapse="_")))
+# df.dup$x <- as.character(df.dup$x)
+# cnt <- plyr::count(df.dup$x)
+# cnt <- cnt[order(cnt$freq, decreasing=T),]
+# ###
+# dups <- co_comp_tmp[duplicated(x = co_comp_tmp[,c('competitor_uuid','entity_uuid')]), ]
+# co_comp$acquired_on <- apply(co_comp_tmp[,grep('acquired_on',x = names(co_comp_tmp),ignore.case = T)], 
+#                              MARGIN = 1, FUN = function(x)min(x))
+##
+co_comp_acquired_on <- sapply(1:nrow(co_comp), function(i){
+  index <- which(co_comp$entity_uuid[i] == co_acq$acquiree_uuid
+                 | co_comp$competitor_uuid[i] == co_acq$acquiree_uuid)
+  if(i%%1000==0) cat(sprintf('\ncompleted row %s',i))
+  if (nrow(co_acq[index,]) > 0 ) {
+    return(min(co_acq[index,'acquired_on']))
+  }else{
+    return(NA)
+  }
+})
+co_comp$acquired_on <- co_comp_acquired_on
 
-# reformat competitor relation dates
-cols.to.fix <- c('relation_created_at','competitor_founded_on','competitor_closed_on','closed_on')
-comp.bak <- comp
-comp <- convertMdySlashToYmdDash(comp, cols.to.fix)
-
-
-## reformat company datse
-cols.to.fix <- c('founded_at','first_funding_at','last_funding_at')
-co.bak <- co
-co <- convertMdySlashToYmdDash(co, cols.to.fix)
-
-## add acquisition date to competitor relation
-tmp <- data.frame(company_name_unique=acq$acquired_name_unique, acquired_at=acq$acquired_at)
-comp <- merge(comp, tmp, by='company_name_unique', all.x=T, all.y=F)
+# tmp <- data.frame(company_name_unique=co_acq$acquired_name_unique, acquired_at=co_acq$acquired_at)
+# co_comp2 <- merge(co_comp, tmp, by='company_name_unique', all.x=T, all.y=F)
 # tmp <- data.frame(company_name_unique=acq$company_name_unique, acquired_at=acq$acquired_at)
 # comp <- merge(comp, tmp, by='company_name_unique',all.x=T, all.y=F)
 # comp$acquired_at <- ifelse( !is.na(comp$acquired_at.x), comp$acquired_at.x, comp$acquired_at.y)

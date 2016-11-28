@@ -33,10 +33,33 @@ def getDateSafe(x):
     except Exception as e:
         print(e)
 
+def empty(x):
+    if isinstance(x, list): 
+        return [(pd.isnull(i) or i is None or i is '') for i in x]
+    elif isinstance(x, np.ndarray):
+        return np.array([(pd.isnull(i) or i is None or i is '') for i in x])
+    elif isinstance(x, pd.Series):
+        return pd.Series([(pd.isnull(i) or i is None or i is '') for i in x])
+    else:
+        return pd.isnull(x) or x is None or x is ''
+          
 def fillNA(df):
     for col in df.columns:
-        df[col] = df[col].apply(lambda x: 'NA' if pd.isnull(x) else x)
+        df[col] = df[col].apply(lambda x: 'NA' if empty(x) else x)
     return df
+
+def joinSafe(x, delim='|'): 
+    notnull = [str(i) for i in x if not empty(i)]
+    return delim.join(notnull)
+    
+def strMinSafe(strings):
+    notnull = [str(i) for i in strings if not empty(i)]
+    if len(notnull) < 1:
+        return None
+    else:
+        return min(notnull)    
+    
+        
 #-------------------------------------------------
 
 ##-------------------------------------------------
@@ -68,6 +91,15 @@ op = pd.read_csv(in_path, sep=",", parse_dates=True, low_memory=False,  na_value
 #
 op.created_at = op.created_at.apply(lambda x: getDateSafe(x))
 op.updated_at = op.updated_at.apply(lambda x: getDateSafe(x))
+#
+# ### NAMES
+tmp = co[['company_name_unique','company_uuid']].copy()
+tmp2 = tmp.copy()
+tmp2.columns = ['parent_name_unique','company_uuid']
+op = op.merge(tmp, how='left', left_on='org_uuid', right_on='company_uuid', copy=True)
+op = op.merge(tmp2, how='left', left_on='parent_org_uuid', right_on='company_uuid', copy=True)
+op.drop(['company_uuid_x','company_uuid_y'],axis=1,inplace=True)
+
 #
 op = fillNA(op)
 #
@@ -108,8 +140,8 @@ ac = pd.read_csv(in_path, sep=",", parse_dates=True, low_memory=False,  na_value
 ac.created_at = ac.created_at.apply(lambda x: getDateSafe(x))
 ac.updated_at = ac.updated_at.apply(lambda x: getDateSafe(x))
 #
-ac['aquiree_name_unique'] = ac.acquiree_cb_url.apply(lambda x: x.split("/")[-1])
-ac['aquirer_name_unique'] = ac.acquirer_cb_url.apply(lambda x: x.split("/")[-1])
+ac['acquiree_name_unique'] = ac.acquiree_cb_url.apply(lambda x: x.split("/")[-1])
+ac['acquirer_name_unique'] = ac.acquirer_cb_url.apply(lambda x: x.split("/")[-1])
 #
 ac.drop(labels=['acquirer_cb_url','acquiree_cb_url'], axis=1, inplace=True)
 ac = fillNA(ac)
@@ -168,6 +200,44 @@ comp.drop_duplicates(inplace=True)
 #
 comp.created_at = comp.created_at.apply(lambda x: getDateSafe(x))
 comp.updated_at = comp.updated_at.apply(lambda x: getDateSafe(x))
+    
+# ### NAMES
+tmp = co[['company_name_unique','company_uuid']].copy()
+tmp2 = tmp.copy()
+tmp2.columns = ['competitor_name_unique','company_uuid']
+comp = comp.merge(tmp, how='left', left_on='entity_uuid', right_on='company_uuid', copy=True)
+comp = comp.merge(tmp2, how='left', left_on='competitor_uuid', right_on='company_uuid', copy=True)
+comp.drop(['company_uuid_x','company_uuid_y'],axis=1,inplace=True)
+# ### ACQUIRED
+tmp = ac[['acquiree_name_unique']].copy()
+tmp['acquired_on'] = ac[['created_at','updated_at']].apply(lambda x: strMinSafe(x), axis=1)
+comp_m = comp.merge(tmp, how='left', left_on='company_name_unique',right_on='acquiree_name_unique',copy=True)
+comp_m = comp_m.merge(tmp, how='left', left_on='competitor_name_unique',right_on='acquiree_name_unique',copy=True)
+comp_m['acquiree_name_unique'] = comp_m[['acquiree_name_unique_x', 'acquiree_name_unique_y']].apply(lambda x: joinSafe(x), axis=1).copy()
+
+comp_index = ['company_name_unique','competitor_name_unique']
+x = comp_m.groupby(comp_index).agg({'acquired_on_x': lambda x: joinSafe(x),
+                                    'acquired_on_y': lambda x: joinSafe(x),
+                                    'acquiree_name_unique': lambda x: joinSafe(x)
+                                    }).reset_index()
+#y = comp_m.groupby(comp_index).agg({'acquired_on_y':'sum'}).reset_index()
+#xy = x.merge(y, how='inner', on=comp_index)
+x['acquired_on'] = x[['acquired_on_x','acquired_on_y']].apply(lambda x: joinSafe(x), axis=1)
+x.drop(['acquired_on_x','acquired_on_y'], axis=1, inplace=True)
+comp = comp.merge(x, how='left', on=comp_index).copy()
+comp.columns = np.concatenate((comp.columns[:-2].values,['acquiree_name_unique_concat', 'acquired_on_concat']))
+comp['acquired_on'] = comp.acquired_on_concat.ix[:30].apply(lambda x: min(x.split('|')) if not empty(x) else 'NA') 
+# ### CLOSED
+tmp =  co[['company_name_unique','closed_on']].ix[ (~empty(co.closed_on) & (co.closed_on != 'NA') ) ].copy()
+tmp2 = tmp.copy()
+tmp.columns = ['company_name_unique','company_closed_on']
+tmp2.columns = ['competitor_name_unique','competitor_closed_on']
+comp = comp.merge(tmp, how='left', on='company_name_unique')
+comp = comp.merge(tmp2, how='left', on='competitor_name_unique')
+comp['relation_ended_on'] = comp[['company_closed_on','competitor_closed_on','acquired_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
+#
+comp['relation_began_on'] = comp[['created_at','relation_ended_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
+#
 comp = fillNA(comp)
 #
 comp.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
@@ -187,10 +257,22 @@ cust.drop_duplicates(inplace=True)
 cust.created_at = cust.created_at.apply(lambda x: getDateSafe(x))
 cust.updated_at = cust.updated_at.apply(lambda x: getDateSafe(x))
 #
+tmp = co[['company_name_unique','company_uuid']].copy()
+tmp2 = tmp.copy()
+tmp2.columns = ['customer_name_unique','company_uuid']
+cust = cust.merge(tmp, how='left', left_on='entity_uuid', right_on='company_uuid', copy=True)
+cust = cust.merge(tmp2, how='left', left_on='customer_uuid', right_on='company_uuid', copy=True)
+cust.drop(['company_uuid_x','company_uuid_y'],axis=1,inplace=True)
+#
 cust = fillNA(cust)
 #
 cust.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
 
+#cust.groupby('company_name_unique').agg({'entity_uuid':'count'}).reset_index().sort('entity_uuid',ascending=False)
+#cust.groupby('customer_name_unique').agg({'entity_uuid':'count'}).reset_index().sort('entity_uuid',ascending=False)
+#co_i = 'coca-cola'
+#cust.ix[ (cust.company_name_unique.str.contains(co_i,na=False)
+#          | cust.customer_name_unique.str.contains(co_i,na=False)) ,:]
 
 
 ##-------------------------------------------------
