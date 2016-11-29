@@ -89,14 +89,14 @@ single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
 #####################################################################################
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
 #####################################################################################
-g.full <- makeGraph(comp = comp, vertdf = co)
+g.full <- makeGraph(comp = co_comp, vertdf = co)
 ## fill in missing founded_year values from founded_at year
-V(g.full)$founded_year <- ifelse( (!is.na(V(g.full)$founded_year)|V(g.full)$founded_year==''), V(g.full)$founded_year, as.numeric(substr(V(g.full)$founded_at,1,4)))
+#V(g.full)$founded_year <- ifelse( (!is.na(V(g.full)$founded_year)|V(g.full)$founded_year==''), V(g.full)$founded_year, as.numeric(substr(V(g.full)$founded_at,1,4)))
 ## cut out confirmed dates >= 2016
-g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2015 
+g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016 
                                                                 | is.na(V(g.full)$founded_year)
                                                                 | V(g.full)$founded_year=='' ) ] )
-g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2016-01-01')])
+g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
 ## change NA funding to 0
 # V(g.full)[is.na(V(g.full)$funding_total_usd)]$funding_total_usd <- 0
 ## Make list of attributes functions to simplify duplicate edges
@@ -117,9 +117,8 @@ g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_create
 ## SIMPLIFY
 g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T, 
                            edge.attr.comb = list(weight='sum', 
-                                                 relation_created_at='min',
-                                                 competitor_founded_on='min',
-                                                 competitor_closed_on='min'))
+                                                 relation_began_on='min',
+                                                 relation_ended_on='min'))
 
 
 

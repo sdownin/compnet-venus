@@ -425,6 +425,34 @@ getAcqCountsByPeriod <- function(acq, start, end, to.merge.df,
 # CREATE GRAPH FROM COMPETITIVE RELATIONS IN `comp` DATAFRAME
 ##
 makeGraph <- function(comp,vertdf,name='company_name_unique', 
+                      compName='competitor_name_unique', 
+                      relationStartCol='relation_began_year',
+                      relationEndCol='relation_ended_year',
+                      vertAttrs=c('founded_on','founded_year','closed_on','closed_year',
+                                  'category_list','category_group_list',
+                                  'state_code','country_code','region','city') )
+{
+  el <- data.frame(source=comp[,name], 
+                   target=comp[,compName],
+                   relation_began_on=comp[,relationStartCol], 
+                   relation_ended_on=comp[,relationEndCol], 
+                   stringsAsFactors = F)
+  ## remove missing names
+  el <- el[which(el$source!="" & el$target!=""), ]
+  ## make vertex df
+  verts <- data.frame(company_name_unique=unique(c(el$source,el$target)), stringsAsFactors = F)
+  verts <- merge(x=verts,y=vertdf[,c(name,vertAttrs[vertAttrs%in%names(vertdf)])],
+                 by=name,all.x=T,all.y=F)  
+  ## make graph
+  g <- igraph::graph.data.frame(d = el, directed = F, vertices = verts)
+  E(g)$weight <- 1
+  return(g)
+}
+
+###
+# CREATE GRAPH FROM COMPETITIVE RELATIONS IN `comp` DATAFRAME
+##
+makeGraph.previous <- function(comp,vertdf,name='company_name_unique', 
                       compName='competitor_name_unique', relationPdName='relation_created_at',
                       competitorFoundedName='competitor_founded_on',
                       competitorClosedName='competitor_closed_on',
