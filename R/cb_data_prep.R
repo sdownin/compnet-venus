@@ -79,7 +79,39 @@ if(length(co.dups) > 0) {
 }
 
 ## ADD YEAR variables
-co$founded_year <- stringr::str_sub( co$founded_on,1,4)
-co$closed_year <- stringr::str_sub( co$closed_on,1,4)
-co_comp$relation_began_year <- stringr::str_sub( co_comp$relation_began_on,1,4)
-co_comp$relation_ended_year <- stringr::str_sub( co_comp$relation_ended_on,1,4)
+co$founded_year <- as.numeric(stringr::str_sub( co$founded_on,1,4))
+co$closed_year <-  as.numeric(stringr::str_sub( co$closed_on,1,4))
+co$acquired_year <-  as.numeric(stringr::str_sub( co$acquired_on,1,4))
+co_comp$relation_began_year <-  as.numeric(stringr::str_sub( co_comp$relation_began_on,1,4))
+co_comp$relation_ended_year <-  as.numeric(stringr::str_sub( co_comp$relation_ended_on,1,4))
+
+
+# FUNDING ROUND
+co_rou$funded_year <- as.numeric(stringr::str_sub(co_rou$announced_on,1,4))
+
+# ACQUISITIONS ACQUIRER NAME
+co_acq$company_name_unique <- co_acq$acquirer_name_unique
+co_acq$acquired_year <- as.numeric(stringr::str_sub(co_acq$acquired_on,1,4))
+
+# BRANCHES
+co_br$created_year <- as.numeric(stringr::str_sub(co_br$created_at,1,4))
+
+#IPO
+co_ipo$went_public_year <- as.numeric(stringr::str_sub(co_ipo$went_public_on,1,4))
+
+# CUSTOMER
+co_cust$created_year <- as.numeric(stringr::str_sub(co_cust$created_at,1,4))
+
+# ## Add Acquried date to company df
+# co.tmp <- merge(data.frame(company_name_unique=co$company_name_unique, stringsAsFactors = F), 
+#                 co_acq[,c('acquiree_name_unique','acquired_on')], 
+#                 by.x = 'company_name_unique', by.y = 'acquiree_name_unique', all.x = T, all.y=F)
+# co.mer <- plyr::ddply(co.tmp, .(company_name_unique), summarise, 
+#                       acquired_on_concat=paste(acquired_on,collapse="|"))
+
+
+
+
+
+
+

@@ -626,6 +626,118 @@ initNetworkDynamic <- function(net, start, end, create.TEAs=FALSE) {
   return(nd)
 }
 
+##
+#
+##
+getMultiMarketContact <- function(brsub)
+{
+  if( !('company_name_unique' %in% names(brsub)) 
+      | !('mmc_code' %in% names(brsub)) )
+    stop('data.frame must contains columns `company_name_unique` and `mmc_code`')
+  n <- length(brsub$company_name_unique)
+  out <- sapply(1:n, function(i) {
+    if(i %% 50 == 0) cat(sprintf('\nMMC for firm i = %s of %s\n',i,length(brsub$company_name_unique)))
+    sapply(1:n, function(j) {
+      if (i == j) {
+        return(0)
+      } else  {
+        subi <- brsub[which(brsub$company_name_unique == brsub$company_name_unique[i] & brsub$company_name_unique != 'NA'),]
+        subi <- subi[!duplicated(subi),]
+        subj <- brsub[which(brsub$company_name_unique == brsub$company_name_unique[j] & brsub$company_name_unique != 'NA'),]
+        subj <- subj[!duplicated(subj),]
+        ni <- sum(subi$mmc_code %in% subj$mmc_code)
+        nj <- sum(subj$mmc_code %in% subi$mmc_code)
+        mmc <- (ni / length(subi$mmc_code)) * (nj / length(subj$mmc_code))
+        return(mmc)
+      } 
+    })
+  })
+  return(out)
+}
+
+# setNetCovariates <- function(net, acq=NA,rou=NA,br=NA,ipo=NA)
+# {
+#   
+# }
+
+makePdNetworkSetCovariates <- function(net, start, end, 
+                                        edgeCreatedAttr='relation_began_on',
+                                        edgeDeletedAttr='relation_ended_on',
+                                        vertFoundedAttr='founded_year',
+                                        vertClosedAttr='closed_year',
+                                        vertAcquiredAttr='acquired_year',
+                                        acq=NA,rou=NA,br=NA,ipo=NA)
+{
+  cat('collecting edges to remove...\n')
+  vertAttrs <- network::list.vertex.attributes(net)
+  edgeAttrs <- network::list.edge.attributes(net)
+  inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
+  ## ------------REMOVE EDGES FROM ABSENT VERTICES--------------------------
+  #
+  ##------------------ COLLECT EDGES TO REMOVE -----------
+  ## Get EDGES CREATED AT ___ to be removed
+  if (edgeCreatedAttr %in% edgeAttrs) {
+    tmp <- network::get.edge.attribute(net, edgeCreatedAttr)
+    eids <- which(tmp > end)
+    inactiveEdges <- c(inactiveEdges, eids)
+  }
+  ##------------------ COLLECT VERTICES TO REMOVE ------- 
+  ##  REMOVE VERTICES founded_on > `end`
+  if(vertFoundedAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertFoundedAttr)
+    vids <- which(tmp > end) #(g)[which(tmp > end)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES closed_on < `start`
+  if(vertClosedAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertClosedAttr)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES acquired_at < `start`
+  if(vertAcquiredAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
+  el <- network::as.edgelist(net)
+  inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
+  inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
+  ##------------- DELTE EDGES --------------------------------------
+  net <- network::delete.edges(net, inactiveEdges)
+  #----------------------------------------------------------------
+  #
+  # ## ------------------HYPOTHESIS PREDICTORS------------------
+  g.net <- getIgraphFromNet(net)
+  ## # 1. ENV RISK -- VERTEX ATTRIBUTE
+  cat('\ncomputing envelopment risk...\n')
+  net %v% 'env_risk' <- envRisk(g.net, out.envrisk = TRUE)
+  ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
+  cat('\ncomputing multi-market contact...\n')
+  brsub <- br[which(br$company_name_unique %in% (net %v% 'vertex.names') 
+                    & br$created_year < end), ]
+  net %n% 'mmc' <- as.matrix(getMultiMarketContact(brsub))
+  ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
+  cat('\ncomputing distances lag contact...\n')
+  D <- as.matrix(igraph::distances(g.net))
+  rownames(D) <- NULL;  colnames(D) <- NULL
+  D[D==0] <- 1e-16
+  net %n% 'dist' <- D
+  #
+  D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
+  D[(is.na(D) | D == -Inf | D == Inf)] <-0
+  net %n% 'de_alio_entry' <- D
+  ## # 4. IPO STATUS -- VERTEX ATTRIBUTE
+  cat('\ncomputing IPO status contact...\n')
+  iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
+                      & ipo$went_public_year < end), ]
+  net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
+  ## # 4. Customer Status (coopetition) -- EDGE ATTRIBUTE
+  return(net)
+}
+
+#***************************************************
 ### ***********NETWORK PERIOD FUNCTION**************
 # FOR USE IN TERMG (STERGM) where node set must remain constant
 # here we only remove the edges going backward in time
@@ -635,14 +747,17 @@ initNetworkDynamic <- function(net, start, end, create.TEAs=FALSE) {
 updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
                                               nd=NA,  # [[networkDynamic]]
                                               start=NA, end=NA, 
-                                              vertActiveAttrs=c('status','market2'),
-                                              edgeActiveAttrs=c(),
-                                              vertFoundedAttr='founded_at',
-                                              vertClosedAttr='company_closed_on',
-                                              vertAcquiredAttr='acquired_at',
-                                              edgeCreatedAttr='relation_created_at',
+                                              lagStart=NA, lagEnd=NA,
+                                              vertActiveAttrs=c('category_list','city','country_code','state_code','region'),
+                                              edgeActiveAttrs=c('relation_began_on','relation_ended_on','weight'),
+                                              vertFoundedAttr='founded_year',
+                                              vertClosedAttr='closed_year',
+                                              vertAcquiredAttr='acquired_year',
+                                              edgeCreatedAttr='relation_began_on',
+                                              edgeRemovedAttr='relation_ended_on',
+                                              dynamic.only=TRUE,
                                               deactivateVertices=FALSE,
-                                              acq=NA,rou=NA,br=NA)
+                                              acq=NA,rou=NA,br=NA,ipo=NA)
 {
   cat('collecting edges to remove...\n')
   vertAttrs <- network::list.vertex.attributes(net)
@@ -663,19 +778,19 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   ##------------------ COLLECT VERTICES TO REMOVE ------- 
   ##  REMOVE VERTICES founded_on > `end`
   if(vertFoundedAttr %in% vertAttrs) {
-    tmp <- network::get.vertex.attribute(net, vertFoundedAttr) 
+    tmp <- network::get.vertex.attribute(net, vertFoundedAttr)
     vids <- which(tmp > end) #(g)[which(tmp > end)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ##  REMOVE VERTICES closed_on < `start`
   if(vertClosedAttr %in% vertAttrs) {
-    tmp <- network::get.vertex.attribute(net, vertClosedAttr) 
+    tmp <- network::get.vertex.attribute(net, vertClosedAttr)
     vids <- which( tmp < start )  # V(g)[which(tmp < start)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ##  REMOVE VERTICES acquired_at < `start`
   if(vertAcquiredAttr %in% vertAttrs) {
-    tmp <- network::get.vertex.attribute(net, vertAcquiredAttr) 
+    tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
     vids <- which( tmp < start )  # V(g)[which(tmp < start)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
@@ -689,7 +804,9 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   el <- network::as.edgelist(net)
   inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
   nd <- networkDynamic::deactivate.edges(x = nd, onset = start, terminus = end, e = inactiveVertsEdges )
-  # ##------------------------- DYNAMIC TEAs-----------------------
+  #----------------------------------------------------------------
+  #                            DYNAMIC TEAs
+  #----------------------------------------------------------------
   if( length(vertActiveAttrs) > 0) {
     for (attr in vertActiveAttrs) {
       val <- net %v% attr
@@ -701,64 +818,71 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
       val <- net %v% attr
       activate.edge.attribute(x = nd, prefix = attr, value = val, onset=start, terminus = end)
     }
-  }
-  # ##----------------------DYNAMIC ATTRS-----------------------
-  # ## AGE
-  # agediff <- end - V(g)$founded_year
-  # V(g)$age <- ifelse( agediff >= 0, agediff, NA)
-  # ## funding rounds
-  # if(any( !is.na(rou) )) {
-  #   cat('optional: aggregating funding rounds...\n')
-  #   x <- ply.vert.attr(rou, g, 'funded_year', 'ply.rou', start, end)
-  #   check <- nrow(x) > 0 & all(c('funding_total_usd') %in% names(x))
-  #   if(check) {
-  #     V(g)$funding_total_usd <- ifelse(check, ifelse( is.na(x$funding_total_usd), 0, x$funding_total_usd), 0)
-  #   } else {
-  #     V(g)$funding_total_usd <- 0
-  #   }
-  #   V(g)$log_funding_total_usd <- log(V(g)$funding_total_usd + 1)
-  #   V(g)$has_fund <- ifelse(V(g)$funding_total_usd>0,1,0)
-  # }
-  # ## acquisitions
-  # if(any( !is.na(acq) )) {
-  #   cat('optional: aggregating acquisitions...\n')
-  #   x <-  ply.vert.attr(acq, g, 'acquired_year', 'ply.acq', start, end)
-  #   check <- nrow(x) > 0 & all(c('acquisitions_count','acquisitions_concat') %in% names(x))
-  #   if(check) {
-  #     V(g)$acquisitions <- x$acquisitions_concat
-  #     V(g)$acquisitions_count <- ifelse( is.na(x$acquisitions_count)|x$acquisitions_count=="", 0, x$acquisitions_count)
-  #   } else {
-  #     V(g)$acquisitions <- NA
-  #     V(g)$acquisitions_count <- 0
-  #   }
-  # }
-  # ## branches
-  # if(any( !is.na(br) )) {
-  #   cat('optional: aggregating branches...\n')
-  #   x <- ply.vert.attr(br, g, 'created_year', 'ply.br', start, end)
-  #   check <- nrow(x) > 0 & all(c('branches_count','branches_concat') %in% names(x))
-  #   if(check) {
-  #     V(g)$branches <- x$branches_concat
-  #     V(g)$branches_count <- ifelse(x$branches_count<1,1,0)      
-  #   } else {
-  #     V(g)$branches <- NA
-  #     V(g)$branches_count <- 0 
-  #   }
-  # }
-  # 
-  return(nd)
+  } 
+  # ## ------------------HYPOTHESIS PREDICTORS------------------
+  pred = list()
+  cat('\ncomputing hypothesis predictor variables...\n')
+  net.t <- network.extract(nd, onset=start, terminus = end)
+  net.t.lag <- network.extract(nd, onset=lagStart, terminus = lagEnd)
+  # 0. ENV RISK -- VERTEX ATTRIBUTE
+  prefix <- 'env_risk';    cat('\ncomputing envelopment risk...\n')
+  val <- envRisk(getIgraphFromNet(net.t), out.envrisk = TRUE)
+  pred[[prefix]] <- val
+  activate.vertex.attribute(nd, prefix, val,v = seq_len(net.t$gal$n), onset=start, terminus = end, dynamic.only = dynamic.only)
+  # 1. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
+  prefix <- 'mmc';    cat('\ncomputing multi-market contact...\n')
+  brsub <- br[which(br$company_name_unique %in% (net.t %v% 'vertex.names') & br$created_year < end), ]
+  val <- sapply(1:length(brsub$company_name_unique), function(i) {
+    if(i %% 50 == 0) cat(sprintf('\nMMC for firm i = %s of %s\n',i,length(brsub$company_name_unique)))
+    sapply(1:length(brsub$company_name_unique), function(j) {
+      if (i == j) {
+        return(0)
+      } else  {
+        subi <- brsub[which(brsub$company_name_unique == brsub$company_name_unique[i] & brsub$company_name_unique != 'NA'),]
+        subi <- subi[!duplicated(subi),]
+        subj <- brsub[which(brsub$company_name_unique == brsub$company_name_unique[j] & brsub$company_name_unique != 'NA'),]
+        subj <- subj[!duplicated(subj),]
+        ni <- sum(subi$mmc_code %in% subj$mmc_code)
+        nj <- sum(subj$mmc_code %in% subi$mmc_code)
+        mmc <- (ni / length(subi$mmc_code)) * (nj / length(subj$mmc_code))
+        return(mmc)
+      } 
+    })
+  })
+  pred[[prefix]] <- val
+  activate.edge.attribute(nd, prefix, val, e=seq_along(net.t$mel), onset=start, terminus = end, dynamic.only = dynamic.only)
+  # 2. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
+  prefix <- 'dist_lag';    cat('\ncomputing distances lag contact...\n')
+  val <- igraph::distances(getIgraphFromNet(network.extract(nd, onset = lagStart, terminus = lagEnd)))
+  pred[[prefix]] <- val
+  activate.edge.attribute(nd, prefix, val, e=seq_along(net.t.lag$mel), onset=lagStart, terminus = lagEnd, dynamic.only = dynamic.only)
+  prefix <- 'de_alio_entry'
+  val[(!is.na(val) & val > -Inf & val < Inf)] <- 1
+  val[(is.na(val) | val == -Inf | val == Inf)] <- 0
+  pred[[prefix]] <- val
+  activate.edge.attribute(nd, prefix, val,e=seq_along(net.t$mel), onset=lagStart, terminus = lagEnd, dynamic.only = dynamic.only)
+  # 3. IPO STATUS -- VERTEX ATTRIBUTE
+  prefix <- 'ipo_status'; cat('\ncomputing IPO status contact...\n')
+  iposub <- ipo[which(ipo$company_name_unique %in% (net.t %v% 'vertex.names')
+                   & ipo$went_public_year < end), ]
+  val <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
+  pred[[prefix]] <- val
+  activate.vertex.attribute(nd, prefix, val, v=seq_len(net.t$gal$n), onset=start, terminus = end, dynamic.only = dynamic.only)
+  # 4. Customer Status -- EDGE ATTRIBUTE
+  return(list(nd=nd, pred=pred))
 } 
 
-
+#*******************************************
 ### ********IGRAPH PERIOD FUNCTION**********
 # Sets active edges for the period in a network object 
 # using attributes from an igraph object
 ##
 makeIgraphPdSubgraphKeepNA <- function(g, start, end, 
-                          vertFoundedAttr='founded_at',
-                          vertClosedAttr='company_closed_on',
-                          vertAcquiredAttr='acquired_at',
-                          edgeCreatedAttr='relation_created_at',
+                          vertFoundedAttr='founded_on',
+                          vertClosedAttr='closed_on',
+                          vertAcquiredAttr='acquired_on',
+                          edgeCreatedAttr='relation_began_on',
+                          edgeRemovedAttr='relation_ended_on',
                           removeIsolates=TRUE,
                           acq=NA,rou=NA,br=NA)
 {
@@ -869,6 +993,7 @@ setBrAttrs <- function(g, br, start, end)
   V(g)[which(is.na(V(g)$branches_count) 
              | V(g)$branches=="" 
              | V(g)$branches=="_" )]$branches_count <- 0
+  return(g)
 }
 ##
 ply.vert.attr <- function(df, g, filterPdVar, FUN, start, end)
@@ -894,13 +1019,13 @@ ply.acq <- function(df.sub)  # 'acquired_year'
 {
   plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
               acquisitions_count=length(company_name_unique),
-              acquisitions_concat=paste(acquired_name_unique, collapse = "|") )
+              acquisitions_concat=paste(acquiree_name_unique, collapse = "|") )
 }
 ply.br <- function(df.sub)   # 'created_year
 {
   plyr::ddply(df.sub, .(company_name_unique), .progress='text', summarise,
               branches_count=length(company_name_unique),
-              branches_concat=paste(market2, collapse = "|") )
+              branches_concat=paste(mmc_code, collapse = "|") )
 }
 #----// dependent functions -----------
 
@@ -1480,15 +1605,16 @@ df.cent <- function(g.tmp)
 ##
 envRisk <- function(g,  community.type='multilevel.community',
                          risk.center = FALSE, risk.scale=FALSE,
-                         out.dist=FALSE, out.graph=FALSE, out.df=FALSE)
+                         out.envrisk=FALSE,out.dist=FALSE, 
+                    out.graph=FALSE, out.df=FALSE)
 {
   if(class(g)!='igraph') {
     cat('not a graph object, skipping...\n')
-    return(NA)    
+    return(g)    
   }
   if(ecount(g)==0) {
     cat('no edges, skipping ...\n')
-    return(NA)    
+    return(g)    
   }
   cat(sprintf('%s nodes  %s edges\n',vcount(g),ecount(g)))
   ## ------------ NOISY PRODUCT MARKETS --------------------------
@@ -1519,20 +1645,32 @@ envRisk <- function(g,  community.type='multilevel.community',
       }
     })
   })
+  if(is.null(dim(cmd)))  cmd <- matrix(cmd)
   ##------------------ RISK COMPUTATION ------------------------------
   ## 1. DISTANCES Matrix excluding current competition (-1)
   D <- igraph::distances(g, mode="all") - 1
   diag(D) <- 0
+  # D[D==Inf] <- 99999999   # deal with infinity
+  # D[D==-Inf] <- -99999999 # deal with infinity
   ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
   W <- sapply(V(g)$community, function(x){
     sapply(V(g)$community, function(y){
       cmd[x,y]
     })
   })
+  W[is.na(W)] <- 0
   ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
   Z <- D * (1-W)
   ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
-  r <- (nrow(Z)-1) / (colSums(Z)/2)
+  Z.finiteColSum <- apply(Z,1,function(x){
+    if ( length(x[x>-Inf & x<Inf]) == 1 ) { # isolate
+      return(Inf)
+    } else {
+      sum(x[(x<-Inf & x<Inf)])
+    }
+  })
+  r <- (nrow(Z)-1) / (Z.finiteColSum/2)
+  r[r==Inf | r == -Inf] <- 0
   if (risk.center)
     r <- r - mean(r, na.rm = T)
   if (risk.scale)
@@ -1540,6 +1678,8 @@ envRisk <- function(g,  community.type='multilevel.community',
   names(r) <- V(g)$name
   V(g)$envrisk <- r
   #-------------------------------------------------------------------
+  if(out.envrisk)
+    return(r)
   if(out.dist)
     return(Z)
   g <- igraph::set.graph.attribute(g, 'NpmWeightDist', Z)

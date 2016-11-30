@@ -23,8 +23,8 @@ library(directlabels, quietly = T)
 library(ggplot2, quietly = T)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
-# if( !('net' %in% ls()) )
-#   load('netrisk_dynamic_1.RData')
+if( !('net' %in% ls()) )
+  load('netrisk_dynamic_1.RData')
 ###
 # save.image('netrisk_dynamic_1.RData')
 ###
@@ -90,11 +90,30 @@ single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
 #####################################################################################
 g.full <- makeGraph(comp = co_comp, vertdf = co)
+## fill in missing founded_year values from founded_at year
+#V(g.full)$founded_year <- ifelse( (!is.na(V(g.full)$founded_year)|V(g.full)$founded_year==''), V(g.full)$founded_year, as.numeric(substr(V(g.full)$founded_at,1,4)))
 ## cut out confirmed dates >= 2016
 g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016 
                                                                 | is.na(V(g.full)$founded_year)
                                                                 | V(g.full)$founded_year=='' ) ] )
 g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
+## change NA funding to 0
+# V(g.full)[is.na(V(g.full)$funding_total_usd)]$funding_total_usd <- 0
+## Make list of attributes functions to simplify duplicate edges
+# to.min <- c('relation_created_at','competitor_founded_on','competitor_closed_on','founded_at','founded_month','founded_quarter','founded_year','acquired_at')
+# to.collapse <- c('funding_total_usd','category_list','country_code','state_code','city')
+# edgeAttrCombList <- list(weight='sum')
+# gAttrList <- names(igraph::vertex.attributes(g.full))
+# for (i in 1:length(to.min)) {
+#   if (to.min[i] %in% gAttrList) {
+#     edgeAttrCombList[[ to.min[i] ]] <- function(x){return(min(na.omit(x)))}
+#   }
+# }
+# for (i in 1:length(to.collapse))  {
+#   if (to.collapse[i] %in% gAttrList) {
+#     edgeAttrCombList[[ to.collapse[i] ]] <- function(x)paste(na.omit(x), collapse = "||||")
+#   }
+# }
 ## SIMPLIFY
 g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T, 
                            edge.attr.comb = list(weight='sum', 
@@ -133,59 +152,100 @@ net.k.sub <- getNetFromIgraph(g.k.sub)
 net <- net.k.sub
 nl <- list()
 #----------------Network List-------------------
-for (t in 2:length(periods)) {
+for (t in length(periods):2) {
   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
   nl[[t]] <- makePdNetworkSetCovariates(net.k.sub, start=periods[t-1], end=periods[t],
                                         acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
 }
 nl <- nl[which(sapply(nl, length)>0)]
-names(nl) <- periods[2:length(periods)]
-## add lagged distance
-for (t in 2:length(nl)) { 
-  nl[[t]] %n% 'dist_lag' <- as.matrix(nl[[t-1]] %n% 'dist')
-  dl <- nl[[t]] %n% 'dist_lag'
-  dl[dl == Inf] <- 999999 
-  nl[[t]] %n% 'dist_lag' <- dl 
-  # nl[[t]] <- network::set.network.attribute(nl[[t]], 'dist_lag', (nl[[t-1]] %n% 'dist') )
-}
-#-------------------------------------------------
+names(nl) <- periods[length(periods):3]
 
+
+#-----------------------------------------------
+# nd <- NA
+# nd <- initNetworkDynamic(net.k.sub, periods[1], periods[length(periods)])
+#--------------- iGraph ------------------------
+# gl <- list()
+# for(t in 2:length(periods)) {
+#   gl[[t]] <- makeIgraphPdSubgraphKeepNA(g.k.sub, start = periods[t-1], end=periods[t], removeIsolates = FALSE)
+# }; gl <- gl[-1]; names(gl) <- periods[-length(periods)]
+#-----------NetworkDynamic------------------------
+# gd <- list(); gl <- list(); nl <- list(); pred <- list()
+# for(t in length(periods):3) {
+#   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
+#   # gd[[t]] <- makeIgraphPdSubgraphAllNActivateEdges(g.k.sub, start=periods[t-1], end=periods[t],acq=acq,rou=rou,br=br)
+#   out <- updateNetworkDynamicPdActivateEdges(net = net.k.sub, nd = nd, 
+#                                             start=periods[t-1], end=periods[t],
+#                                             lagStart=periods[t-2], lagEnd=periods[t-1],
+#                                             acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo, 
+#                                             dynamic.only = FALSE)
+#   nd <- out$nd
+#   pred[[t]] <- out$pred
+#   # cat('\nstarting gl\n')
+#   # gl[[t]] <- makeIgraphPdSubgraphKeepNA(g.k.sub, start = periods[t-1], end=periods[t], removeIsolates = FALSE)
+# }; #names(gd) <- periods;  gd <- gd[2:length(gd)]
+# pred <- pred[which(sapply(pred, length)>0)]
+# names(pred) <- periods[length(periods):3]
+# 
+
+
+#-------------------------------------------------------
+# nl <- list()
+# nlnames <- c()
+# afterlag <- 2
+# nPeriods <- length(gl1)
+# counter <- 1
+# for (i in afterlag:nPeriods) {
+#   # g <- g.list[[i]]
+#   g <- gd[[i]]
+#   if(class(g)=='igraph') {
+#     if(ecount(g) > 1) {
+#       #V(g)$type <- factor(ifelse(V(g)$name %in% multi.prod, 'MultiProd', 'SingleProd'))
+#       er <- envRisk(g)
+#       g <- er$g
+#       ##
+#       nl[[counter]] <- getNetFromIgraph(g)
+#       nl[[counter]] <- network::set.network.attribute(nl[[counter]], 'envrisk', value = get.graph.attribute(g, 'envrisk'))
+#       founded_year_filled <- nl[[counter]] %v% 'founded_year'
+#       founded_year_filled[is.na(founded_year_filled)] <- median(founded_year_filled, na.rm = T)
+#       nl[[counter]] %v% 'founded_year_filled' <-  founded_year_filled
+#       nl[[counter]] %v% 'type' <- ifelse(nl[[counter]] %v% 'vertex.names' %in% multi.prod, 'MultiProd', 'SingleProd')
+#       rdf <-  envRisk(gd[[i-1]], out.df = T)
+#       nl[[counter]]  %v% 'envrisk_lag1' <- ifelse(any(is.na(rdf)), NA, rdf$envrisk)
+#       nl[[counter]] <- network::set.network.attribute(nl[[counter]],'period',names(gd[i]))
+#       nlnames[counter] <- names(gd[i])
+#       #
+#       counter <- counter + 1
+#     }
+#   }
+#   cat(sprintf('i %s  counter %s  year %s\n',i,counter,names(gd[i])))
+# }
+# names(nl) <- nlnames
+# nl <- nl[ ! sapply(nl, is.null) ]
 #-------------------------------------------------------
 ############################################################################
 #--------------------- BTERGM ------------------------------
 ############################################################################
 
-# nets <- list()
-# pds <- 2007:2016
-# for (i in 2:length(pds)) {
-#   nets[[i]] <- network(network.extract(nd, onset=pds[i-1], terminus=pds[i])[,], directed = F, hyper = F, multiple = F, loops = F, bipartite = F)
-# }; names(nets) <- pds; nets <- nets[-1]
+nets <- list()
+pds <- 2007:2016
+for (i in 2:length(pds)) {
+  nets[[i]] <- network(network.extract(nd, onset=pds[i-1], terminus=pds[i])[,], directed = F, hyper = F, multiple = F, loops = F, bipartite = F)
+}; names(nets) <- pds; nets <- nets[-1]
 
-nets <- nl[2:length(nl)]
-fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:5) ,
+fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + kstar(3:6), 
               R = 500, parallel = "multicore", ncpus = detectCores())
-fb2 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:5) + 
-                nodecov('env_risk') , 
+fb2 <- btergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
               R = 500, parallel = "multicore", ncpus = detectCores())
-fb3 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:5) + 
-                nodecov('env_risk') +  nodematch('ipo_status'), 
+fb3 <- btergm(nets ~ edges + density + gwesp(2, fixed=F) + gwdegree(2, fixed=F) + altkstar(2, fixed=F) + cycle(4:6), 
               R = 500, parallel = "multicore", ncpus = detectCores())
 
-fb4 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:5) + 
-                nodecov('env_risk') + nodematch('ipo_status', diff=T) + 
-                #edgecov('dist_lag') + 
-                edgecov('mmc') # + edgefactor('de_alio_entry')
-              ,
-              R = 500, parallel = "multicore", ncpus = detectCores())
-
-# fbm2 <- mtergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
-#               parallel = "multicore", ncpus = detectCores())
+fbm2 <- mtergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
+              parallel = "multicore", ncpus = detectCores())
 
 # texreg::screenreg(list(fb1=fb1,fb2=fb2), single.row = T, ci.force = F)
 
-texreg::screenreg(list(m0=fb1), single.row = T, ci.force = T)
-texreg::screenreg(list(m0=fb1,m1=fb2), single.row = T, ci.force = T)
-texreg::screenreg(list(m0=fb1,m1=fb2,m2=fb3), single.row = T, ci.force = T)
+texreg::screenreg(list(b=fb2,m=fbm2), single.row = T, ci.force = F)
 
 #_-------------------------------------------------------------
 #                       Compare STERGM, BTERG, MTERGM
@@ -224,29 +284,6 @@ screenreg(list(b=ce2,m=cem2))
 ############################################################################
 #--------------------- STERGM ------------------------------
 ############################################################################
-## example 
-library(ergm) 
-library(statnet) 
-library(tergm) 
-data(samplk) 
-samp <- list() 
-samp[[1]] <- samplk1 
-samp[[2]] <- samplk2 
-samp[[3]] <- samplk3 
-samp[[1]] %v% "charm" <- runif(18) 
-samp[[2]] %v% "charm" <- runif(18) 
-samp[[3]] %v% "charm" <- runif(18) 
-samp[[1]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
-samp[[2]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
-samp[[3]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
-fit1 <- ergm(samp[[1]] ~ edges +nodecov("charm") +edgecov("closeness") ) 
-summary(fit1)
-samp.fit <- stergm(samp, 
-                   formation = ~edges +nodecov("charm") +edgecov("closeness"), 
-                   dissolution = ~edges +mutual, 
-                   estimate = "CMLE", times = 1:3) 
-summary(samp.fit)
-##----------------------------------------------------------
 c.s <- control.stergm(seed = 1111, parallel = 4, parallel.version.check = T)
 # nodematch('market2') + nodemix('status')
 # baseline check
@@ -464,3 +501,27 @@ ndtv::render.d3movie(ss, filename = )
 # fit <- btergm(networks ~ edges + istar(2) + edgecov(covariates), 
 #               R = 100, parallel = "snow", ncpus = 25, cl = cl)
 
+
+
+# example 
+library(ergm) 
+library(statnet) 
+library(tergm) 
+data(samplk) 
+samp <- list() 
+samp[[1]] <- samplk1 
+samp[[2]] <- samplk2 
+samp[[3]] <- samplk3 
+samp[[1]] %v% "charm" <- runif(18) 
+samp[[2]] %v% "charm" <- runif(18) 
+samp[[3]] %v% "charm" <- runif(18) 
+samp[[1]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
+samp[[2]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
+samp[[3]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
+fit1 <- ergm(samp[[1]] ~ edges +nodecov("charm") +edgecov("closeness") ) 
+summary(fit1)
+samp.fit <- stergm(samp, 
+                   formation = ~edges +nodecov("charm") +edgecov("closeness"), 
+                   dissolution = ~edges +mutual, 
+                   estimate = "CMLE", times = 1:3) 
+summary(samp.fit)

@@ -148,6 +148,24 @@ ac = fillNA(ac)
 #
 ac.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
 
+## (1) ADD ACQUISITION DATE TO COMPANY DF
+co_tmp = co[['company_name_unique']].merge(
+            ac[['acquiree_name_unique','acquired_on']], 
+            how='left', left_on='company_name_unique', 
+            right_on='acquiree_name_unique')
+co_tmp_gr = co_tmp.groupby('company_name_unique').agg({
+                'acquired_on':lambda x: joinSafe(x)
+            }).reset_index().copy()
+co = co.merge(co_tmp_gr, how='left', on='company_name_unique')
+co.acquired_on = co.acquired_on.apply(lambda x: strMinSafe(x.split('|')) ).copy()
+co = fillNA(co)
+#
+file_name = 'organizations.csv'
+in_path  = dir_source + '/' + file_name
+out_path = dir_output + '/' + file_name
+co.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
+
+
 
 ##-------------------------------------------------
 ##   3. PRODUCTS
@@ -350,6 +368,10 @@ rou.created_at = rou.created_at.apply(lambda x: getDateSafe(x))
 rou.updated_at = rou.updated_at.apply(lambda x: getDateSafe(x))
 #
 rou.drop(labels=['cb_url','company_category_list','country_code','region','state_code','city'], axis=1, inplace=True)
+#
+tmp = co[['company_name_unique','company_uuid']].copy()
+rou = rou.merge(tmp, how='left', left_on='company_uuid', right_on='company_uuid', copy=True)
+#
 rou = fillNA(rou)
 #
 rou.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
