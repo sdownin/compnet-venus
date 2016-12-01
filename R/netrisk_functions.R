@@ -626,117 +626,6 @@ initNetworkDynamic <- function(net, start, end, create.TEAs=FALSE) {
   return(nd)
 }
 
-##
-#
-##
-getMultiMarketContact <- function(brsub)
-{
-  if( !('company_name_unique' %in% names(brsub)) 
-      | !('mmc_code' %in% names(brsub)) )
-    stop('data.frame must contains columns `company_name_unique` and `mmc_code`')
-  n <- length(brsub$company_name_unique)
-  out <- sapply(1:n, function(i) {
-    if(i %% 50 == 0) cat(sprintf('\nMMC for firm i = %s of %s\n',i,length(brsub$company_name_unique)))
-    sapply(1:n, function(j) {
-      if (i == j) {
-        return(0)
-      } else  {
-        subi <- brsub[which(brsub$company_name_unique == brsub$company_name_unique[i] & brsub$company_name_unique != 'NA'),]
-        subi <- subi[!duplicated(subi),]
-        subj <- brsub[which(brsub$company_name_unique == brsub$company_name_unique[j] & brsub$company_name_unique != 'NA'),]
-        subj <- subj[!duplicated(subj),]
-        ni <- sum(subi$mmc_code %in% subj$mmc_code)
-        nj <- sum(subj$mmc_code %in% subi$mmc_code)
-        mmc <- (ni / length(subi$mmc_code)) * (nj / length(subj$mmc_code))
-        return(mmc)
-      } 
-    })
-  })
-  return(out)
-}
-
-# setNetCovariates <- function(net, acq=NA,rou=NA,br=NA,ipo=NA)
-# {
-#   
-# }
-
-makePdNetworkSetCovariates <- function(net, start, end, 
-                                        edgeCreatedAttr='relation_began_on',
-                                        edgeDeletedAttr='relation_ended_on',
-                                        vertFoundedAttr='founded_year',
-                                        vertClosedAttr='closed_year',
-                                        vertAcquiredAttr='acquired_year',
-                                        acq=NA,rou=NA,br=NA,ipo=NA)
-{
-  cat('collecting edges to remove...\n')
-  vertAttrs <- network::list.vertex.attributes(net)
-  edgeAttrs <- network::list.edge.attributes(net)
-  inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
-  ## ------------REMOVE EDGES FROM ABSENT VERTICES--------------------------
-  #
-  ##------------------ COLLECT EDGES TO REMOVE -----------
-  ## Get EDGES CREATED AT ___ to be removed
-  if (edgeCreatedAttr %in% edgeAttrs) {
-    tmp <- network::get.edge.attribute(net, edgeCreatedAttr)
-    eids <- which(tmp > end)
-    inactiveEdges <- c(inactiveEdges, eids)
-  }
-  ##------------------ COLLECT VERTICES TO REMOVE ------- 
-  ##  REMOVE VERTICES founded_on > `end`
-  if(vertFoundedAttr %in% vertAttrs) {
-    tmp <- network::get.vertex.attribute(net, vertFoundedAttr)
-    vids <- which(tmp > end) #(g)[which(tmp > end)]
-    inactiveVerts <- unique( c(inactiveVerts, vids) )
-  }
-  ##  REMOVE VERTICES closed_on < `start`
-  if(vertClosedAttr %in% vertAttrs) {
-    tmp <- network::get.vertex.attribute(net, vertClosedAttr)
-    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
-    inactiveVerts <- unique( c(inactiveVerts, vids) )
-  }
-  ##  REMOVE VERTICES acquired_at < `start`
-  if(vertAcquiredAttr %in% vertAttrs) {
-    tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
-    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
-    inactiveVerts <- unique( c(inactiveVerts, vids) )
-  }
-  # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
-  el <- network::as.edgelist(net)
-  inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
-  inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
-  ##------------- DELTE EDGES --------------------------------------
-  net <- network::delete.edges(net, inactiveEdges)
-  #----------------------------------------------------------------
-  #
-  # ## ------------------HYPOTHESIS PREDICTORS------------------
-  g.net <- getIgraphFromNet(net)
-  ## # 1. ENV RISK -- VERTEX ATTRIBUTE
-  cat('\ncomputing envelopment risk...\n')
-  net %v% 'env_risk' <- envRisk(g.net, out.envrisk = TRUE)
-  ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
-  cat('\ncomputing multi-market contact...\n')
-  brsub <- br[which(br$company_name_unique %in% (net %v% 'vertex.names') 
-                    & br$created_year < end), ]
-  net %n% 'mmc' <- as.matrix(getMultiMarketContact(brsub))
-  ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
-  cat('\ncomputing distances lag contact...\n')
-  D <- as.matrix(igraph::distances(g.net))
-  rownames(D) <- NULL;  colnames(D) <- NULL
-  D[D==0] <- 1e-16
-  net %n% 'dist' <- D
-  #
-  D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
-  D[(is.na(D) | D == -Inf | D == Inf)] <-0
-  net %n% 'de_alio_entry' <- D
-  ## # 4. IPO STATUS -- VERTEX ATTRIBUTE
-  cat('\ncomputing IPO status contact...\n')
-  iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
-                      & ipo$went_public_year < end), ]
-  net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
-  ## # 4. Customer Status (coopetition) -- EDGE ATTRIBUTE
-  return(net)
-}
-
 #***************************************************
 ### ***********NETWORK PERIOD FUNCTION**************
 # FOR USE IN TERMG (STERGM) where node set must remain constant
@@ -1605,79 +1494,78 @@ df.cent <- function(g.tmp)
 ##
 envRisk <- function(g,  community.type='multilevel.community',
                          risk.center = FALSE, risk.scale=FALSE,
-                         out.envrisk=FALSE,out.dist=FALSE, 
+                    out.envrisk=FALSE,out.dist=FALSE, 
                     out.graph=FALSE, out.df=FALSE)
 {
-  if(class(g)!='igraph') {
-    cat('not a graph object, skipping...\n')
-    return(g)    
-  }
-  if(ecount(g)==0) {
-    cat('no edges, skipping ...\n')
-    return(g)    
-  }
+  v <- ifelse(class(g)=='igraph', vcount(g),1)
+  r <- rep(0, v)
+  Z <- matrix(0,v,v)
+  npms <- matrix(0)
   cat(sprintf('%s nodes  %s edges\n',vcount(g),ecount(g)))
-  ## ------------ NOISY PRODUCT MARKETS --------------------------
-  com.ml <- do.call(community.type, list(graph=g))
-  V(g)$community <- com.ml$membership
-  ## npms
-  coms <- unique(com.ml$membership)
-  npms <- list()
-  for (c_i in coms) {
-    com.names <-com.ml$names[which(com.ml$membership==c_i)]
-    npms[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
-  }
-  vcs <- sapply(npms, igraph::vcount)         #vertices
-  ecs <- sapply(npms, igraph::ecount)         #edges
-  dens <- sapply(npms,igraph::graph.density)  #densities
-  ## find CROSS MARKET DENSITIES   (set diagonals to densities)
-  cmd <- matrix(NA, nrow=length(coms), ncol=length(coms))
-  cmd <- sapply(1:length(coms), function(i){
-    sapply(1:length(coms), function(j){
-      if ( i != j ) {
-        el <- get.edgelist(g, names=F)
-        el <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
-                        | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
-        crossden_ij <- nrow(el) / (vcs[i] * vcs[j])
-        cmd[i,j] <- ifelse(length(crossden_ij)>0, crossden_ij, 0)
-      } else if ( i == j ) {
-        cmd[i,j] <- dens[i]
+  if(class(g)=='igraph' & ecount(g) > 0 )
+  {
+    ## ------------ NOISY PRODUCT MARKETS --------------------------
+    com.ml <- do.call(community.type, list(graph=g))
+    V(g)$community <- com.ml$membership
+    ## npms
+    coms <- unique(com.ml$membership)
+    npms <- list()
+    for (c_i in coms) {
+      com.names <-com.ml$names[which(com.ml$membership==c_i)]
+      npms[[c_i]] <- igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
+    }
+    vcs <- sapply(npms, igraph::vcount)         #vertices
+    ecs <- sapply(npms, igraph::ecount)         #edges
+    dens <- sapply(npms,igraph::graph.density)  #densities
+    ## find CROSS MARKET DENSITIES   (set diagonals to densities)
+    cmd <- matrix(NA, nrow=length(coms), ncol=length(coms))
+    cmd <- sapply(1:length(coms), function(i){
+      sapply(1:length(coms), function(j){
+        if ( i != j ) {
+          el <- get.edgelist(g, names=F)
+          el <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
+                          | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
+          crossden_ij <- nrow(el) / (vcs[i] * vcs[j])
+          cmd[i,j] <- ifelse(length(crossden_ij)>0, crossden_ij, 0)
+        } else if ( i == j ) {
+          cmd[i,j] <- dens[i]
+        }
+      })
+    })
+    if(is.null(dim(cmd)))  cmd <- matrix(cmd)
+    ##------------------ RISK COMPUTATION ------------------------------
+    ## 1. DISTANCES Matrix excluding current competition (-1)
+    D <- igraph::distances(g, mode="all") - 1
+    diag(D) <- 0
+    # D[D==Inf] <- 99999999   # deal with infinity
+    # D[D==-Inf] <- -99999999 # deal with infinity
+    ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
+    W <- sapply(V(g)$community, function(x){
+      sapply(V(g)$community, function(y){
+        cmd[x,y]
+      })
+    })
+    W[is.na(W)] <- 0
+    ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
+    Z <- D * (1-W)
+    ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
+    Z.finiteColSum <- apply(Z,1,function(x){
+      if ( length(x[x>-Inf & x<Inf]) == 1 ) { # isolate
+        return(Inf)
+      } else {
+        sum(x[(x<-Inf & x<Inf)])
       }
     })
-  })
-  if(is.null(dim(cmd)))  cmd <- matrix(cmd)
-  ##------------------ RISK COMPUTATION ------------------------------
-  ## 1. DISTANCES Matrix excluding current competition (-1)
-  D <- igraph::distances(g, mode="all") - 1
-  diag(D) <- 0
-  # D[D==Inf] <- 99999999   # deal with infinity
-  # D[D==-Inf] <- -99999999 # deal with infinity
-  ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
-  W <- sapply(V(g)$community, function(x){
-    sapply(V(g)$community, function(y){
-      cmd[x,y]
-    })
-  })
-  W[is.na(W)] <- 0
-  ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
-  Z <- D * (1-W)
-  ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
-  Z.finiteColSum <- apply(Z,1,function(x){
-    if ( length(x[x>-Inf & x<Inf]) == 1 ) { # isolate
-      return(Inf)
-    } else {
-      sum(x[(x<-Inf & x<Inf)])
-    }
-  })
-  r <- (nrow(Z)-1) / (Z.finiteColSum/2)
-  r[r==Inf | r == -Inf] <- 0
-  if (risk.center)
-    r <- r - mean(r, na.rm = T)
-  if (risk.scale)
-    r <- r / sd(r, na.rm = T)
-  names(r) <- V(g)$name
-  V(g)$envrisk <- r
+    r <- (nrow(Z)-1) / (Z.finiteColSum/2)
+    r[r==Inf | r == -Inf] <- 0
+    if (risk.center)
+      r <- r - mean(r, na.rm = T)
+    if (risk.scale)
+      r <- r / sd(r, na.rm = T)
+    names(r) <- V(g)$name
+  }
   #-------------------------------------------------------------------
+  V(g)$envrisk <- r
   if(out.envrisk)
     return(r)
   if(out.dist)
@@ -1695,116 +1583,166 @@ envRisk <- function(g,  community.type='multilevel.community',
 
 
 
-
-# ##
-# #
-# ##
-# envRiskNaive <- function(g, single.prod.names, multi.prod.names,
-#                     community.type='multilevel.community',
-#                     net.norm=TRUE,
-#                     center.risk=FALSE, scale.risk=FALSE,
-#                     out.risk=FALSE, out.graph=FALSE, out.df=FALSE)
-# {
-#   if(class(g)!='igraph')
-#     return(NA)
-#   ## get noisy product market
-#   com.ml <- do.call(community.type, list(graph=g))
-#   V(g)$community <- com.ml$membership
-#   ## npms
-#   coms <- unique(com.ml$membership)
-#   npms <- list()
-#   for (c_i in coms) {
-#     com.names <-com.ml$names[which(com.ml$membership==c_i)]
-#     npms[[c_i]] <-  igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
-#   }
-#   ## inverse DISTANCES MATRIX
-#   r <- 1/igraph::distances(g)
-#   diag(r) <- 0
-#   # ## TYPE MATRIX -- EYE matrix to add 0s specifying for firm type SP vs MP
-#   # tm <- dm ## keep row.names|col.names
-#   # tm[,] <- diag(nrow(dm))
-#   
-#   ## COMMUNITY:  set same NPM (community) risk to 0
-#   d.man <- as.matrix(dist(V(g)$community, method='manhattan'))
-#   r[which(d.man == 0)] <- 0  ## set 0-distance (same community) risk to 
-#   
-#   # ## MULTIPROD vs SINGLEPROD:  only mp-sp or sp-mp relations to 1, else (sp-sp, mp-mp) = 0
-#   # V(g)$is_multiprod <-  ifelse(V(g)$name %in% multi.prod.names, 1, 0)
-#   # d.type <- as.matrix(dist(V(g)$is_multiprod, method='manhattan')) ## same type is 0 distance
-#   # r[which(d.man == 0)] <- 0    ## so set 0 distance to 0 risk from 
-# 
-#   #dm.lower <- dm; dm.lower[upper.tri(dm.lower, diag = T)] <- 0
-#   g <- igraph::set.graph.attribute(g, 'envrisk', r)
-#   
-#   # # ## MULTIPROD vs SINGLEPROD:
-#   # V(g)$envrisk <- ifelse(V(g)$is_multiprod==1,0,V(g)$envrisk)
-#   
-#   # V(g)$envrisk <- rowSums(r) / 2
-# 
-#   if(net.norm) {
-#     r <- r - mean(r[lower.tri(r, diag = F)], na.rm = T)
-#     r <- r / sd(r[lower.tri(r, diag = F)], na.rm = T)
-#   }
-#   
-#   if (center.risk | scale.risk) {
-#     # V(g)$envrisk <- V(g)$envrisk - mean(V(g)$envrisk, na.rm = T)
-#     r <- scale(x = r, center = center.risk, scale = scale.risk)
-#   }
-#   
-#   V(g)$envrisk <- colSums(r) / 2
-#   names(V(g)$envrisk) <- V(g)$name
-#   
-#   if(out.risk)
-#     return(r)
-#   if(out.graph)
-#     return(g)
-#   df.r <- data.frame(name=V(g)$name,envrisk=V(g)$envrisk)
-#   df.r <- df.r[order(df.r$envrisk, decreasing=T),]
-#   if(out.df)
-#     return(df.r)
-#   return(list(g=g, risk=r, npms=npms, df.r=df.r))
-# 
-# }
-# 
-
-
-
-
-# if (only.single.prod) {
-#   # ## +1 risk for single prod; -1 risk for multi-prod
-#   # prod.vec <- ifelse(V(g)$name %in% multi.prod.names, -1, 1)
-#   # prod.mat <- prod.vec %*% t(prod.vec)
-#   # ## 1 for single-product firms 0 for mulit-prodc firms
-#   prod.mat <- as.matrix( dist(prod.vec), method='maximum'  )
-#   # dimnames(prod.mat) <- dimnames(r)
-#   r[which(prod.mat  == 1 )] <- 0
-#   ## FIRM TYPE: set multi-product firm to 0
-#   
-# }
-
-
-
-# ## 2.1.  set  0-distance (same community) risk = (1-density)
-# D[which(d.man == 0)] <- 1 - W[ which(d.man == 0) ]  
-# ## 2.2.  set >0-distance (diff community) risk = (Distance * (1-density))
-# D[which(d.man != 0)] <- (D * (1-W))[ which(d.man != 0) ] 
 ##
+#
+##
+getMultiMarketContact <- function(brsub, firms)
+{
+  if( !('company_name_unique' %in% names(brsub)) 
+      | !('mmc_code' %in% names(brsub)) )
+    stop('data.frame must contains columns `company_name_unique` and `mmc_code`')
+  if (all(is.na(firms)) | all(is.nan(firms)) | 
+      all(is.null(firms)) | length(firms)==0) {
+    return(matrix(0))
+  }
+  n <- length(firms)
+  if (nrow(brsub)==0) {
+    out <- matrix(0)
+  } else {
+    out <- sapply(1:n, function(i) {
+      if(i %% 50 == 0) cat(sprintf('\nMMC for firm i = %s of %s\n',i,length(brsub$company_name_unique)))
+      sapply(1:n, function(j) {
+        if (i == j) {
+          return(0)
+        } else  {
+          subi <- brsub[which(brsub$company_name_unique == firms[i] & brsub$company_name_unique != 'NA'),]
+          subi <- subi[!duplicated(subi),]
+          subj <- brsub[which(brsub$company_name_unique == firms[j] & brsub$company_name_unique != 'NA'),]
+          subj <- subj[!duplicated(subj),]
+          if (nrow(subi)==0 & nrow(subj)==0) {
+            return(0)
+          } else {
+            ni <- sum(subi$mmc_code %in% subj$mmc_code)
+            nj <- sum(subj$mmc_code %in% subi$mmc_code)
+            mmc <- (ni / length(subi$mmc_code)) * (nj / length(subj$mmc_code))
+            return(mmc)
+          }
+        } 
+      })
+    })  
+    out[is.na(out)] <- 0
+    out[is.nan(out)] <- 0
+  }
+  return(out)
+}
+
+##
+#
+##
+makePdNetworkSetCovariates <- function(net, start, end, 
+                                       edgeCreatedAttr='relation_began_on',
+                                       edgeDeletedAttr='relation_ended_on',
+                                       vertFoundedAttr='founded_year',
+                                       vertClosedAttr='closed_year',
+                                       vertAcquiredAttr='acquired_year',
+                                       acq=NA,rou=NA,br=NA,ipo=NA)
+{
+  cat('collecting edges to remove...\n')
+  vertAttrs <- network::list.vertex.attributes(net)
+  edgeAttrs <- network::list.edge.attributes(net)
+  inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
+  ## ------------REMOVE EDGES FROM ABSENT VERTICES--------------------------
+  #
+  ##------------------ COLLECT EDGES TO REMOVE -----------
+  ## Get EDGES CREATED AT ___ to be removed
+  if (edgeCreatedAttr %in% edgeAttrs) {
+    tmp <- network::get.edge.attribute(net, edgeCreatedAttr)
+    eids <- which(tmp > end)
+    inactiveEdges <- c(inactiveEdges, eids)
+  }
+  ##------------------ COLLECT VERTICES TO REMOVE ------- 
+  ##  REMOVE VERTICES founded_on > `end`
+  if(vertFoundedAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertFoundedAttr)
+    vids <- which(tmp > end) #(g)[which(tmp > end)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES closed_on < `start`
+  if(vertClosedAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertClosedAttr)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES acquired_at < `start`
+  if(vertAcquiredAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
+  el <- network::as.edgelist(net)
+  inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
+  inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
+  ##------------- DELTE EDGES --------------------------------------
+  net <- network::delete.edges(net, inactiveEdges)
+  #----------------------------------------------------------------
+  #
+  # ## ------------------HYPOTHESIS PREDICTORS------------------
+  g.net <- getIgraphFromNet(net)
+  ## # 1. ENV RISK -- VERTEX ATTRIBUTE
+  cat('\ncomputing envelopment risk...\n')
+  net %v% 'env_risk' <- envRisk(g.net, out.envrisk = TRUE) 
+  ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
+  cat('\ncomputing multi-market contact...\n')
+  brsub <- br[which(br$company_name_unique %in% (net %v% 'vertex.names') 
+                    & br$created_year < end), ]
+  mmc <- getMultiMarketContact(brsub, net%v%'vertex.names')
+  net %n% 'mmc' <- as.matrix(mmc)
+  ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
+  cat('\ncomputing distances lag contact...\n')
+  D <- as.matrix(igraph::distances(g.net))
+  rownames(D) <- NULL;  colnames(D) <- NULL
+  D[D==0] <- 1e-16
+  net %n% 'dist' <- D
+  #
+  D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
+  D[(is.na(D) | D == -Inf | D == Inf)] <-0
+  net %n% 'de_alio_entry' <- D
+  ## # 4. IPO STATUS -- VERTEX ATTRIBUTE
+  cat('\ncomputing IPO status contact...\n')
+  iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
+                      & ipo$went_public_year < end), ]
+  net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
+  ## # 4. Customer Status (coopetition) -- EDGE ATTRIBUTE
+  return(net)
+}
 
 
+##
+#
+##
+getNetEcount <- function(net, symmetric=TRUE, upper.tri.diag=FALSE)
+{
+  if(symmetric)  {
+    return(sum(net[upper.tri(net, diag = upper.tri.diag)]))
+  } else {
+    return(sum(net[,]))
+  }
+}
 
-# 
-# for (i in 1:length(coms)) {
-#   for (j in 1:length(coms)) {
-#     if ( i != j ) {
-#       el <- get.edgelist(g, names=F)
-#       el <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
-#                       | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
-#       crossden_ij <- nrow(el) / (vcs[i] * vcs[j])
-#       cmd[i,j] <- ifelse(length(crossden_ij)>0, crossden_ij, 0)
-#     } else if ( i == j ) {
-#       cmd[i,j] <- dens[i]
-#     }
-#   }
-# }
 
+##
+#
+##
+filterModels <- function(l)
+{
+  return(l[ sapply(l, function(m) !any(is.na(m@coef))) ])
+}
+
+##
+#
+##
+write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA)
+{
+  if(is.na(filename))
+    filename <- deparse(substitute(fit))
+  isText <- grepl(pattern = '.txt',x = filename,ignore.case = T)
+  if(!isText) {
+    name <- stringr::str_split(filename, "[.]")[[1]][1]
+    stamp <- gsub("\\D", "", Sys.time(), perl = T)
+    filename <- sprintf('%s_%s.txt',name,stamp )
+  }
+  if(screen) texreg::screenreg(l, file = filename,  single.row = T, ci.force = T)
+  if(html) texreg::htmlreg(l, file = filename,  single.row = T, ci.force = T)
+}
 

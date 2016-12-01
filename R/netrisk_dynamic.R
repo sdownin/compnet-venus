@@ -23,10 +23,10 @@ library(directlabels, quietly = T)
 library(ggplot2, quietly = T)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
-# if( !('net' %in% ls()) )
-#   load('netrisk_dynamic_1.RData')
+if( !('net' %in% ls()) )
+  load('netrisk_dynamic_2.RData')
 ###
-# save.image('netrisk_dynamic_1.RData')
+# save.image('netrisk_dynamic_2.RData')
 ###
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
@@ -119,7 +119,7 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
 #-----------------------------------------------------------------
 name_i <- 'medallia'
 yrpd <- 1
-startYr <- 2013
+startYr <- 2007
 endYr <- 2017
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
@@ -140,7 +140,7 @@ for (t in 2:length(periods)) {
 }
 nl <- nl[which(sapply(nl, length)>0)]
 names(nl) <- periods[2:length(periods)]
-## add lagged distance
+## ---------- add DIST_LAG ----------------
 for (t in 2:length(nl)) { 
   nl[[t]] %n% 'dist_lag' <- as.matrix(nl[[t-1]] %n% 'dist')
   dl <- nl[[t]] %n% 'dist_lag'
@@ -148,6 +148,10 @@ for (t in 2:length(nl)) {
   nl[[t]] %n% 'dist_lag' <- dl 
   # nl[[t]] <- network::set.network.attribute(nl[[t]], 'dist_lag', (nl[[t-1]] %n% 'dist') )
 }
+##--------------- GET TERGM NETS LIST -----------
+## only nets with edges > 0
+nets.all <- nl[2:length(nl)]
+nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
 #-------------------------------------------------
 
 #-------------------------------------------------------
@@ -161,31 +165,32 @@ for (t in 2:length(nl)) {
 #   nets[[i]] <- network(network.extract(nd, onset=pds[i-1], terminus=pds[i])[,], directed = F, hyper = F, multiple = F, loops = F, bipartite = F)
 # }; names(nets) <- pds; nets <- nets[-1]
 
-nets <- nl[2:length(nl)]
-fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:5) ,
+
+fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) ,
               R = 500, parallel = "multicore", ncpus = detectCores())
-fb2 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:5) + 
+fb2 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
                 nodecov('env_risk') , 
               R = 500, parallel = "multicore", ncpus = detectCores())
-fb3 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:5) + 
-                nodecov('env_risk') +  nodematch('ipo_status'), 
+fb3 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
+                nodecov('env_risk') +  edgecov('mmc') ,
               R = 500, parallel = "multicore", ncpus = detectCores())
-
-fb4 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:5) + 
-                nodecov('env_risk') + nodematch('ipo_status', diff=T) + 
-                #edgecov('dist_lag') + 
-                edgecov('mmc') # + edgefactor('de_alio_entry')
-              ,
+fb4f <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
+                nodecov('env_risk') + edgecov('mmc') + 
+                 nodematch('ipo_status', diff=FALSE),
               R = 500, parallel = "multicore", ncpus = detectCores())
-
+fb4t <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
+                 nodecov('env_risk') + edgecov('mmc') + 
+                 nodematch('ipo_status', diff=TRUE),
+               R = 500, parallel = "multicore", ncpus = detectCores())
 # fbm2 <- mtergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
 #               parallel = "multicore", ncpus = detectCores())
 
 # texreg::screenreg(list(fb1=fb1,fb2=fb2), single.row = T, ci.force = F)
 
-texreg::screenreg(list(m0=fb1), single.row = T, ci.force = T)
-texreg::screenreg(list(m0=fb1,m1=fb2), single.row = T, ci.force = T)
-texreg::screenreg(list(m0=fb1,m1=fb2,m2=fb3), single.row = T, ci.force = T)
+
+(l <- list(m0=fb1,m1=fb2,m2=fb3,m3a=fb4f,m3b=fb4t) )
+texreg::screenreg(filterModels(l))
+write.regtable(filterModels(l))
 
 #_-------------------------------------------------------------
 #                       Compare STERGM, BTERG, MTERGM
@@ -248,6 +253,12 @@ samp.fit <- stergm(samp,
 summary(samp.fit)
 ##----------------------------------------------------------
 c.s <- control.stergm(seed = 1111, parallel = 4, parallel.version.check = T)
+##
+
+nd <- networkDynamic::networkDynamic(network.list = nets,
+                                    start=as.numeric(names(nets)[1])-1,
+                                    end=as.numeric(names(nets)[length(nets)])-1 )
+
 # nodematch('market2') + nodemix('status')
 # baseline check
 f0 <- stergm(nd, 
@@ -291,6 +302,16 @@ f5 <- stergm(nd,
              dissolution = ~ edges + gwesp(0, fixed=T) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:5), 
              estimate="CMLE",control = c.s, times = 2008:2016)
 write.summary(f5); plot(gof(f5))
+
+nets.u <- unname(nets)
+f6 <- stergm(nw = nets.u, 
+            formation= ~ edges + triangle + cycle(4:5) + # gwesp(0, fixed=F) #  + 
+              nodecov('env_risk') #+ 
+              #nodematch('ipo_status') + 
+              #edgecov('mmc') 
+            ,
+            dissolution= ~ edges ,
+            estimate="CMLE", control = c.s, times = 1:length(nets.u))
 
 # ## LOCAL TRIANGLE -- where COMMUNITY GIVEN BY NPM (COMMUNITY) PARTITIONING
 # formation = ~ localtriangle(comMat)

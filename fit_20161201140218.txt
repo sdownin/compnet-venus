@@ -1,0 +1,116 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<table cellspacing="0" align="center" style="border: none;">
+<caption align="bottom" style="margin-top:0.3em;">Statistical models</caption>
+<tr>
+<th style="text-align: left; border-top: 2px solid black; border-bottom: 1px solid black; padding-right: 12px;"><b></b></th>
+<th style="text-align: left; border-top: 2px solid black; border-bottom: 1px solid black; padding-right: 12px;"><b>m0</b></th>
+<th style="text-align: left; border-top: 2px solid black; border-bottom: 1px solid black; padding-right: 12px;"><b>m1</b></th>
+<th style="text-align: left; border-top: 2px solid black; border-bottom: 1px solid black; padding-right: 12px;"><b>m2</b></th>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;">edges</td>
+<td style="padding-right: 12px; border: none;">-3.00<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">-4.67<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">-4.65<sup style="vertical-align: 0px;">*</sup></td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">[-3.23; -1.45]</td>
+<td style="padding-right: 12px; border: none;">[-5.92; -2.88]</td>
+<td style="padding-right: 12px; border: none;">[-5.91; -2.74]</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;">gwesp</td>
+<td style="padding-right: 12px; border: none;">0.91<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">0.75</td>
+<td style="padding-right: 12px; border: none;">0.74</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">[0.47; 1.16]</td>
+<td style="padding-right: 12px; border: none;">[-1.10; 1.17]</td>
+<td style="padding-right: 12px; border: none;">[-1.13; 1.17]</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;">triangle</td>
+<td style="padding-right: 12px; border: none;">-0.56<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">-0.77<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">-0.76<sup style="vertical-align: 0px;">*</sup></td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">[-0.65; -0.42]</td>
+<td style="padding-right: 12px; border: none;">[-1.09; -0.75]</td>
+<td style="padding-right: 12px; border: none;">[-1.01; -0.74]</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;">cycle4</td>
+<td style="padding-right: 12px; border: none;">0.59<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">0.53<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">0.53<sup style="vertical-align: 0px;">*</sup></td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">[0.43; 0.70]</td>
+<td style="padding-right: 12px; border: none;">[0.21; 0.61]</td>
+<td style="padding-right: 12px; border: none;">[0.22; 0.60]</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;">cycle5</td>
+<td style="padding-right: 12px; border: none;">0.21<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">0.22<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">0.21<sup style="vertical-align: 0px;">*</sup></td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">[0.18; 0.39]</td>
+<td style="padding-right: 12px; border: none;">[0.20; 0.51]</td>
+<td style="padding-right: 12px; border: none;">[0.19; 0.52]</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;">cycle6</td>
+<td style="padding-right: 12px; border: none;">-0.17<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">-0.14<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">-0.14<sup style="vertical-align: 0px;">*</sup></td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">[-0.28; -0.15]</td>
+<td style="padding-right: 12px; border: none;">[-0.24; -0.13]</td>
+<td style="padding-right: 12px; border: none;">[-0.25; -0.12]</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;">nodecov.env_risk</td>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">0.23<sup style="vertical-align: 0px;">*</sup></td>
+<td style="padding-right: 12px; border: none;">0.24<sup style="vertical-align: 0px;">*</sup></td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">[0.22; 0.89]</td>
+<td style="padding-right: 12px; border: none;">[0.23; 0.88]</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;">edgecov.mmc</td>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">-0.68</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;"></td>
+<td style="padding-right: 12px; border: none;">[-10.16; 0.59]</td>
+</tr>
+<tr>
+<td style="border-top: 1px solid black;">Num. obs.</td>
+<td style="border-top: 1px solid black;">360</td>
+<td style="border-top: 1px solid black;">394</td>
+<td style="border-top: 1px solid black;">403</td>
+</tr>
+<tr>
+<td style="padding-right: 12px; border: none;" colspan="5"><span style="font-size:0.8em"><sup>*</sup> 0 outside the confidence interval</span></td>
+</tr>
+</table>
