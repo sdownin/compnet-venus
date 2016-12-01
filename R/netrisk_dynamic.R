@@ -117,8 +117,8 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
 #                 MAIN LOOP
 #
 #-----------------------------------------------------------------
-name_i <- 'medallia'
-yrpd <- 1
+name_i <- 'netflix'
+yrpd <- 3
 startYr <- 2007
 endYr <- 2017
 periods <- seq(startYr,endYr,yrpd)
@@ -140,8 +140,9 @@ for (t in 2:length(periods)) {
 }
 nl <- nl[which(sapply(nl, length)>0)]
 names(nl) <- periods[2:length(periods)]
-## ---------- add DIST_LAG ----------------
+## ---------- add LAGS ----------------
 for (t in 2:length(nl)) { 
+  nl[[t]] %v% 'env_risk_lag' <- nl[[t-1]] %v% 'env_risk'
   nl[[t]] %n% 'dist_lag' <- as.matrix(nl[[t-1]] %n% 'dist')
   dl <- nl[[t]] %n% 'dist_lag'
   dl[dl == Inf] <- 999999 
@@ -165,32 +166,37 @@ nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
 #   nets[[i]] <- network(network.extract(nd, onset=pds[i-1], terminus=pds[i])[,], directed = F, hyper = F, multiple = F, loops = F, bipartite = F)
 # }; names(nets) <- pds; nets <- nets[-1]
 
-
-fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) ,
+fb0 <- btergm(nets ~ edges + gwesp(0, fixed=F) +  nodecov('env_risk'),
               R = 500, parallel = "multicore", ncpus = detectCores())
-fb2 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
-                nodecov('env_risk') , 
-              R = 500, parallel = "multicore", ncpus = detectCores())
-fb3 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
+# fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) ,
+#               R = 500, parallel = "multicore", ncpus = detectCores())
+# fb2 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
+#                 nodecov('env_risk') , 
+#               R = 500, parallel = "multicore", ncpus = detectCores())
+fb3 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
                 nodecov('env_risk') +  edgecov('mmc') ,
               R = 500, parallel = "multicore", ncpus = detectCores())
-fb4f <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
-                nodecov('env_risk') + edgecov('mmc') + 
-                 nodematch('ipo_status', diff=FALSE),
-              R = 500, parallel = "multicore", ncpus = detectCores())
-fb4t <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
+# fb4f <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
+#                 nodecov('env_risk') + edgecov('mmc') + 
+#                  nodematch('ipo_status', diff=FALSE),
+#               R = 500, parallel = "multicore", ncpus = detectCores())
+fb4t <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
                  nodecov('env_risk') + edgecov('mmc') + 
+                 nodematch('ipo_status', diff=TRUE),
+               R = 500, parallel = "multicore", ncpus = detectCores())
+fb5 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
+                 nodecov('env_risk') + nodecov('env_risk_lag') + edgecov('mmc') + 
                  nodematch('ipo_status', diff=TRUE),
                R = 500, parallel = "multicore", ncpus = detectCores())
 # fbm2 <- mtergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
 #               parallel = "multicore", ncpus = detectCores())
 
-# texreg::screenreg(list(fb1=fb1,fb2=fb2), single.row = T, ci.force = F)
 
 
-(l <- list(m0=fb1,m1=fb2,m2=fb3,m3a=fb4f,m3b=fb4t) )
-texreg::screenreg(filterModels(l))
-write.regtable(filterModels(l))
+#(l <- list(m1=fb2,m2=fb3,m3a=fb4f,m3b=fb4t,m4b=fb5) )
+(l <- list(m0=fb0,m2=fb3,m3b=fb4t,m4b=fb5) )
+texreg::screenreg(filterModels(l), single.row = T)
+write.regtable(filterModels(l), filename = "dropbox_2yr", digits=3)
 
 #_-------------------------------------------------------------
 #                       Compare STERGM, BTERG, MTERGM

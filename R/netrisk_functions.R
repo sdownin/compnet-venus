@@ -1493,7 +1493,8 @@ df.cent <- function(g.tmp)
 #
 ##
 envRisk <- function(g,  community.type='multilevel.community',
-                         risk.center = FALSE, risk.scale=FALSE,
+                    downweight.env.risk=TRUE,
+                    risk.center = FALSE, risk.scale=FALSE,
                     out.envrisk=FALSE,out.dist=FALSE, 
                     out.graph=FALSE, out.df=FALSE)
 {
@@ -1547,7 +1548,7 @@ envRisk <- function(g,  community.type='multilevel.community',
     })
     W[is.na(W)] <- 0
     ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
-    Z <- D * (1-W)
+    Z <- ifelse( downweight.env.risk, D * (1-W), D * W )
     ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
     Z.finiteColSum <- apply(Z,1,function(x){
       if ( length(x[x>-Inf & x<Inf]) == 1 ) { # isolate
@@ -1581,7 +1582,13 @@ envRisk <- function(g,  community.type='multilevel.community',
   
 }
 
-
+##
+#
+##
+netRisk <- function(g, ...)
+{
+  envRisk(g, downweight.env.risk=TRUE, ...)
+}
 
 ##
 #
@@ -1732,7 +1739,7 @@ filterModels <- function(l)
 ##
 #
 ##
-write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA)
+write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, ...)
 {
   if(is.na(filename))
     filename <- deparse(substitute(fit))
@@ -1742,7 +1749,7 @@ write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA)
     stamp <- gsub("\\D", "", Sys.time(), perl = T)
     filename <- sprintf('%s_%s.txt',name,stamp )
   }
-  if(screen) texreg::screenreg(l, file = filename,  single.row = T, ci.force = T)
-  if(html) texreg::htmlreg(l, file = filename,  single.row = T, ci.force = T)
+  if(screen) texreg::screenreg(l, file = filename,  single.row = T, ci.force = T, ...)
+  if(html) texreg::htmlreg(l, file = filename,  single.row = T, ci.force = T, ...)
 }
 
