@@ -49,6 +49,15 @@ single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
 #   1.0 ORGANIZATIONS
 ##   1.1 ORGANIZATION PARENT
 ##      **RELATION**
+##   1.2 BRANCHES
+
+# net <- net1
+# end <- 2017
+# 
+# system.time(
+#   mmc <- getMultiMarketContact(br, net%v%'vertex.names', end)
+# )
+# mmc
 
 ##   2 ACQUISITIONS
 ##      **RELATION**
@@ -113,18 +122,19 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
 #                 Create Dynamic igraph form TERGM
 #                   by ONLY REMOVING EDGES
 #                   KEEP ALL N nodes
+#                   compute PREDICTORS
 #             
 #                 MAIN LOOP
 #
 #-----------------------------------------------------------------
-name_i <- 'netflix'
-yrpd <- 3
+name_i <- 'medallia'
+yrpd <- 1
 startYr <- 2007
 endYr <- 2017
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
-k <- 2
+k <- 1
 #
 #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
 g.base <- g.full
@@ -138,11 +148,12 @@ for (t in 2:length(periods)) {
   nl[[t]] <- makePdNetworkSetCovariates(net.k.sub, start=periods[t-1], end=periods[t],
                                         acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
 }
+nl.bak <- nl
 nl <- nl[which(sapply(nl, length)>0)]
 names(nl) <- periods[2:length(periods)]
 ## ---------- add LAGS ----------------
 for (t in 2:length(nl)) { 
-  nl[[t]] %v% 'env_risk_lag' <- nl[[t-1]] %v% 'env_risk'
+  nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
   nl[[t]] %n% 'dist_lag' <- as.matrix(nl[[t-1]] %n% 'dist')
   dl <- nl[[t]] %n% 'dist_lag'
   dl[dl == Inf] <- 999999 
@@ -155,7 +166,7 @@ nets.all <- nl[2:length(nl)]
 nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
 #-------------------------------------------------
 
-#-------------------------------------------------------
+#------------------------------------------------------
 ############################################################################
 #--------------------- BTERGM ------------------------------
 ############################################################################
@@ -166,37 +177,47 @@ nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
 #   nets[[i]] <- network(network.extract(nd, onset=pds[i-1], terminus=pds[i])[,], directed = F, hyper = F, multiple = F, loops = F, bipartite = F)
 # }; names(nets) <- pds; nets <- nets[-1]
 
-fb0 <- btergm(nets ~ edges + gwesp(0, fixed=F) +  nodecov('env_risk'),
+fb0 <- btergm(nets ~ edges + gwesp(0, fixed=F) +  nodecov('net_risk'),
               R = 500, parallel = "multicore", ncpus = detectCores())
 # fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) ,
 #               R = 500, parallel = "multicore", ncpus = detectCores())
 # fb2 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
-#                 nodecov('env_risk') , 
+#                 nodecov('net_risk') , 
 #               R = 500, parallel = "multicore", ncpus = detectCores())
 fb3 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
-                nodecov('env_risk') +  edgecov('mmc') ,
+                nodecov('net_risk') +  edgecov('mmc'),
               R = 500, parallel = "multicore", ncpus = detectCores())
 # fb4f <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
-#                 nodecov('env_risk') + edgecov('mmc') + 
+#                 nodecov('net_risk') + edgecov('mmc') + 
 #                  nodematch('ipo_status', diff=FALSE),
 #               R = 500, parallel = "multicore", ncpus = detectCores())
 fb4t <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
-                 nodecov('env_risk') + edgecov('mmc') + 
+                 nodecov('net_risk') + edgecov('mmc') + 
                  nodematch('ipo_status', diff=TRUE),
                R = 500, parallel = "multicore", ncpus = detectCores())
 fb5 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
-                 nodecov('env_risk') + nodecov('env_risk_lag') + edgecov('mmc') + 
+                 nodecov('net_risk') + nodecov('net_risk_lag') + 
+                edgecov('mmc') + 
                  nodematch('ipo_status', diff=TRUE),
                R = 500, parallel = "multicore", ncpus = detectCores())
+fb6 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
+                nodecov('net_risk') + nodecov('net_risk_lag') + 
+                edgecov('mmc') + 
+                nodematch('ipo_status', diff=TRUE) + nodematch('npm', diff=FALSE) ,
+              R = 500, parallel = "multicore", ncpus = detectCores())
 # fbm2 <- mtergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
 #               parallel = "multicore", ncpus = detectCores())
 
 
 
 #(l <- list(m1=fb2,m2=fb3,m3a=fb4f,m3b=fb4t,m4b=fb5) )
-(l <- list(m0=fb0,m2=fb3,m3b=fb4t,m4b=fb5) )
-texreg::screenreg(filterModels(l), single.row = T)
-write.regtable(filterModels(l), filename = "dropbox_2yr", digits=3)
+# (l <- list(m0=fb0,m2=fb3,m3b=fb4t,m4b=fb5) )
+(l <- list(fb0, fb3, fb4t))
+texreg::screenreg(l, single.row = T)
+write.regtable(filterModels(l), filename = "netflix_2yr", digits=3)
+(l <- list(fb0, fb3, fb4t, fb5, fb6))
+texreg::screenreg(l, single.row = T)
+write.regtable(filterModels(l), filename = "netflix_2yr", digits=3)
 
 #_-------------------------------------------------------------
 #                       Compare STERGM, BTERG, MTERGM

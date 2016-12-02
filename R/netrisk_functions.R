@@ -7,6 +7,32 @@
 #
 ##########################################################################################
 
+
+##
+#
+##
+filterModels <- function(l)
+{
+  return(l[ sapply(l, function(m) !any(is.na(m@coef))) ])
+}
+
+##
+#
+##
+write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, ...)
+{
+  if(is.na(filename))
+    filename <- deparse(substitute(fit))
+  isText <- grepl(pattern = '.txt',x = filename,ignore.case = T)
+  if(!isText) {
+    name <- stringr::str_split(filename, "[.]")[[1]][1]
+    stamp <- gsub("\\D", "", Sys.time(), perl = T)
+    filename <- sprintf('%s_%s.txt',name,stamp )
+  }
+  if(screen) texreg::screenreg(l, file = filename,  single.row = T, ci.force = T, ...)
+  if(html) texreg::htmlreg(l, file = filename,  single.row = T, ci.force = T, ...)
+}
+
 ##
 # Summary(fit) output to text file
 ##
@@ -1493,7 +1519,6 @@ df.cent <- function(g.tmp)
 #
 ##
 envRisk <- function(g,  community.type='multilevel.community',
-                    downweight.env.risk=TRUE,
                     risk.center = FALSE, risk.scale=FALSE,
                     out.envrisk=FALSE,out.dist=FALSE, 
                     out.graph=FALSE, out.df=FALSE)
@@ -1503,6 +1528,8 @@ envRisk <- function(g,  community.type='multilevel.community',
   Z <- matrix(0,v,v)
   npms <- matrix(0)
   cat(sprintf('%s nodes  %s edges\n',vcount(g),ecount(g)))
+  if(class(g)=='igraph')
+    V(g)$community <- 0
   if(class(g)=='igraph' & ecount(g) > 0 )
   {
     ## ------------ NOISY PRODUCT MARKETS --------------------------
@@ -1519,7 +1546,7 @@ envRisk <- function(g,  community.type='multilevel.community',
     ecs <- sapply(npms, igraph::ecount)         #edges
     dens <- sapply(npms,igraph::graph.density)  #densities
     ## find CROSS MARKET DENSITIES   (set diagonals to densities)
-    cmd <- matrix(NA, nrow=length(coms), ncol=length(coms))
+    cmd <- matrix(0, nrow=length(coms), ncol=length(coms))
     cmd <- sapply(1:length(coms), function(i){
       sapply(1:length(coms), function(j){
         if ( i != j ) {
@@ -1534,12 +1561,12 @@ envRisk <- function(g,  community.type='multilevel.community',
       })
     })
     if(is.null(dim(cmd)))  cmd <- matrix(cmd)
+    cmd[is.na(cmd)] <- 0
+    cmd[is.nan(cmd)] <- 0
     ##------------------ RISK COMPUTATION ------------------------------
     ## 1. DISTANCES Matrix excluding current competition (-1)
     D <- igraph::distances(g, mode="all") - 1
     diag(D) <- 0
-    # D[D==Inf] <- 99999999   # deal with infinity
-    # D[D==-Inf] <- -99999999 # deal with infinity
     ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
     W <- sapply(V(g)$community, function(x){
       sapply(V(g)$community, function(y){
@@ -1548,7 +1575,7 @@ envRisk <- function(g,  community.type='multilevel.community',
     })
     W[is.na(W)] <- 0
     ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
-    Z <- ifelse( downweight.env.risk, D * (1-W), D * W )
+    Z <- D * (1-W)
     ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
     Z.finiteColSum <- apply(Z,1,function(x){
       if ( length(x[x>-Inf & x<Inf]) == 1 ) { # isolate
@@ -1557,7 +1584,7 @@ envRisk <- function(g,  community.type='multilevel.community',
         sum(x[(x<-Inf & x<Inf)])
       }
     })
-    r <- (nrow(Z)-1) / (Z.finiteColSum/2)
+    r <- (nrow(Z)-1) / Z.finiteColSum
     r[r==Inf | r == -Inf] <- 0
     if (risk.center)
       r <- r - mean(r, na.rm = T)
@@ -1578,60 +1605,242 @@ envRisk <- function(g,  community.type='multilevel.community',
   df.r <- df.r[order(df.r$envrisk, decreasing=T),]
   if(out.df)
     return(df.r)
-  return(list(g=g, risk=r, npms=npms, df.r=df.r))
+  return(list(g=g, r=r, npms=npms, df.r=df.r))
+  
+}
+
+
+##
+#
+##
+netRisk <- function(g,  community.type='multilevel.community',
+                    risk.center = FALSE, risk.scale=FALSE,
+                    out.netrisk=FALSE,out.dist=FALSE, 
+                    out.graph=FALSE, out.df=FALSE)
+{
+  v <- ifelse(class(g)=='igraph', vcount(g),1)
+  r <- rep(0, v)
+  Z <- matrix(0,v,v)
+  npms <- matrix(0)
+  cat(sprintf('%s nodes  %s edges\n',vcount(g),ecount(g)))
+  if(class(g)=='igraph') 
+    V(g)$community <- 0
+  if(class(g)=='igraph' & ecount(g) > 0 )
+  {
+    ## ------------ NOISY PRODUCT MARKETS --------------------------
+    com.ml <- do.call(community.type, list(graph=g))
+    V(g)$community <- com.ml$membership
+    ## npms
+    coms <- unique(com.ml$membership)
+    npms <- list()
+    for (c_i in coms) {
+      com.names <-com.ml$names[which(com.ml$membership==c_i)]
+      npms[[c_i]] <- igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
+    }
+    vcs <- sapply(npms, igraph::vcount)         #vertices
+    ecs <- sapply(npms, igraph::ecount)         #edges
+    dens <- sapply(npms,igraph::graph.density)  #densities
+    dens[is.nan(dens) | is.na(dens)] <- 0           ## fix NaN,NA
+    ## find CROSS MARKET DENSITIES   (set diagonals to densities)
+    cmd <- matrix(0, nrow=length(coms), ncol=length(coms))
+    cmd <- sapply(1:length(coms), function(i){
+      sapply(1:length(coms), function(j){
+        if ( i != j ) {
+          el <- get.edgelist(g, names=F)
+          el <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
+                          | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
+          crossden_ij <- nrow(el) / (vcs[i] * vcs[j])
+          cmd[i,j] <- ifelse(length(crossden_ij)>0, crossden_ij, 0)
+        } else if ( i == j ) {
+          cmd[i,j] <- dens[i]
+        }
+      })
+    })
+    if(is.null(dim(cmd)))  cmd <- matrix(cmd)
+    cmd[is.na(cmd)] <- 0
+    cmd[is.nan(cmd)] <- 0
+    ##------------------ RISK COMPUTATION ------------------------------
+    ## 1. DISTANCES Matrix excluding current competition (-1)
+    D <- igraph::distances(g, mode="all")
+    diag(D) <- 0
+    # D[D==Inf] <- 99999999   # deal with infinity
+    # D[D==-Inf] <- -99999999 # deal with infinity
+    ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
+    # .getW <- function(x,y) {
+    #   cmd[x,y]
+    # }
+    # W <- outer(V(g)$community, V(g)$community, Vectorize(.getW))
+    W <- sapply(V(g)$community, function(x){
+      sapply(V(g)$community, function(y){
+        cmd[x,y]
+      })
+    })
+    W[is.na(W)] <- 0
+    ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
+    Z <- D * (1-W)
+    ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
+    Z.finiteColSum <- apply(Z,1,function(x){
+      if ( length(x[x>-Inf & x<Inf]) == 1 ) { # isolate
+        return(Inf)
+      } else {
+        sum(x[(x<-Inf & x<Inf)])
+      }
+    })
+    r <- (nrow(Z)-1) / Z.finiteColSum
+    r[r==Inf | r == -Inf] <- 0
+    if (risk.center)
+      r <- r - mean(r, na.rm = T)
+    if (risk.scale)
+      r <- r / sd(r, na.rm = T)
+    names(r) <- V(g)$name
+  } 
+  #-------------------------------------------------------------------
+  V(g)$netrisk <- r
+  if(out.netrisk)
+    return(r)
+  if(out.dist)
+    return(Z)
+  g <- igraph::set.graph.attribute(g, 'NpmWeightDist', Z)
+  if(out.graph)
+    return(g)
+  df.r <- data.frame(name=V(g)$name,netrisk=V(g)$netrisk)
+  df.r <- df.r[order(df.r$netrisk, decreasing=T),]
+  if(out.df)
+    return(df.r)
+  return(list(g=g, r=r, npms=npms, df.r=df.r))
   
 }
 
 ##
 #
 ##
-netRisk <- function(g, ...)
+.getMarketsDf <- function(df, pd.end, drop=FALSE, ...)
 {
-  envRisk(g, downweight.env.risk=TRUE, ...)
+  if( !('company_name_unique' %in% names(df)))
+    stop('df must contain `company_name_unique` column')
+  if( !('mmc_code' %in% names(df)))
+    stop('df must contain `mmc_code` column')
+  plyr::ddply(df, .variables = .(company_name_unique),.drop = drop,
+              summarise,
+              concat = paste(mmc_code,collapse = "|"),
+              .progress = 'text', ...)
+}
+
+##
+# x string  Concatenated markets, eg, 'USA_CA|USA_NY|ARG_9'
+# y == x
+##
+.getMMCfromMarketConcat <- function(x,y)
+{
+  mx <- c(stringr::str_split(x, '[|]', simplify = T))
+  my <- c(stringr::str_split(y, '[|]', simplify = T))
+  if (length(mx)==0 | length(my)==0)
+    return(0)
+  nx <- sum(mx %in% my)
+  ny <- sum(my %in% mx)
+  mmc <- (nx / length(mx)) * (ny / length(my))
+  mmc[diag(mmc)] <- 0
+  return(mmc)
 }
 
 ##
 #
 ##
-getMultiMarketContact <- function(brsub, firms)
+getMultiMarketContact <- function(br, firms, end, ...)
 {
-  if( !('company_name_unique' %in% names(brsub)) 
-      | !('mmc_code' %in% names(brsub)) )
-    stop('data.frame must contains columns `company_name_unique` and `mmc_code`')
-  if (all(is.na(firms)) | all(is.nan(firms)) | 
-      all(is.null(firms)) | length(firms)==0) {
-    return(matrix(0))
-  }
-  n <- length(firms)
-  if (nrow(brsub)==0) {
-    out <- matrix(0)
-  } else {
-    out <- sapply(1:n, function(i) {
-      if(i %% 50 == 0) cat(sprintf('\nMMC for firm i = %s of %s\n',i,length(brsub$company_name_unique)))
-      sapply(1:n, function(j) {
-        if (i == j) {
-          return(0)
-        } else  {
-          subi <- brsub[which(brsub$company_name_unique == firms[i] & brsub$company_name_unique != 'NA'),]
-          subi <- subi[!duplicated(subi),]
-          subj <- brsub[which(brsub$company_name_unique == firms[j] & brsub$company_name_unique != 'NA'),]
-          subj <- subj[!duplicated(subj),]
-          if (nrow(subi)==0 & nrow(subj)==0) {
-            return(0)
-          } else {
-            ni <- sum(subi$mmc_code %in% subj$mmc_code)
-            nj <- sum(subj$mmc_code %in% subi$mmc_code)
-            mmc <- (ni / length(subi$mmc_code)) * (nj / length(subj$mmc_code))
-            return(mmc)
-          }
-        } 
-      })
-    })  
-    out[is.na(out)] <- 0
-    out[is.nan(out)] <- 0
-  }
-  return(out)
+  brsub <- br[which(br$company_name_unique %in% firms & br$created_year < end), ]
+  cat('concatenating firm branch markets...\n')
+  df <- .getMarketsDf(brsub, end, ...)
+  df.m <- merge(data.frame(company_name_unique=firms,stringsAsFactors = F),
+                df, by = 'company_name_unique', all.x=T, all.y=F)
+  cat('computing MMC outer product matrix...\n')
+  mmc <- outer(df.m$concat, df.m$concat, Vectorize(.getMMCfromMarketConcat))
+  cat('done.')
+  return( mmc )
 }
+
+
+
+# ##
+# #
+# ##
+# .getMMCmatrix <- function(brsub, firms, firmNameVar, marketVar, is.symmetric)
+# {
+#   n <- length(firms)
+#   if (is.symmetric) 
+#   {
+#     out <- sapply(1:n, function(j) { ## columns
+#       if(j %% 5 == 0) cat(sprintf('MMC for firm j = %s of %s\n',j,length(brsub[,firmNameVar])))
+#       sapply(1:n, function(i) {      ## rows
+#         if (i <= j) {
+#           ## upper triange + diagonal
+#           return(0)
+#         } else  { 
+#           ## lower triange fill in...
+#           mi <- brsub[which(brsub[,firmNameVar] == firms[i] & brsub[,firmNameVar] != 'NA'), marketVar]
+#           mj <- brsub[which(brsub[,firmNameVar] == firms[j] & brsub[,firmNameVar] != 'NA'), marketVar]
+#           if (length(mi)==0 | length(mj)==0) {
+#             return(0)
+#           } else {
+#             ni <- sum(mi %in% mj)
+#             nj <- sum(mj %in% mi)
+#             mmc <- (ni / length(mi)) * (nj / length(mj))
+#             return(mmc)
+#           }
+#         } 
+#       })
+#     }) 
+#     t.out <- t(out)
+#     out[upper.tri(out, diag = FALSE)] <- t.out[upper.tri(t.out, diag = FALSE)]
+#   } 
+#   else 
+#   {
+#     out <- sapply(1:n, function(j) { ## columns
+#       if(j %% 5 == 0) cat(sprintf('MMC for firm j = %s of %s\n',j,length(brsub[,firmNameVar])))
+#       sapply(1:n, function(i) {      ## rows
+#         if (i == j) {
+#           return(0)
+#         } else  {
+#           ## off-diagonal fill in..
+#           subi <- brsub[which(brsub[,firmNameVar] == firms[i] & brsub[,firmNameVar] != 'NA'),]
+#           subi <- subi[!duplicated(subi),]
+#           subj <- brsub[which(brsub[,firmNameVar] == firms[j] & brsub[,firmNameVar] != 'NA'),]
+#           subj <- subj[!duplicated(subj),]
+#           if (nrow(subi)==0 & nrow(subj)==0) {
+#             return(0)
+#           } else {
+#             ni <- sum(subi[,marketVar] %in% subj[,marketVar])
+#             nj <- sum(subj[,marketVar] %in% subi[,marketVar])
+#             mmc <- (ni / length(subi[,marketVar])) * (nj / length(subj[,marketVar]))
+#             return(mmc)
+#           }
+#         } 
+#       })
+#     })   
+#   }
+# }
+# 
+# ##
+# #
+# ##
+# getMultiMarketContact <- function(brsub, firms, firmNameVar='company_name_unique',marketVar='mmc_code', is.symmetric=TRUE)
+# {
+#   if( !('company_name_unique' %in% names(brsub)) 
+#       | !('mmc_code' %in% names(brsub)) )
+#     stop('data.frame must contains columns `company_name_unique` and `mmc_code`')
+#   if (all(is.na(firms)) | all(is.nan(firms)) | 
+#       all(is.null(firms)) | length(firms)==0) {
+#     return(matrix(0))
+#   }
+#   if (nrow(brsub)==0) {
+#     out <- matrix(0)
+#   } else {
+#     out <- .getMMCmatrix(brsub, firms, firmNameVar, marketVar, is.symmetric)
+#     out[is.na(out)] <- 0
+#     out[is.nan(out)] <- 0
+#   }
+#   return(out)
+# }
 
 ##
 #
@@ -1642,6 +1851,7 @@ makePdNetworkSetCovariates <- function(net, start, end,
                                        vertFoundedAttr='founded_year',
                                        vertClosedAttr='closed_year',
                                        vertAcquiredAttr='acquired_year',
+                                       downweight.env.risk=FALSE,
                                        acq=NA,rou=NA,br=NA,ipo=NA)
 {
   cat('collecting edges to remove...\n')
@@ -1687,13 +1897,19 @@ makePdNetworkSetCovariates <- function(net, start, end,
   # ## ------------------HYPOTHESIS PREDICTORS------------------
   g.net <- getIgraphFromNet(net)
   ## # 1. ENV RISK -- VERTEX ATTRIBUTE
-  cat('\ncomputing envelopment risk...\n')
-  net %v% 'env_risk' <- envRisk(g.net, out.envrisk = TRUE) 
+  cat('\ncomputing risk measure...\n')
+  if (downweight.env.risk) {
+    rl <- envRisk(g.net) 
+    prefix <- 'env_risk'
+  } else {
+    rl <- netRisk(g.net)
+    prefix <- 'net_risk'
+  }
+  net %v% prefix <- rl$r
+  net %v% 'npm' <- V(rl$g)$community
   ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
   cat('\ncomputing multi-market contact...\n')
-  brsub <- br[which(br$company_name_unique %in% (net %v% 'vertex.names') 
-                    & br$created_year < end), ]
-  mmc <- getMultiMarketContact(brsub, net%v%'vertex.names')
+  mmc <- getMultiMarketContact(br, net%v%'vertex.names', end)
   net %n% 'mmc' <- as.matrix(mmc)
   ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
   cat('\ncomputing distances lag contact...\n')
@@ -1728,28 +1944,4 @@ getNetEcount <- function(net, symmetric=TRUE, upper.tri.diag=FALSE)
 }
 
 
-##
-#
-##
-filterModels <- function(l)
-{
-  return(l[ sapply(l, function(m) !any(is.na(m@coef))) ])
-}
-
-##
-#
-##
-write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, ...)
-{
-  if(is.na(filename))
-    filename <- deparse(substitute(fit))
-  isText <- grepl(pattern = '.txt',x = filename,ignore.case = T)
-  if(!isText) {
-    name <- stringr::str_split(filename, "[.]")[[1]][1]
-    stamp <- gsub("\\D", "", Sys.time(), perl = T)
-    filename <- sprintf('%s_%s.txt',name,stamp )
-  }
-  if(screen) texreg::screenreg(l, file = filename,  single.row = T, ci.force = T, ...)
-  if(html) texreg::htmlreg(l, file = filename,  single.row = T, ci.force = T, ...)
-}
 

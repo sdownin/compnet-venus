@@ -102,6 +102,9 @@ co_ipo$went_public_year <- as.numeric(stringr::str_sub(co_ipo$went_public_on,1,4
 # CUSTOMER
 co_cust$created_year <- as.numeric(stringr::str_sub(co_cust$created_at,1,4))
 
+## Unique Braches
+co_br <- unique(co_br)
+
 # ## Add Acquried date to company df
 # co.tmp <- merge(data.frame(company_name_unique=co$company_name_unique, stringsAsFactors = F), 
 #                 co_acq[,c('acquiree_name_unique','acquired_on')], 
