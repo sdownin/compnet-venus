@@ -10,23 +10,11 @@
 library(igraph)
 
 #---------- convenience function ------------
-va <- function(g){
-  vertex.attributes(g)
-}
-gdf <- function(g)
-{
-  get.data.frame(x=g, what = 'vertices')
-}
-spl <- function(x)
-{
-  str_split(x, "[|]")[[1]]
-}
-jn <- function(x)
-{
-  paste(x, collapse = "|")
-}
-catList <- function(net, attr)
-{
+va <- function(g) { vertex.attributes(g)}
+gdf <- function(g){ get.data.frame(x=g, what = 'vertices')}
+spl <- function(x){ str_split(x, "[|]")[[1]]}
+jn <- function(x) { paste(x, collapse = "|")}
+catList <- function(net, attr){
   out <- net %v% attr
   names(out) <- net %v% 'vertex.names'
   lapply(out, function(x) spl(x))

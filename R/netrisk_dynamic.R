@@ -30,7 +30,7 @@ if( !('net' %in% ls()) )
 ###
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
-#source(file.path(getwd(),'R','cb_data_prep.R'))
+source(file.path(getwd(),'R','cb_data_prep.R'))
 par.default <- par()
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 ###########################################################################
@@ -141,7 +141,7 @@ endYr <- 2017
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
-k <- 3
+k <- 2
 #
 #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
 g.base <- g.full
@@ -152,9 +152,15 @@ net <- net.k.sub
 nl <- list()
 for (t in 2:length(periods)) {
   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
-  nl[[t]] <- makePdNetworkSetCovariates(net.k.sub, start=periods[t-1], end=periods[t],
-                                        acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo,
-                                        netRiskCommunityAlgo='infomap.community')
+  tmp.net <- makePdNetwork(net.k.sub, 
+                           start=periods[t-1], end=periods[t])
+  nl[[t]] <- setCovariates(tmp.net, periods[t-1], periods[t],
+                           netRiskCommunityAlgo='multilevel.community',
+                           downweight.env.risk=FALSE,
+                           acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
+  # nl[[t]] <- makePdNetworkSetCovariates(net.k.sub, start=periods[t-1], end=periods[t],
+  #                                       acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo,
+  #                                       netRiskCommunityAlgo='multilevel.community')
 }
 nl.bak <- nl
 nl <- nl[which(sapply(nl, length)>0)]
@@ -185,7 +191,8 @@ nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
 #   nets[[i]] <- network(network.extract(nd, onset=pds[i-1], terminus=pds[i])[,], directed = F, hyper = F, multiple = F, loops = F, bipartite = F)
 # }; names(nets) <- pds; nets <- nets[-1]
 
-fb0 <- btergm(nets ~ edges + gwesp(0, fixed=F) +  nodecov('net_risk'),
+fb0 <- btergm(nets ~ edges + gwesp(0, fixed=F) + nodecov('age') + nodematch('state_code', diff=F) +  
+                 nodecov('net_risk'),
               R = 500, parallel = "multicore", ncpus = detectCores())
 # fb1 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) ,
 #               R = 500, parallel = "multicore", ncpus = detectCores())
@@ -193,26 +200,32 @@ fb0 <- btergm(nets ~ edges + gwesp(0, fixed=F) +  nodecov('net_risk'),
 #                 nodecov('net_risk') , 
 #               R = 500, parallel = "multicore", ncpus = detectCores())
 fb3 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
+                nodecov('age') + nodematch('state_code', diff=F) +  
                 nodecov('net_risk') +  edgecov('mmc'),
               R = 500, parallel = "multicore", ncpus = detectCores())
-# fb4f <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:6) + 
-#                 nodecov('net_risk') + edgecov('mmc') + 
-#                  nodematch('ipo_status', diff=FALSE),
-#               R = 500, parallel = "multicore", ncpus = detectCores())
-fb4t <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
+fb4 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
+                 nodecov('age') + nodematch('state_code', diff=F) +  
                  nodecov('net_risk') + edgecov('mmc') + 
                  nodematch('ipo_status', diff=TRUE),
                R = 500, parallel = "multicore", ncpus = detectCores())
 fb5 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
-                 nodecov('net_risk') + nodecov('net_risk_lag') + 
+                nodecov('age') + nodematch('state_code', diff=F) +  
+                nodecov('net_risk') + nodecov('net_risk_lag') + 
                 edgecov('mmc') + 
                  nodematch('ipo_status', diff=TRUE),
                R = 500, parallel = "multicore", ncpus = detectCores())
 fb6 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
+                nodecov('age') + nodematch('state_code', diff=F) +  
                 nodecov('net_risk') + nodecov('net_risk_lag') + 
                 edgecov('mmc') + 
                 nodematch('ipo_status', diff=TRUE) + nodematch('npm', diff=FALSE) ,
               R = 500, parallel = "multicore", ncpus = detectCores())
+fb6n <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
+                nodecov('age') + nodematch('state_code', diff=F) +  
+                nodecov('net_risk') + nodecov('net_risk_lag') + 
+                edgecov('mmc') +  nodematch('npm', diff=F) ,
+              R = 500, parallel = "multicore", ncpus = detectCores())
+
 # fbm2 <- mtergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
 #               parallel = "multicore", ncpus = detectCores())
 
