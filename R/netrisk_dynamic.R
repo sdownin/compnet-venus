@@ -136,12 +136,12 @@ g.full <- read.graph('g_full.graphml', format='graphml')
 #-----------------------------------------------------------------
 name_i <- 'medallia'
 yrpd <- 2
-startYr <- 2007
+startYr <- 2006
 endYr <- 2017
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
-k <- 2
+k <- 3
 #
 #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
 g.base <- g.full
@@ -214,16 +214,18 @@ fb5 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) +
                 edgecov('mmc') + 
                  nodematch('ipo_status', diff=TRUE),
                R = 500, parallel = "multicore", ncpus = detectCores())
+
+fb6n <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
+                nodecov('age') + nodematch('state_code', diff=F) +  
+                nodecov('net_risk') + nodecov('net_risk_lag') + 
+                edgecov('mmc') +  nodematch('npm', diff=F) ,
+              R = 500, parallel = "multicore", ncpus = detectCores())
+
 fb6 <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
                 nodecov('age') + nodematch('state_code', diff=F) +  
                 nodecov('net_risk') + nodecov('net_risk_lag') + 
                 edgecov('mmc') + 
                 nodematch('ipo_status', diff=TRUE) + nodematch('npm', diff=FALSE) ,
-              R = 500, parallel = "multicore", ncpus = detectCores())
-fb6n <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) + 
-                nodecov('age') + nodematch('state_code', diff=F) +  
-                nodecov('net_risk') + nodecov('net_risk_lag') + 
-                edgecov('mmc') +  nodematch('npm', diff=F) ,
               R = 500, parallel = "multicore", ncpus = detectCores())
 
 # fbm2 <- mtergm(nets ~ edges + gwesp(0, fixed=F) + gwdegree(0, fixed=T) + kstar(3:6) + cycle(4:6), 
@@ -233,12 +235,18 @@ fb6n <- btergm(nets ~ edges + gwesp(0, fixed=F) + triangle + cycle(4:7) +
 
 #(l <- list(m1=fb2,m2=fb3,m3a=fb4f,m3b=fb4t,m4b=fb5) )
 # (l <- list(m0=fb0,m2=fb3,m3b=fb4t,m4b=fb5) )
-(l <- list(fb0, fb3, fb4t))
+
+# (l <- list(fb6))
+# texreg::screenreg(l, single.row = T)
+# write.regtable(filterModels(l), filename = "netflix_2yr", digits=3)
+
+(l <- list(fb0, fb3, fb5, fb6))
 texreg::screenreg(l, single.row = T)
-write.regtable(filterModels(l), filename = "netflix_2yr", digits=3)
-(l <- list(fb0, fb3, fb4t, fb5, fb6))
-texreg::screenreg(l, single.row = T)
-write.regtable(filterModels(l), filename = "netflix_2yr", digits=3)
+write.regtable(filterModels(l), filename = "netflix_2yr_allyr", digits=3)
+
+
+# save.image('netrisk_dynamic_2.RData')
+
 
 #_-------------------------------------------------------------
 #                       Compare STERGM, BTERG, MTERGM
