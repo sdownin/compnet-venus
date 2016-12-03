@@ -1629,23 +1629,27 @@ netRisk <- function(g,  community.type='multilevel.community',
   if(class(g)=='igraph' & ecount(g) > 0 )
   {
     ## ------------ NOISY PRODUCT MARKETS --------------------------
+    ## Subgraph
+    V(g)$degree <- igraph::degree(g, v=V(g), mode='all', loops=F)
+    g.sub <- igraph::induced.subgraph(g, V(g)[which(V(g)$degree > 0)])
+    ## Communities on subgraph
     cat('communities = ')
-    com.ml <- do.call(community.type, list(graph=g))
-    V(g)$community <- com.ml$membership
+    com.ml <- do.call(community.type, list(graph=g.sub))
+    V(g.sub)$community <- com.ml$membership
     cat(sprintf('%s...',max(com.ml$membership)))
-    ## npms
+    ## npms on subgraph
     coms <- unique(com.ml$membership)
     npms <- list()
     cat('subgraphs...')
     for (c_i in coms) {
       com.names <-com.ml$names[which(com.ml$membership==c_i)]
-      npms[[c_i]] <- igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
+      npms[[c_i]] <- igraph::induced.subgraph(g.sub, vids=V(g.sub)[V(g.sub)$name %in% com.names])
     }
     vcs <- sapply(npms, igraph::vcount)         #vertices
     ecs <- sapply(npms, igraph::ecount)         #edges
     dens <- sapply(npms,igraph::graph.density)  #densities
     dens[is.nan(dens) | is.na(dens)] <- 0           ## fix NaN,NA
-    ## find CROSS MARKET DENSITIES   (set diagonals to densities)
+    ## find CROSS MARKET DENSITIES  on subgraph  (set diagonals to densities)
     cat('cross-NPM densities...')
     cmd <- matrix(0, nrow=length(coms), ncol=length(coms))
     cmd <- sapply(1:length(coms), function(i){
@@ -1661,9 +1665,12 @@ netRisk <- function(g,  community.type='multilevel.community',
         }
       })
     })
-    if(is.null(dim(cmd)))  cmd <- matrix(cmd)
-    cmd[is.na(cmd)] <- 0
-    cmd[is.nan(cmd)] <- 0
+    if(is.null(dim(cmd)))  cmd <- matrix(cmd);  cmd[is.na(cmd)] <- 0; cmd[is.nan(cmd)] <- 0
+    ## g.sub communities -> g
+    V(g)$community <- 0
+    for (i in V(g.sub)) {
+      V(g)[ which( V(g)$name == V(g.sub)$name[i] ) ]$community <- V(g.sub)$community[i]
+    }
     ##------------------ RISK COMPUTATION ------------------------------
     ## 1. DISTANCES Matrix excluding current competition (-1)
     cat('distances...')
@@ -1671,17 +1678,31 @@ netRisk <- function(g,  community.type='multilevel.community',
     diag(D) <- 0
     # D[D==Inf] <- 99999999   # deal with infinity
     # D[D==-Inf] <- -99999999 # deal with infinity
-    ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
+    ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0  get from (g.sub) set in to W of full (g)
     cat('weights...')
+    W <- matrix(0, vcount(g),vcount(g))
+    for (j in 1:vcount(g.sub)) { 
+      for (i in 1:vcount(g.sub)) {
+        ## full graph node indices for W
+        y <- which(V(g)$name == V(g.sub)$name[j])
+        x <- which(V(g)$name == V(g.sub)$name[i])
+        ## NPM indices
+        b <- V(g.sub)$community[j]
+        a <- V(g.sub)$community[i]
+        ## assign weights
+        # cat(sprintf('i %s j %s cmd[a,b]=%s\n',i,j,cmd[a,b]))
+        W[x,y] <- cmd[a,b]
+      }
+    }
     # .getW <- function(x,y) {
     #   cmd[x,y]
     # }
     # W <- outer(V(g)$community, V(g)$community, Vectorize(.getW))
-    W <- sapply(V(g)$community, function(x){
-      sapply(V(g)$community, function(y){
-        cmd[x,y]
-      })
-    })
+    # W <- sapply(V(g)$community, function(x){
+    #   sapply(V(g)$community, function(y){
+    #     cmd[x,y]
+    #   })
+    # })
     W[is.na(W)] <- 0
     ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
     Z <- D * (1-W)
