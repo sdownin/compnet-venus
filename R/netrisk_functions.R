@@ -1618,6 +1618,7 @@ netRisk <- function(g,  community.type='multilevel.community',
                     out.netrisk=FALSE,out.dist=FALSE, 
                     out.graph=FALSE, out.df=FALSE)
 {
+  cat(sprintf('(community.type = %s) ',community.type))
   v <- ifelse(class(g)=='igraph', vcount(g),1)
   r <- rep(0, v)
   Z <- matrix(0,v,v)
@@ -1628,11 +1629,14 @@ netRisk <- function(g,  community.type='multilevel.community',
   if(class(g)=='igraph' & ecount(g) > 0 )
   {
     ## ------------ NOISY PRODUCT MARKETS --------------------------
+    cat('communities = ')
     com.ml <- do.call(community.type, list(graph=g))
     V(g)$community <- com.ml$membership
+    cat(sprintf('%s...',max(com.ml$membership)))
     ## npms
     coms <- unique(com.ml$membership)
     npms <- list()
+    cat('subgraphs...')
     for (c_i in coms) {
       com.names <-com.ml$names[which(com.ml$membership==c_i)]
       npms[[c_i]] <- igraph::induced.subgraph(g, vids=V(g)[V(g)$name %in% com.names])
@@ -1642,6 +1646,7 @@ netRisk <- function(g,  community.type='multilevel.community',
     dens <- sapply(npms,igraph::graph.density)  #densities
     dens[is.nan(dens) | is.na(dens)] <- 0           ## fix NaN,NA
     ## find CROSS MARKET DENSITIES   (set diagonals to densities)
+    cat('cross-NPM densities...')
     cmd <- matrix(0, nrow=length(coms), ncol=length(coms))
     cmd <- sapply(1:length(coms), function(i){
       sapply(1:length(coms), function(j){
@@ -1661,11 +1666,13 @@ netRisk <- function(g,  community.type='multilevel.community',
     cmd[is.nan(cmd)] <- 0
     ##------------------ RISK COMPUTATION ------------------------------
     ## 1. DISTANCES Matrix excluding current competition (-1)
+    cat('distances...')
     D <- igraph::distances(g, mode="all")
     diag(D) <- 0
     # D[D==Inf] <- 99999999   # deal with infinity
     # D[D==-Inf] <- -99999999 # deal with infinity
     ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0
+    cat('weights...')
     # .getW <- function(x,y) {
     #   cmd[x,y]
     # }
@@ -1679,6 +1686,7 @@ netRisk <- function(g,  community.type='multilevel.community',
     ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
     Z <- D * (1-W)
     ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
+    cat('risk measure...')
     Z.finiteColSum <- apply(Z,1,function(x){
       if ( length(x[x>-Inf & x<Inf]) == 1 ) { # isolate
         return(Inf)
@@ -1696,6 +1704,7 @@ netRisk <- function(g,  community.type='multilevel.community',
   } 
   #-------------------------------------------------------------------
   V(g)$netrisk <- r
+  cat('done.')
   if(out.netrisk)
     return(r)
   if(out.dist)
@@ -1725,6 +1734,9 @@ netRisk <- function(g,  community.type='multilevel.community',
               concat = paste(mmc_code,collapse = "|"),
               .progress = 'text', ...)
 }
+
+# outer(V(g)$community, V(g)$community,
+#       Vectorize(function(x,y){paste(c(x,y),collapse="_")}))
 
 ##
 # x string  Concatenated markets, eg, 'USA_CA|USA_NY|ARG_9'
@@ -1852,6 +1864,7 @@ makePdNetworkSetCovariates <- function(net, start, end,
                                        vertClosedAttr='closed_year',
                                        vertAcquiredAttr='acquired_year',
                                        downweight.env.risk=FALSE,
+                                       netRiskCommunityAlgo='multilevel.community',
                                        acq=NA,rou=NA,br=NA,ipo=NA)
 {
   cat('collecting edges to remove...\n')
@@ -1902,7 +1915,7 @@ makePdNetworkSetCovariates <- function(net, start, end,
     rl <- envRisk(g.net) 
     prefix <- 'env_risk'
   } else {
-    rl <- netRisk(g.net)
+    rl <- netRisk(g.net, community.type = netRiskCommunityAlgo)
     prefix <- 'net_risk'
   }
   net %v% prefix <- rl$r

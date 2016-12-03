@@ -30,19 +30,19 @@ if( !('net' %in% ls()) )
 ###
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
-source(file.path(getwd(),'R','cb_data_prep.R'))
+#source(file.path(getwd(),'R','cb_data_prep.R'))
 par.default <- par()
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 ###########################################################################
 ## Firm type global variables
-multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel",
-                "aol","apple","facebook","amazon","adobe-systems","nokia","dell","sap","motorola",
-                "groupon","autodesk","salesforce","iac","quest-software","zayo-group","sas",
-                "qualcomm","blackberry","berkshire-hathaway-corp","carlyle-group","intuit",
-                "symantec","broadcom","kkr","medtronic","vmware","sony","lg","motorola-mobility",
-                "motorola-solutions")
-
-single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
+# multi.prod <- c("cisco","google","microsoft","ibm","yahoo","oracle","hewlett-packard","intel",
+#                 "aol","apple","facebook","amazon","adobe-systems","nokia","dell","sap","motorola",
+#                 "groupon","autodesk","salesforce","iac","quest-software","zayo-group","sas",
+#                 "qualcomm","blackberry","berkshire-hathaway-corp","carlyle-group","intuit",
+#                 "symantec","broadcom","kkr","medtronic","vmware","sony","lg","motorola-mobility",
+#                 "motorola-solutions")
+# 
+# single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
 ###########################################################################
 
 #---------------------------------------------------------------------
@@ -98,22 +98,20 @@ single.prod <- c('netflix','medallia','dropbox','surveymonkey')  #
 #####################################################################################
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
 #####################################################################################
-g.full <- makeGraph(comp = co_comp, vertdf = co)
-## cut out confirmed dates >= 2016
-g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016 
-                                                                | is.na(V(g.full)$founded_year)
-                                                                | V(g.full)$founded_year=='' ) ] )
-g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
-## SIMPLIFY
-g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T, 
-                           edge.attr.comb = list(weight='sum', 
-                                                 relation_began_on='min',
-                                                 relation_ended_on='min'))
+# g.full <- makeGraph(comp = co_comp, vertdf = co)
+# ## cut out confirmed dates >= 2016
+# g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016 
+#                                                                 | is.na(V(g.full)$founded_year)
+#                                                                 | V(g.full)$founded_year=='' ) ] )
+# g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
+# ## SIMPLIFY
+# g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T, 
+#                            edge.attr.comb = list(weight='sum', 
+#                                                  relation_began_on='min',
+#                                                  relation_ended_on='min'))
+#igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
 
-
-
-
-
+g.full <- read.graph('g_full.graphml', format='graphml')
 
 ####################################################################
 ####################################################################
@@ -126,27 +124,37 @@ g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
 #             
 #                 MAIN LOOP
 #
+#infomap
+#optimal
+#walktrap
+#spinglass
+#leading.eigenvector
+#multilevel
+#fastgreedy
+#label.propagation
+#edge.betweenness
 #-----------------------------------------------------------------
 name_i <- 'medallia'
-yrpd <- 1
+yrpd <- 2
 startYr <- 2007
 endYr <- 2017
 periods <- seq(startYr,endYr,yrpd)
 company.name <- 'company_name_unique'
 verbose <- TRUE
-k <- 1
+k <- 3
 #
 #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
 g.base <- g.full
 g.k.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], order = k, mode = 'all')[[1]]
 net.k.sub <- getNetFromIgraph(g.k.sub)
 net <- net.k.sub
-nl <- list()
 #----------------Network List-------------------
+nl <- list()
 for (t in 2:length(periods)) {
   cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
   nl[[t]] <- makePdNetworkSetCovariates(net.k.sub, start=periods[t-1], end=periods[t],
-                                        acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
+                                        acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo,
+                                        netRiskCommunityAlgo='infomap.community')
 }
 nl.bak <- nl
 nl <- nl[which(sapply(nl, length)>0)]
