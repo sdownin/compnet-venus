@@ -137,8 +137,9 @@ g.full <- read.graph('g_full.graphml', format='graphml')
 # firms <- c('medallia','clarabridge','qualtrics','satmetrix','confirmit',
 #            'empathica','allegiance','hybris','customergauge')
 #-----------------------------------------------------------------
-firms.todo <- c('qualtrics','satmetrix','confirmit',
-                'empathica','allegiance','hybris','customergauge')
+firms.todo <-  c('medallia','clarabridge','qualtrics','satmetrix','confirmit',
+                 'empathica','allegiance','hybris','customergauge',
+                 'mindshare-technologies','markettools')
 
 for (i in 1:length(firms.todo)) {
 
@@ -181,6 +182,10 @@ for (i in 1:length(firms.todo)) {
     dl[dl == Inf] <- 999999 
     nl[[t]] %n% 'dist_lag' <- dl 
     # nl[[t]] <- network::set.network.attribute(nl[[t]], 'dist_lag', (nl[[t-1]] %n% 'dist') )
+    # g.tmp <- getIgraphFromNet(nl[[t]])
+    # if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
+    #   nl[[t]] %v% 'constraint' <- igraph::constraint(g.tmp)
+    # }
   }
   ##--------------- GET TERGM NETS LIST -----------
   ## only nets with edges > 0
@@ -192,12 +197,45 @@ for (i in 1:length(firms.todo)) {
   # firm.nl <- list()
   firm.nets[[name_i]] <- nets
   
-  save.image('netrisk_dynamic_firm_nets.RData')
+  save.image('netrisk_FIXED_dynamic_firm_nets_2yr.RData')
     
 }
 
 
 # load('netrisk_dynamic_firm_nets.RData')
+
+# # add constraint
+# for (t in 1:length(nets)) {
+#   g.tmp <- getIgraphFromNet(nets[[t]])
+#   if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
+#     cons <-  igraph::constraint(g.tmp)
+#     cons[is.nan(cons) | is.na(cons)] <- 0 ### ???
+#     nets[[t]] %v% 'constraint' <- cons
+#   }
+# }
+
+#------------------------------------------------------
+#              Predictors Diagnostics
+#------------------------------------------------------
+## Plot density
+par(mfrow=c(3,3), mar=c(2.5,2.5,2,1))
+for (firm_i in names(firm.nets)) {
+  nets <- firm.nets[[firm_i]]
+  plot(as.numeric(names(nets))-1,   
+       sapply(nets,function(net) {
+         sum(net[lower.tri(net)])/(nrow(net[,])*nrow(net[,]-1)/2) 
+       }), 
+       ylab='density', xlab='year', type='b', main=firm_i)
+}
+
+## Net Risk
+par(mfrow=c(3,3), mar=c(2.5,2.5,2,1))
+for (firm_i in names(firm.nets)) {
+  nets <- firm.nets[[firm_i]]
+  sapply(seq_along(nets), function(j) {
+    hist(nets[[j]] %v% 'net_risk', breaks=25, main=sprintf('%s %s',firm_i,names(nets)[j]))
+  })
+}
 
 #------------------------------------------------------
 ############################################################################
@@ -241,52 +279,116 @@ fb4 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:4) +
               ,
               R = 5, parallel = "multicore", ncpus = detectCores())
 
-fb5med <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:5) + 
+
+nets.sub <- nets
+mmc <- lapply(nets.sub,function(net) as.matrix(net %n% 'mmc'))
+fb5clar <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:5) + 
                 nodefactor('state_code') + nodematch('state_code', diff=F) +
                 nodecov('age') +   edgecov(mmc)  +
                 nodecov('net_risk') + nodecov('net_risk_lag') +
                 nodematch('npm',diff=F) + 
                 nodematch('ipo_status', diff=TRUE) 
               ,
-              R = 100, parallel = "multicore", ncpus = detectCores())
+              R = 30, parallel = "multicore", ncpus = detectCores())
+fb6clar <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:5) + 
+                   nodefactor('state_code') + nodematch('state_code', diff=F) +
+                   nodecov('age') +   edgecov(mmc)  +
+                   nodecov('net_risk') + nodecov('net_risk_lag') +
+                   nodematch('npm',diff=F) + 
+                   nodematch('ipo_status', diff=TRUE) +
+                   nodecov('constraint') + absdiff('constraint')
+                 ,
+                 R = 5, parallel = "multicore", ncpus = detectCores())
 
-
-
-#(l <- list(m1=fb2,m2=fb3,m3a=fb4f,m3b=fb4t,m4b=fb5) )
-# (l <- list(m0=fb0,m2=fb3,m3b=fb4t,m4b=fb5) )
-
-# (l <- list(fb6))
-# texreg::screenreg(l, single.row = T)
-# write.regtable(filterModels(l), filename = "netflix_2yr", digits=3)
-
-(l <- list(fb0,fb5))
+(l <- list(fb0, fb5clar, fb6clar))
 texreg::screenreg(l, single.row = T)
-write.regtable(filterModels(l), filename = "clarabridge_3k_2y_btergm", digits=3)
+write.regtable(filterModels(l), filename = "clarabridge_3k_2y_btergm_constraint", digits=3)
 
-write.regtable(list(Clarabridge=fb5clar, Medallia=fb5med),
-               filename = "clarabridge_medallia_3k_2y_btergm", digits=3)
+#-------------- ADD NETWORK STATS NOT YET COMPUTED ----------------------
+# load('netrisk_dynamic_firm_nets.RData')
+# firm.nets.bak <- firm.nets
+# for (i in 1:length(firm.nets)) {
+#   nets <- firm.nets[[i]]
+#   for (t in 1:length(nets)) {
+#     g.tmp <- getIgraphFromNet(nets[[t]])
+#     if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
+#       cons <-  igraph::constraint(g.tmp)
+#       cons[is.nan(cons) | is.na(cons)] <- 0 ### ???
+#       nets[[t]] %v% 'constraint' <- cons
+#       betw <- igraph::betweenness(g.tmp)
+#       nets[[t]] %v% 'betweenness' <- betw
+#       nets[[t]] %v% 'betweenness_log' <- log(betw + .001) 
+#     }
+#   }
+#   firm.nets[[i]] <- nets
+# }
+# save.image('netrisk_dynamic_firm_nets_constr_betw.RData')
 
-# save.image('netrisk_dynamic_netflix_2y.RData')
- 
+#------------------------------------------------------------------
+#------------- CEM Industry btergm firm MODEL FIT LIST --------------------------
+#-----------------------------------------------------------------
+#####
+l.fit.b <- list()
+nPeriods <- min(sapply(firm.nets,function(net)length(net)))
+for (i in 1:length(firm.nets)) {
+  firm_i <- names(firm.nets)[i]; cat(sprintf('---------%s---------\n',firm_i))
+  nets <- firm.nets[[i]]
+  nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
+  mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+  fit <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
+                 nodefactor('state_code') + nodematch('state_code', diff=F) +
+                 nodecov('age') +   edgecov(mmc)  +
+                 nodecov('net_risk') + nodecov('net_risk_lag') +
+                 nodematch('npm',diff=F) + 
+                 nodematch('ipo_status', diff=TRUE)  +
+                nodecov('constraint') + absdiff('constraint') #+
+                # nodecov('betweenness') + absdiff('betweenness')
+               , R = 500, parallel = "multicore", ncpus = detectCores())
+  l.fit.b[[firm_i]] <- fit
+  save.image('fit_list_btergm_2yr_.RData') # save.image('fit_list_btergm_med_clar_qual_1yr_.RData')
+}
+
+##_---------------------------------------------------------
+load('fit_list_btergm_med_clar_qual_.RData')
+co.str <- names(firm.nets)
+
+l <- list(clarabridge=l.fit.b$clarabridge,medallia=l.fit.b$medallia,
+          qualtrics=l.fit.b$qualtrics,satmetrix=l.fit.b$satmetrix,
+          empathica=l.fit.b$empathica,confirmit=l.fit.b$confirmit,
+          allegiance=l.fit.b$allegiance)
+# l <- list(clarabridge=l.fit.b$clarabridge,
+#           satmetrix=l.fit.b$satmetrix,
+#           empathica=l.fit.b$empathica)
+screenreg(l, single.row = T)
+write.regtable(l, filename='fit_list_btergm_9cem_1y_')
+#----------------------------------------------
+
+
 #------------------------------------------------------------
 #                MCMLE TERGM
 ##--------------------------------------------------------
 # load('netrisk_dynamic_netflix_2y.RData')
 
-nets.sub <- nets[3:4]
-
+nPeriods <- 5
+nets <- firm.nets$clarabridge
+nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
 ## Covariate Matrices
-mmc <- lapply(nets.sub,function(net) as.matrix(net %n% 'mmc'))
+mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
 
-#---------------------------------------------------
-mt0 <- mtergm(nets ~ edges + gwesp(0, fixed=T) + cycle(3:4)  +
-               nodecov('age') + 
-                nodefactor('state_code') + nodematch('state_code', diff=F) +  
-              nodecov('net_risk') # + nodecov('net_risk_lag') +
-               # nodematch('npm', diff=F) + nodematch('ipo_status', diff=T)
-               ,
-             parallel = "multicore", ncpus = detectCores())
+mt6 <- mtergm(nets.sub ~ edges + #gwesp(0, fixed=T)  + cycle(3:5) + 
+              nodefactor('state_code') + nodematch('state_code', diff=F) +
+              nodecov('age') +   edgecov(mmc)  +
+              nodecov('net_risk') + nodecov('net_risk_lag') +
+              nodematch('npm',diff=F) + 
+              nodematch('ipo_status', diff=TRUE)  +
+              nodecov('constraint') + absdiff('constraint') #+
+              #nodecov('betweenness') + absdiff('betweenness')
+              , 
+              parallel = "multicore", ncpus = detectCores())
+save.image('netrisk_dynamic_firm_mtergm_1yr_.RData')
+write.regtable(list(mt6), filename='fit_mtergm_clar')
 
+#--------------------------------------------------------------------
 
 mt1 <- mtergm(nets ~ edges + gwesp(0, fixed=T) + 
                 nodecov('age') + nodematch('state_code', diff=F) +  
@@ -369,42 +471,59 @@ screenreg(list(b=ce2,m=cem2))
 #--------------------- STERGM ------------------------------
 ############################################################################
 ## example 
-library(ergm) 
-library(statnet) 
-library(tergm) 
-data(samplk) 
-samp <- list() 
-samp[[1]] <- samplk1 
-samp[[2]] <- samplk2 
-samp[[3]] <- samplk3 
-samp[[1]] %v% "charm" <- runif(18) 
-samp[[2]] %v% "charm" <- runif(18) 
-samp[[3]] %v% "charm" <- runif(18) 
-samp[[1]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
-samp[[2]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
-samp[[3]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
-fit1 <- ergm(samp[[1]] ~ edges +nodecov("charm") +edgecov("closeness") ) 
-summary(fit1)
-samp.fit <- stergm(samp, 
-                   formation = ~edges +nodecov("charm") +edgecov("closeness"), 
-                   dissolution = ~edges +mutual, 
-                   estimate = "CMLE", times = 1:3) 
-summary(samp.fit)
+# library(ergm) 
+# library(statnet) 
+# library(tergm) 
+# data(samplk) 
+# samp <- list() 
+# samp[[1]] <- samplk1 
+# samp[[2]] <- samplk2 
+# samp[[3]] <- samplk3 
+# samp[[1]] %v% "charm" <- runif(18) 
+# samp[[2]] %v% "charm" <- runif(18) 
+# samp[[3]] %v% "charm" <- runif(18) 
+# samp[[1]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
+# samp[[2]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
+# samp[[3]] %n% "closeness" <- matrix(runif(18*18),ncol=18,nrow=18) 
+# fit1 <- ergm(samp[[1]] ~ edges +nodecov("charm") +edgecov("closeness") ) 
+# summary(fit1)
+# samp.fit <- stergm(samp, 
+#                    formation = ~edges +nodecov("charm") +edgecov("closeness"), 
+#                    dissolution = ~edges +mutual, 
+#                    estimate = "CMLE", times = 1:3) 
+# summary(samp.fit)
 ##----------------------------------------------------------
-c.s <- control.stergm(seed = 1111, parallel = 4, parallel.version.check = T)
-##
+c.s <- control.stergm(SA.plot.progress=TRUE, seed = 1111, parallel = 4, parallel.version.check = T)
 
-nd <- networkDynamic::networkDynamic(network.list = nets,
-                                    start=as.numeric(names(nets)[1])-1,
-                                    end=as.numeric(names(nets)[length(nets)])-1 )
+##
+nPeriods <- 3
+nets <- firm.nets$clarabridge
+nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
+.pd <- as.numeric(names(nets.sub)[2]) - as.numeric(names(nets.sub)[1])
+.start <- as.numeric(names(nets.sub)[1]) - .pd
+.end <- as.numeric(names(nets.sub)[length(nets.sub)])
+## Covariate Matrices
+mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+
+nd <- networkDynamic::networkDynamic(network.list = nets.sub,
+                                     start = 1, 
+                                     end =  length(nets.sub))
 
 # nodematch('market2') + nodemix('status')
 # baseline check
-f0 <- stergm(nd, 
-             formation= ~ edges ,
-             dissolution= ~ edges ,
-             estimate="CMLE", control = c.s, times = periods[-1])
-write.summary(f0); plot(gof(f0))
+st6 <- stergm(nw = nd, 
+             formation= ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
+               nodefactor('state_code') + nodematch('state_code', diff=F) +
+               nodecov('age') +   edgecov('mmc')  +
+               nodecov('net_risk') + nodecov('net_risk_lag') +
+               nodematch('npm',diff=F) + 
+               nodematch('ipo_status', diff=TRUE)  +
+               nodecov('constraint') + absdiff('constraint') ,
+             dissolution= ~ edges,
+             estimate="CMLE", control = c.s, times = 1:length(nets.sub))
+save.image('netrisk_dynamic_fit_stergm_2yr_3pd_.RData')
+summary(st6)
+write.regtable(list(st6), filename='fit_mtergm_clar')
 
 
 network::get.edge.attribute(nd,'de_alio_entry.active')

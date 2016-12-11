@@ -1807,11 +1807,11 @@ netRisk <- function(g,  community.type='multilevel.community',
     V(g.sub)$community <- com.ml$membership
     cat(sprintf('%s...',max(com.ml$membership)))
     ## npms on subgraph
-    coms <- unique(com.ml$membership)
+    coms <- sort(unique(com.ml$membership))
     npms <- list()
     cat('subgraphs...')
     for (c_i in coms) {
-      com.names <-com.ml$names[which(com.ml$membership==c_i)]
+      com.names <- com.ml$names[which(com.ml$membership==c_i)]
       npms[[c_i]] <- igraph::induced.subgraph(g.sub, vids=V(g.sub)[V(g.sub)$name %in% com.names])
     }
     vcs <- sapply(npms, igraph::vcount)         #vertices
@@ -1820,21 +1820,25 @@ netRisk <- function(g,  community.type='multilevel.community',
     dens[is.nan(dens) | is.na(dens)] <- 0           ## fix NaN,NA
     ## find CROSS MARKET DENSITIES  on subgraph  (set diagonals to densities)
     cat('cross-NPM densities...')
+    ## assign lower triangle elements
     cmd <- matrix(0, nrow=length(coms), ncol=length(coms))
-    cmd <- sapply(1:length(coms), function(i){
-      sapply(1:length(coms), function(j){
+    sapply( 1:length(coms), function(j){
+      sapply( j:length(coms), function(i){
         if ( i != j ) {
           el <- get.edgelist(g.sub, names=F)
           el.sub <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
                           | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
           crossden_ij <- length(c(el.sub)) / (vcs[i] * vcs[j])
-          cmd[i,j] <- ifelse(length(crossden_ij)>0, crossden_ij, 0)
+          cmd[i,j] <<- ifelse(length(crossden_ij)>0, crossden_ij, 0)  ## *BREAKS SCOPE*
         } else if ( i == j ) {
-          cmd[i,j] <- dens[i]
+          cmd[i,j] <<- dens[i]   ## *BREAKS SCOPE*
         }
       })
     })
     if(is.null(dim(cmd)))  cmd <- matrix(cmd);  cmd[is.na(cmd)] <- 0; cmd[is.nan(cmd)] <- 0
+    ## fill in upper triangle
+    tcmd <- t(cmd)
+    cmd[upper.tri(cmd)] <- tcmd[upper.tri(tcmd)]
     ## g.sub communities -> g
     V(g)$community <- 0
     for (i in V(g.sub)) {
@@ -1843,11 +1847,12 @@ netRisk <- function(g,  community.type='multilevel.community',
     ##------------------ RISK COMPUTATION ------------------------------
     ## 1. DISTANCES Matrix excluding current competition (-1)
     cat('distances...')
-    D <- igraph::distances(g, mode="all")
-    diag(D) <- 0
+    D <- igraph::distances(g, mode="all") - 1
+    diag(D) <- 0                           ### remove ego-loops
+    D[D == Inf | D == -Inf] <- 0           ### remove Inf before summing distances D
     ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0  get from (g.sub) set in to W of full (g)
     cat('weights...')
-    tol <- 1e-3
+    tol <- 0 #1e-8
     W <- matrix(tol, vcount(g),vcount(g))
     ### LOWER TRIANGLE
     sapply( 1:vcount(g.sub), function(j) {  #cat(sprintf('i  %s ',i))
@@ -1860,28 +1865,19 @@ netRisk <- function(g,  community.type='multilevel.community',
         a <- V(g.sub)$community[i]
         ## assign weights
         # cat(sprintf('i %s j %s cmd[a,b]=%s\n',i,j,cmd[a,b]))
-        W[x,y] <<- cmd[a,b]  ## BREAKS SCOPE: assign value to W in parent function scope
+        W[x,y] <<- cmd[a,b]  ## *BREAKS SCOPE*: assign value to W in parent function scope
       })
     })
-    # Assign t(lower.tri) to upper.tri
+    # Assign lower.tri to upper.tri
     tW <- t(W)
     W[upper.tri(W, diag = F)] <- tW[upper.tri(tW, diag = F)]
-    W[is.na(W)] <- 0
-    ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
-    Z <- D * W
-    ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
-    cat('risk measure...')
-    Z.finiteColSum <- apply(Z,1,function(x) {
-      if ( length(x[x>-Inf & x<Inf]) <= 1 | is.na(x) ) { # isolate
-        return(Inf)
-      } else {
-        sum(x[(x<-Inf & x<Inf)])
-      }
-    })
-    Z.finiteColSum[is.na(Z.finiteColSum)] <- Inf
-    ## isolates = Inf --> r = 0
-    r <- (vcount(g.sub)-1) / Z.finiteColSum   ## only counting non-isolate vertices
-    r[r==Inf | r == -Inf] <- 0
+    W[is.na(W) | is.nan(W) | W==0] <- Inf   ### will divide by W later --> 1/Inf = 0
+    ## 3. Z = Distances (D) / Cross-Densities (W) [density on diags of W, cross-market density off-diags]
+    Z <- D * (1-W)
+    ## 4. risk [r] sum over N firms of (density/distances) [Z]  (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
+    r <- (vcount(g.sub)-1) / (colSums(Z)/2)
+    r[r==Inf | r == -Inf] <- 0              ### remove Inf from final risk value
+    #--------------end risk computation------------------------
     if (risk.center)
       r <- r - mean(r, na.rm = T)
     if (risk.scale)
@@ -1905,6 +1901,50 @@ netRisk <- function(g,  community.type='multilevel.community',
   return(list(g=g, r=r, npms=npms, df.r=df.r))
   
 }
+
+# ##------------------ RISK COMPUTATION ------------------------------
+# ## 1. DISTANCES Matrix excluding current competition (-1)
+# cat('distances...')
+# D <- igraph::distances(g, mode="all")
+# diag(D) <- 0
+# ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0  get from (g.sub) set in to W of full (g)
+# cat('weights...')
+# tol <- 1e-3
+# W <- matrix(tol, vcount(g),vcount(g))
+# ### LOWER TRIANGLE
+# sapply( 1:vcount(g.sub), function(j) {  #cat(sprintf('i  %s ',i))
+#   sapply( (j+1):vcount(g.sub), function(i) {  #cat(sprintf('i  %s\n',j))
+#     ## full graph node indices for W
+#     y <- which(V(g)$name == V(g.sub)$name[j])
+#     x <- which(V(g)$name == V(g.sub)$name[i])
+#     ## NPM indices
+#     b <- V(g.sub)$community[j]
+#     a <- V(g.sub)$community[i]
+#     ## assign weights
+#     # cat(sprintf('i %s j %s cmd[a,b]=%s\n',i,j,cmd[a,b]))
+#     W[x,y] <<- cmd[a,b]  ## *BREAKS SCOPE*: assign value to W in parent function scope
+#   })
+# })
+# # Assign t(lower.tri) to upper.tri
+# tW <- t(W)
+# W[upper.tri(W, diag = F)] <- tW[upper.tri(tW, diag = F)]
+# W[is.na(W)] <- 0
+# ## 3. Z is down-weighted distance:  W  already has same-market density on diags, cross-market density off-diag
+# Z <- D * W
+# ## 4. risk [r] is inverse of sum of distances (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
+# cat('risk measure...')
+# Z.finiteColSum <- apply(Z,1,function(x) {
+#   if ( length(x[x>-Inf & x<Inf]) <= 1 | is.na(x) ) { # isolate
+#     return(Inf)
+#   } else {
+#     sum(x[(x<-Inf & x<Inf)])
+#   }
+# })
+# Z.finiteColSum[is.na(Z.finiteColSum)] <- Inf
+# ## isolates = Inf --> r = 0
+# r <- (vcount(g.sub)-1) / Z.finiteColSum   ## only counting non-isolate vertices
+# r[r==Inf | r == -Inf] <- 0
+# #--------------end risk computation------------------------
 
 ##
 #
@@ -2017,11 +2057,17 @@ setCovariates <- function(net, start, end,
                         acq=NA,rou=NA,br=NA,ipo=NA)
 { 
   g.net <- getIgraphFromNet(net)
+  ##------------------------------------
   ## # 0. AGE
+  ##------------------------------------
   year <- net %v% 'founded_year'
   year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
-  net %v% 'age' <- end - year
+  age <- end - year
+  age[age < 0] <- 0
+  net %v% 'age' <- age
+  ##------------------------------------
   ## # 1. ENV RISK -- VERTEX ATTRIBUTE
+  ##------------------------------------
   cat('\ncomputing risk measure...\n')
   if (downweight.env.risk) {
     rl <- envRisk(g.net) 
@@ -2032,11 +2078,15 @@ setCovariates <- function(net, start, end,
   }
   net %v% prefix <- rl$r
   net %v% 'npm' <- V(rl$g)$community
+  ##------------------------------------
   ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
+  ##------------------------------------
   cat('\ncomputing multi-market contact...\n')
   mmc <- getMultiMarketContact(br, net%v%'vertex.names', end)
   net %n% 'mmc' <- as.matrix(mmc)
+  ##------------------------------------
   ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
+  ##------------------------------------
   cat('\ncomputing distances lag contact...\n')
   D <- as.matrix(igraph::distances(g.net))
   rownames(D) <- NULL;  colnames(D) <- NULL
@@ -2044,14 +2094,30 @@ setCovariates <- function(net, start, end,
   net %n% 'dist' <- D
   #
   D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
-  D[(is.na(D) | D == -Inf | D == Inf)] <-0
+  D[(is.na(D) | D == -Inf | D == Inf)] <- 0
   net %n% 'de_alio_entry' <- D
+  ##------------------------------------
   ## # 4. IPO STATUS -- VERTEX ATTRIBUTE
+  ##------------------------------------
   cat('\ncomputing IPO status contact...\n')
   iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
                       & ipo$went_public_year < end), ]
   net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
-  ## # 4. Customer Status (coopetition) -- EDGE ATTRIBUTE
+  ##------------------------------------
+  ## # 5. Structural Autonomy (constraint) -- NODE ATTR
+  ##------------------------------------
+  cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
+  cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
+  net %v% 'constraint' <- cons
+  ##------------------------------------
+  ## # 6. Centrality (betweenness)
+  ##------------------------------------
+  betw <- igraph::betweenness(g.net)
+  net %v% 'betweenness' <- betw
+  net %v% 'betweenness_log' <- log(betw + .001) 
+  ##------------------------------------
+  ## # 7. Customer Status (coopetition) -- EDGE ATTRIBUTE
+  ##------------------------------------
   return(net)
 }
 
