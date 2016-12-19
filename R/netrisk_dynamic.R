@@ -138,17 +138,18 @@ g.full <- read.graph('g_full.graphml', format='graphml')
 #edge.betweenness
 #----------------------------------------------------------------
 ##-------------------FIND MARKET of suitable size --------------
+#----------------------------------------------------------------
 firms <- V(g.full)$name
 deg <- igraph::degree(g.full)
 firms.sub <- firms[which(deg > 8 & deg < 13)]
-View(data.frame(name=firms.sub))
+#View(data.frame(name=firms.sub))
 ##
-name_i <- 'fitbit'
+name_i <- 'fitbit'   ## check companies
 k <- 3
 (nbs <- neighbors(g.full, v = V(g.full)[which(V(g.full)$name==name_i)]))
 g.ego <- make_ego_graph(g.full, order=k, 
                         nodes = V(g.full)[which(V(g.full)$name==name_i)] )[[1]]
-vcount(g.ego)
+cat(vcount(g.ego))
 ##
 egodeg <- igraph::degree(g.ego, normalized = F)^.4
 plot(g.ego, layout=layout.kamada.kawai,
@@ -165,18 +166,29 @@ View(head(co[grep('biotec',
                   co$short_description,
                   ignore.case = T,perl=T) & 
                co$company_name_unique %in% firms,],100))
-##--------------------------------------------------------------
-# firms <- c('medallia','clarabridge','qualtrics','satmetrix','confirmit',
-#            'empathica','allegiance','hybris','customergauge')
+
 #-----------------------------------------------------------------
+# ## EFM / CEM 
 # firms.todo <-  c('medallia','clarabridge','qualtrics','satmetrix','confirmit',
 #                  'empathica','allegiance','hybris','customergauge',
 #                  'mindshare-technologies','markettools')
 
-firms.todo <- c('zipcar','lyft')
 
+##--------------------------------------------------------------
+##--------- CREATE FIRM NETWORK PERIOD LISTS ------------------
+##--------------------------------------------------------------
+
+## creat list if not exists
 if( !('firm.nets' %in% ls()) ) firm.nets <- list()
 
+## set market group of firms
+net_group <- 'misc'
+if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
+
+## set firms to create networks
+firms.todo <- c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
+
+## run main network period creation loop
 for (i in 1:length(firms.todo)) {
   name_i <- firms.todo[i]
   cat(sprintf('\n---------%s----------\n',name_i))
@@ -231,12 +243,13 @@ for (i in 1:length(firms.todo)) {
   
   ## SAVE variable in image
   # firm.nl <- list()
-  firm.nets[[name_i]] <- nets
+  firm.nets[[net_group]][[name_i]] <- nets
   
   ## CAREFUL TO OVERWRITE 
-  #save.image('netrisk_dynamic_firm_nets_1yr_.RData')
+  save.image(sprintf('netrisk_dynamic_firm_nets_1yr_%s.RData',net_group))
     
 }
+
 
 # load('netrisk_dynamic_firm_nets.RData')
 
