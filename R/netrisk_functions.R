@@ -1847,13 +1847,12 @@ netRisk <- function(g,  community.type='multilevel.community',
     ##------------------ RISK COMPUTATION ------------------------------
     ## 1. DISTANCES Matrix excluding current competition (-1)
     cat('distances...')
-    D <- igraph::distances(g, mode="all") - 1
-    diag(D) <- 0                           ### remove ego-loops
+    D <- igraph::distances(g, mode="all") # - 1     # ??? subtract 1 or not ???
+    diag(D) <- 0                            ### remove ego-loops
     D[D == Inf | D == -Inf] <- 0           ### remove Inf before summing distances D
     ## 2. COMMUNITY WEIGHT:  set same NPM (community) risk to 0  get from (g.sub) set in to W of full (g)
     cat('weights...')
-    tol <- 0 #1e-8
-    W <- matrix(tol, vcount(g),vcount(g))
+    W <- matrix(0, vcount(g),vcount(g))
     ### LOWER TRIANGLE
     sapply( 1:vcount(g.sub), function(j) {  #cat(sprintf('i  %s ',i))
       sapply( (j+1):vcount(g.sub), function(i) {  #cat(sprintf('i  %s\n',j))
@@ -1863,19 +1862,31 @@ netRisk <- function(g,  community.type='multilevel.community',
         ## NPM indices
         b <- V(g.sub)$community[j]
         a <- V(g.sub)$community[i]
-        ## assign weights
-        # cat(sprintf('i %s j %s cmd[a,b]=%s\n',i,j,cmd[a,b]))
+        ## assign weights # cat(sprintf('i %s j %s cmd[a,b]=%s\n',i,j,cmd[a,b]))
         W[x,y] <<- cmd[a,b]  ## *BREAKS SCOPE*: assign value to W in parent function scope
       })
     })
     # Assign lower.tri to upper.tri
     tW <- t(W)
     W[upper.tri(W, diag = F)] <- tW[upper.tri(tW, diag = F)]
-    W[is.na(W) | is.nan(W) | W==0] <- Inf   ### will divide by W later --> 1/Inf = 0
+    W[is.na(W) | is.nan(W) ] <- 0  ### will divide by W later --> 1/Inf = 0
     ## 3. Z = Distances (D) / Cross-Densities (W) [density on diags of W, cross-market density off-diags]
-    Z <- D * (1-W)
+    Z <- D * (2 - W)
     ## 4. risk [r] sum over N firms of (density/distances) [Z]  (of firms outside focal firm's NPM) ## scaled by (N-1) competitors for inter-network comparison
-    r <- (vcount(g.sub)-1) / (colSums(Z)/2)
+    # # -- get subcomponent for each vert in g.sub
+    # noniso.vcount <- sapply(V(g.sub)$name, function(name) {
+    #   length(igraph::subcomponent(g.sub, v=which(V(g.sub)$name==name))) - 1
+    # })
+    # # -- scale each nonisolate's sum of weighted distances by its subcomponent vcount
+    # sumZ <- colSums(Z)
+    # r <- noniso.vcount / sumZ[which(names(sumZ) %in% names(noniso.vcount))]
+    # # -- scale each nonisolate's sum of weighted distances by its subcomponent vcount [[length()/sum()]]
+    sumZ <-  apply(X = Z, MARGIN = 1, FUN = function(x) {
+      ifelse(sum(x)==0, Inf, length(x[x>0])/sum(x, na.rm = T) ) 
+    })
+    # -- risk = inverse sum pf distance
+    r <- 1 / sumZ
+    # -- correct Infinite values
     r[r==Inf | r == -Inf] <- 0              ### remove Inf from final risk value
     #--------------end risk computation------------------------
     if (risk.center)
@@ -2110,13 +2121,20 @@ setCovariates <- function(net, start, end,
   cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
   net %v% 'constraint' <- cons
   ##------------------------------------
-  ## # 6. Centrality (betweenness)
+  ## # 6. Similarity 
+  ##------------------------------------
+  sim <- igraph::similarity(g.net,vids = V(g.net), 
+                            mode = "all", method = "invlogweighted" )
+  sim[is.nan(sim) | is.na(sim)] <- 0
+  net %n% 'similarity' <- sim
+  ##------------------------------------
+  ## # 7. Centrality (betweenness)
   ##------------------------------------
   betw <- igraph::betweenness(g.net)
   net %v% 'betweenness' <- betw
   net %v% 'betweenness_log' <- log(betw + .001) 
   ##------------------------------------
-  ## # 7. Customer Status (coopetition) -- EDGE ATTRIBUTE
+  ## # 8. Customer Status (coopetition) -- EDGE ATTRIBUTE
   ##------------------------------------
   return(net)
 }

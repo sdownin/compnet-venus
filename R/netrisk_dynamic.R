@@ -21,6 +21,9 @@ library(lattice, quietly = T)
 library(latticeExtra, quietly = T)
 library(directlabels, quietly = T)
 library(ggplot2, quietly = T)
+library(reshape2)
+library(plyr)
+library(ggplot2)
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 # if( !('net' %in% ls()) )
@@ -134,18 +137,51 @@ g.full <- read.graph('g_full.graphml', format='graphml')
 #label.propagation
 #edge.betweenness
 #----------------------------------------------------------------
+##-------------------FIND MARKET of suitable size --------------
+firms <- V(g.full)$name
+deg <- igraph::degree(g.full)
+firms.sub <- firms[which(deg > 8 & deg < 13)]
+View(data.frame(name=firms.sub))
+##
+name_i <- 'fitbit'
+k <- 3
+(nbs <- neighbors(g.full, v = V(g.full)[which(V(g.full)$name==name_i)]))
+g.ego <- make_ego_graph(g.full, order=k, 
+                        nodes = V(g.full)[which(V(g.full)$name==name_i)] )[[1]]
+vcount(g.ego)
+##
+egodeg <- igraph::degree(g.ego, normalized = F)^.4
+plot(g.ego, layout=layout.kamada.kawai,
+     vertex.size=egodeg*1.0,vertex.label.cex=egodeg*.2)
+##------------------ possible focal firm &  markets -------------------
+# c('visa','mastercard')    ## PCI; square,mint,paypal too many edges 
+# c('zipcar','lyft')   ## ride share / p2p transport;  uber too many edges
+# c('fitbit')   ## fitness IOT
+# c('agoda')     ## online booking & reservations
+# c('zenefits')  ## HR & insurance SW & Services
+# c('basecamp)   ## PM & productivity software
+##--------------------------------------------------------------
+View(head(co[grep('biotec',
+                  co$short_description,
+                  ignore.case = T,perl=T) & 
+               co$company_name_unique %in% firms,],100))
+##--------------------------------------------------------------
 # firms <- c('medallia','clarabridge','qualtrics','satmetrix','confirmit',
 #            'empathica','allegiance','hybris','customergauge')
 #-----------------------------------------------------------------
-firms.todo <-  c('medallia','clarabridge','qualtrics','satmetrix','confirmit',
-                 'empathica','allegiance','hybris','customergauge',
-                 'mindshare-technologies','markettools')
+# firms.todo <-  c('medallia','clarabridge','qualtrics','satmetrix','confirmit',
+#                  'empathica','allegiance','hybris','customergauge',
+#                  'mindshare-technologies','markettools')
+
+firms.todo <- c('zipcar','lyft')
+
+if( !('firm.nets' %in% ls()) ) firm.nets <- list()
 
 for (i in 1:length(firms.todo)) {
-
   name_i <- firms.todo[i]
-  yrpd <- 2
-  startYr <- 2005
+  cat(sprintf('\n---------%s----------\n',name_i))
+  yrpd <- 1
+  startYr <- 2007
   endYr <- 2017
   periods <- seq(startYr,endYr,yrpd)
   company.name <- 'company_name_unique'
@@ -197,14 +233,28 @@ for (i in 1:length(firms.todo)) {
   # firm.nl <- list()
   firm.nets[[name_i]] <- nets
   
-  save.image('netrisk_FIXED_dynamic_firm_nets_2yr.RData')
+  ## CAREFUL TO OVERWRITE 
+  #save.image('netrisk_dynamic_firm_nets_1yr_.RData')
     
 }
 
-
 # load('netrisk_dynamic_firm_nets.RData')
 
-# # add constraint
+
+## # ADD SIMILARITY NETWORK PROPERTY TO FIRM.NETS
+# for (i in seq_along(firm.nets)) {
+#   firm.list <- firm.nets[[i]]
+#   for (j in seq_along(firm.list)) {
+#     net <- firm.list[[j]]
+#     g.net <- getIgraphFromNet(net)
+#     sim <- igraph::similarity(g.net,vids = V(g.net), 
+#                               mode = "all", method = "invlogweighted" )
+#     sim[is.nan(sim) | is.na(sim)] <- 0
+#     firm.nets[[i]][[j]] %n% 'similarity' <- sim
+#   }
+# }
+
+# # ADD CONSTRAINT NODE PROPERTY
 # for (t in 1:length(nets)) {
 #   g.tmp <- getIgraphFromNet(nets[[t]])
 #   if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
@@ -218,7 +268,9 @@ for (i in 1:length(firms.todo)) {
 #              Predictors Diagnostics
 #------------------------------------------------------
 ## Plot density
-par(mfrow=c(3,3), mar=c(2.5,2.5,2,1))
+n <- ceiling(sqrt(length(firm.nets)))
+m <- ifelse(n*(n-1) >= length(firm.nets), n-1, n)
+par(mfrow=c(m,n), mar=c(2.5,2.5,2,1))
 for (firm_i in names(firm.nets)) {
   nets <- firm.nets[[firm_i]]
   plot(as.numeric(names(nets))-1,   
@@ -327,13 +379,18 @@ write.regtable(filterModels(l), filename = "clarabridge_3k_2y_btergm_constraint"
 #------------------------------------------------------------------
 #------------- CEM Industry btergm firm MODEL FIT LIST --------------------------
 #-----------------------------------------------------------------
+firms.todo <- names(firm.nets)
 #####
-l.fit.b <- list()
-nPeriods <- min(sapply(firm.nets,function(net)length(net)))
-for (i in 1:length(firm.nets)) {
-  firm_i <- names(firm.nets)[i]; cat(sprintf('---------%s---------\n',firm_i))
-  nets <- firm.nets[[i]]
+if ( !('l.fit.b' %in% ls()) ) l.fit.b <- list()
+nPeriods <- min(sapply(firm.nets,function(net)length(net))) 
+resamp <- 1000
+yrpd <- 1
+if ('tmp.npds' %in% ls()) rm(tmp.npds)
+for (i in 1:length(firms.todo)) {
+  firm_i <- firms.todo[i]; cat(sprintf('---------%s---------\n',firm_i))
+  nets <- firm.nets[[firm_i]]
   nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
+  if ( !('tmp.npds' %in% ls()) )   tmp.npds <- length(nets.sub)
   mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
   fit <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
                  nodefactor('state_code') + nodematch('state_code', diff=F) +
@@ -343,49 +400,90 @@ for (i in 1:length(firm.nets)) {
                  nodematch('ipo_status', diff=TRUE)  +
                 nodecov('constraint') + absdiff('constraint') #+
                 # nodecov('betweenness') + absdiff('betweenness')
-               , R = 500, parallel = "multicore", ncpus = detectCores())
+               , R = resamp, parallel = "multicore", ncpus = detectCores())
   l.fit.b[[firm_i]] <- fit
-  save.image('fit_list_btergm_2yr_.RData') # save.image('fit_list_btergm_med_clar_qual_1yr_.RData')
+  file.name <- sprintf('fit_list_btergm_%syr_%spd_%sR_.RData', yrpd, tmp.npds, resamp)
+  save.image(file.name) # save.image('fit_list_btergm_med_clar_qual_1yr_.RData')
 }
+
 
 ##_---------------------------------------------------------
 load('fit_list_btergm_med_clar_qual_.RData')
 co.str <- names(firm.nets)
 
-l <- list(clarabridge=l.fit.b$clarabridge,medallia=l.fit.b$medallia,
-          qualtrics=l.fit.b$qualtrics,satmetrix=l.fit.b$satmetrix,
+l <- list(satmetrix=l.fit.b$satmetrix,
           empathica=l.fit.b$empathica,confirmit=l.fit.b$confirmit,
-          allegiance=l.fit.b$allegiance)
+          clarabridge=l.fit.b$clarabridge,medallia=l.fit.b$medallia,
+          qualtrics=l.fit.b$qualtrics, allegiance=l.fit.b$allegiance)
 # l <- list(clarabridge=l.fit.b$clarabridge,
 #           satmetrix=l.fit.b$satmetrix,
 #           empathica=l.fit.b$empathica)
 screenreg(l, single.row = T)
-write.regtable(l, filename='fit_list_btergm_9cem_1y_')
+write.regtable(l, filename='fit_list_btergm_1yr_6pd_')
+
+write.regtable(l.fit.b, filename='fit_list_btergm_1yr_6pd_')
 #----------------------------------------------
 
 
-#------------------------------------------------------------
+nr <- c(.38,.47,.29,.5,.4,.51,.45,.46,.32)
+
+#-------------------------------------------------------
+#  PLOT COEFS DISTRIBUTION
+#-------------------------------------------------------
+l.fit.b.sub <- l.fit.b
+if ('df.coefs' %in% ls()) rm(df.coefs) 
+for (i in seq_along(l.fit.b.sub)) {
+  firm_i <- names(l.fit.b.sub)[i]
+  coefs <- unlist(l.fit.b.sub[[firm_i]]@coef)
+  coefs <- coefs[!grepl('state_code[.]',names(coefs),ignore.case=T,perl=T)]
+  tmp <- data.frame(name=coefs)
+  names(tmp)[1] <- firm_i
+  if ( !('df.coefs' %in% ls()) ) 
+    df.coefs <- data.frame(coefs=names(coefs))
+  df.coefs <- cbind(df.coefs, tmp)  
+}
+
+## Melt
+df.coefs.m <- melt(df.coefs, id.vars = 'coefs')
+
+## Add market category
+df.coefs.m$market <- sprintf('EFM (n=%s)',length(unique(df.coefs.m$variable)))
+
+# bwplot(value ~ coefs, data=df.coefs.m)
+
+## PLOT BWPLOT
+df.sub <- subset(df.coefs.m, subset= (coefs != 'edges') )
+ggplot(data=df.sub, aes(x=coefs, y=value, fill=market)) + ## fill=industry
+  geom_boxplot() +
+  scale_fill_grey(start=.8, end=.5) + 
+  geom_hline(yintercept = 0) + coord_flip() +
+  ylab('Point Estimate') + xlab('Variable') + 
+  # scale_y_log10() +
+  theme_bw() + theme(legend.position="top")
+
+
+#----------------------------------------------------------
 #                MCMLE TERGM
 ##--------------------------------------------------------
 # load('netrisk_dynamic_netflix_2y.RData')
 
-nPeriods <- 5
-nets <- firm.nets$clarabridge
+nPeriods <- 3
+nets <- firm.nets$satmetrix
 nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
 ## Covariate Matrices
 mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
 
-mt6 <- mtergm(nets.sub ~ edges + #gwesp(0, fixed=T)  + cycle(3:5) + 
-              nodefactor('state_code') + nodematch('state_code', diff=F) +
-              nodecov('age') +   edgecov(mmc)  +
-              nodecov('net_risk') + nodecov('net_risk_lag') +
-              nodematch('npm',diff=F) + 
-              nodematch('ipo_status', diff=TRUE)  +
-              nodecov('constraint') + absdiff('constraint') #+
+mt6 <- mtergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodecov('net_risk') + nodecov('net_risk_lag') +
+                nodematch('npm',diff=F) + 
+                nodematch('ipo_status', diff=TRUE)  +
+                nodecov('constraint') + absdiff('constraint') #+
               #nodecov('betweenness') + absdiff('betweenness')
               , 
               parallel = "multicore", ncpus = detectCores())
-save.image('netrisk_dynamic_firm_mtergm_1yr_.RData')
+save.image('netrisk_dynamic_firm_mtergm_2yr_3pd_.RData')
 write.regtable(list(mt6), filename='fit_mtergm_clar')
 
 #--------------------------------------------------------------------
