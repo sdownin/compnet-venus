@@ -190,21 +190,24 @@ firms.todo <- c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
-  name_i <- firms.todo[i]
-  cat(sprintf('\n---------%s----------\n',name_i))
+  ## -- settings --
+  k <- 3
   yrpd <- 1
   startYr <- 2007
-  endYr <- 2017
+  endYr <- 2017  
+  ## --------------
+  name_i <- firms.todo[i]
+  cat(sprintf('\n---------%s----------\n',name_i))
   periods <- seq(startYr,endYr,yrpd)
   company.name <- 'company_name_unique'
   verbose <- TRUE
-  k <- 3
   #
   #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
   g.base <- g.full
   g.k.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], order = k, mode = 'all')[[1]]
   net.k.sub <- getNetFromIgraph(g.k.sub)
   net <- net.k.sub
+  net %n% 'ego' <- name_i
   #----------------Network List-------------------
   nl <- list()
   for (t in 2:length(periods)) {
@@ -225,7 +228,12 @@ for (i in 1:length(firms.todo)) {
   ## ---------- add LAGS ----------------
   for (t in 2:length(nl)) { 
     nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
-    nl[[t]] %n% 'dist_lag' <- as.matrix(nl[[t-1]] %n% 'dist')
+    .dist <- nl[[t-1]] %n% 'dist'
+    if ( ! any(is.null(.dist)) ) {
+      nl[[t]] %n% 'dist_lag' <- as.matrix(.dist)      
+    } else {
+      nl[[t]] %n% 'dist_lag' <- NA      
+    }
     dl <- nl[[t]] %n% 'dist_lag'
     dl[dl == Inf] <- 999999 
     nl[[t]] %n% 'dist_lag' <- dl 
@@ -246,7 +254,8 @@ for (i in 1:length(firms.todo)) {
   firm.nets[[net_group]][[name_i]] <- nets
   
   ## CAREFUL TO OVERWRITE 
-  save.image(sprintf('netrisk_dynamic_firm_nets_1yr_%s.RData',net_group))
+  file.name <- sprintf('netrisk_dynamic_firm_nets_1yr_%s.RData',net_group)
+  save.image(file.name)
     
 }
 
@@ -405,17 +414,55 @@ for (i in 1:length(firms.todo)) {
   nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
   if ( !('tmp.npds' %in% ls()) )   tmp.npds <- length(nets.sub)
   mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+  sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
   fit <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
                  nodefactor('state_code') + nodematch('state_code', diff=F) +
                  nodecov('age') +   edgecov(mmc)  +
                  nodecov('net_risk') + nodecov('net_risk_lag') +
                  nodematch('npm',diff=F) + 
                  nodematch('ipo_status', diff=TRUE)  +
-                nodecov('constraint') + absdiff('constraint') #+
+                 nodecov('constraint') + absdiff('constraint') +
+                 edgecov(sim) #+
                 # nodecov('betweenness') + absdiff('betweenness')
                , R = resamp, parallel = "multicore", ncpus = detectCores())
   l.fit.b[[firm_i]] <- fit
   file.name <- sprintf('fit_list_btergm_%syr_%spd_%sR_.RData', yrpd, tmp.npds, resamp)
+  save.image(file.name) # save.image('fit_list_btergm_med_clar_qual_1yr_.RData')
+}
+
+
+#------------------------------------------------------------------
+#------------- MISCELLANEOUS markets btergm firm MODEL FIT LIST ---
+#-----------------------------------------------------------------
+net_group <- 'misc'
+nets.group <- firm.nets[[net_group]]
+firms.todo <- names(firm.nets[[net_group]])
+#####
+if ( !('l.fit.b' %in% ls()) ) l.fit.b <- list()
+if ( !(net_group %in% names(l.fit.b)) ) l.fit.b[[net_group]] <- list()
+nPeriods <- min(sapply(nets.group,function(net)length(net))) 
+resamp <- 100
+yrpd <- 1
+if ('tmp.npds' %in% ls()) rm(tmp.npds)
+for (i in 1:length(firms.todo)) {
+  firm_i <- firms.todo[i]; cat(sprintf('---------%s---------\n',firm_i))
+  nets <- nets.group[[firm_i]]
+  nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
+  if ( !('tmp.npds' %in% ls()) )   tmp.npds <- length(nets.sub)
+  mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+  sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+  fit <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
+                  nodefactor('state_code') + nodematch('state_code', diff=F) +
+                  nodecov('age') +   edgecov(mmc)  +
+                  nodecov('net_risk') + nodecov('net_risk_lag') +
+                  nodematch('npm',diff=F) + 
+                  nodematch('ipo_status', diff=TRUE)  +
+                  nodecov('constraint') + absdiff('constraint') + 
+                  edgecov(sim)  #+
+                # nodecov('betweenness') + absdiff('betweenness')
+                , R = resamp, parallel = "multicore", ncpus = detectCores())
+  l.fit.b[[net_group]][[firm_i]] <- fit
+  file.name <- sprintf('fit_list_btergm_%syr_%spd_%sR_%s-grp.RData', yrpd, tmp.npds, resamp,net_group)
   save.image(file.name) # save.image('fit_list_btergm_med_clar_qual_1yr_.RData')
 }
 
@@ -434,7 +481,7 @@ l <- list(satmetrix=l.fit.b$satmetrix,
 screenreg(l, single.row = T)
 write.regtable(l, filename='fit_list_btergm_1yr_6pd_')
 
-write.regtable(l.fit.b, filename='fit_list_btergm_1yr_6pd_')
+write.regtable(l.fit.b, filename='fit_list_btergm_1yr_5pd_misc')
 #----------------------------------------------
 
 
@@ -443,7 +490,7 @@ nr <- c(.38,.47,.29,.5,.4,.51,.45,.46,.32)
 #-------------------------------------------------------
 #  PLOT COEFS DISTRIBUTION
 #-------------------------------------------------------
-l.fit.b.sub <- l.fit.b
+l.fit.b.sub <- l.fit.b$misc
 if ('df.coefs' %in% ls()) rm(df.coefs) 
 for (i in seq_along(l.fit.b.sub)) {
   firm_i <- names(l.fit.b.sub)[i]
@@ -460,7 +507,14 @@ for (i in seq_along(l.fit.b.sub)) {
 df.coefs.m <- melt(df.coefs, id.vars = 'coefs')
 
 ## Add market category
-df.coefs.m$market <- sprintf('EFM (n=%s)',length(unique(df.coefs.m$variable)))
+# df.coefs.m$market <- sprintf('EFM (n=%s)',length(unique(df.coefs.m$variable)))
+df.coefs.m$market <- NA
+markets <- list(FIoT=c('fitbit','runtastic'),
+                P2PT=c('zipcar','ridejoy'),
+                PCI=c('visa','mastercard'))
+for (i in seq_along(markets)) {
+  df.coefs.m[which(df.coefs.m$variable %in% markets[[i]]), 'market'] <- names(markets)[i]
+}
 
 # bwplot(value ~ coefs, data=df.coefs.m)
 
@@ -468,12 +522,12 @@ df.coefs.m$market <- sprintf('EFM (n=%s)',length(unique(df.coefs.m$variable)))
 df.sub <- subset(df.coefs.m, subset= (coefs != 'edges') )
 ggplot(data=df.sub, aes(x=coefs, y=value, fill=market)) + ## fill=industry
   geom_boxplot() +
-  scale_fill_grey(start=.8, end=.5) + 
+  scale_fill_brewer(type = 'qual') + 
   geom_hline(yintercept = 0) + coord_flip() +
   ylab('Point Estimate') + xlab('Variable') + 
   # scale_y_log10() +
-  theme_bw() + theme(legend.position="top")
-
+  theme_minimal() + theme(legend.position="top")
+ggsave('btergm_coef_bwplot_compare_misc3.png',width = 9, height = 6, units = 'in', dpi = 250)
 
 #----------------------------------------------------------
 #                MCMLE TERGM

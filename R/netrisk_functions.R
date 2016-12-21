@@ -1912,7 +1912,7 @@ netRisk <- function(g,  community.type='multilevel.community',
   } 
   #-------------------------------------------------------------------
   V(g)$netrisk <- r
-  cat('done.')
+  cat('done.\n')
   if(out.netrisk)
     return(r)
   if(out.dist)
@@ -2017,9 +2017,9 @@ getMultiMarketContact <- function(br, firms, end, ...)
   df <- .getMarketsDf(brsub, end, ...)
   df.m <- merge(data.frame(company_name_unique=firms,stringsAsFactors = F),
                 df, by = 'company_name_unique', all.x=T, all.y=F)
-  cat('computing MMC outer product matrix...\n')
+  cat('computing MMC outer product matrix...')
   mmc <- outer(df.m$concat, df.m$concat, Vectorize(.getMMCfromMarketConcat))
-  cat('done.')
+  cat('done.\n')
   return( mmc )
 }
 
@@ -2108,13 +2108,13 @@ setCovariates <- function(net, start, end,
     ##------------------------------------
     ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
     ##------------------------------------
-    cat('\ncomputing multi-market contact...\n')
+    cat('computing multi-market contact...\n')
     mmc <- getMultiMarketContact(br, net%v%'vertex.names', end)
     net %n% 'mmc' <- as.matrix(mmc)
     ##------------------------------------
     ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
     ##------------------------------------
-    cat('\ncomputing distances lag contact...\n')
+    cat('computing distances lag contact...\n')
     D <- as.matrix(igraph::distances(g.net))
     rownames(D) <- NULL;  colnames(D) <- NULL
     D[D==0] <- 1e-16
@@ -2126,19 +2126,21 @@ setCovariates <- function(net, start, end,
     ##------------------------------------
     ## # 4. IPO STATUS -- VERTEX ATTRIBUTE
     ##------------------------------------
-    cat('\ncomputing IPO status contact...\n')
+    cat('computing IPO status contact...\n')
     iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
                         & ipo$went_public_year < end), ]
     net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
     ##------------------------------------
-    ## # 5. Structural Autonomy (constraint) -- NODE ATTR
+    ## # 5. Constraint -- NODE ATTR
     ##------------------------------------
+    cat('computing constraint...\n')
     cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
     cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
     net %v% 'constraint' <- cons
     ##------------------------------------
     ## # 6. Similarity 
     ##------------------------------------
+    cat('computing inv.log.w.similarity...\n')
     sim <- igraph::similarity(g.net,vids = V(g.net), 
                               mode = "all", method = "invlogweighted" )
     sim[is.nan(sim) | is.na(sim)] <- 0
@@ -2146,6 +2148,7 @@ setCovariates <- function(net, start, end,
     ##------------------------------------
     ## # 7. Centrality (betweenness)
     ##------------------------------------
+    cat('computing betweenness...\n')
     betw <- igraph::betweenness(g.net)
     net %v% 'betweenness' <- betw
     net %v% 'betweenness_log' <- log(betw + .001) 
@@ -2153,7 +2156,7 @@ setCovariates <- function(net, start, end,
     ## # 8. Customer Status (coopetition) -- EDGE ATTRIBUTE
     ##------------------------------------
   } else {
-    cat('\nzero edges, skipping attributes...\n')
+    cat('zero edges, skipping attributes.\n')
   }
   
   return(net)
