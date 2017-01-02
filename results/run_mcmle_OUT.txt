@@ -134,3 +134,30 @@ The log-likelihood improved by 1.114
 Iteration 5 of at most 20: 
 The log-likelihood improved by 1.539 
 Evaluating log-likelihood at the estimate. Using 20 bridges: 1 
+
+##------ Tue Jan  3 08:06:24 2017 ------##
+
+socket cluster with 24 nodes on host ‘localhost’
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+Starting maximum likelihood estimation via MCMLE:
+Iteration 1 of at most 20: 
+The log-likelihood improved by 16.09 
+Iteration 2 of at most 20: 
+The log-likelihood improved by 4.68 
+Iteration 3 of at most 20: 
+The log-likelihood improved by 4.363 
+Iteration 4 of at most 20: 
