@@ -186,7 +186,7 @@ net_group <- 'misc'
 if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
-firms.todo <- c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
+firms.todo <- c('medallia','clarabridge','satmetrix')  ## c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
@@ -254,7 +254,7 @@ for (i in 1:length(firms.todo)) {
   firm.nets[[net_group]][[name_i]] <- nets
   
   ## CAREFUL TO OVERWRITE 
-  file.name <- sprintf('netrisk_dynamic_firm_nets_1yr_%s.RData',net_group)
+  file.name <- sprintf('netrisk_dynamic_firm_nets_1yr_v2_%s.RData',net_group)
   save.image(file.name)
     
 }
@@ -436,7 +436,8 @@ for (i in 1:length(firms.todo)) {
 #-----------------------------------------------------------------
 net_group <- 'misc'
 nets.group <- firm.nets[[net_group]]
-firms.todo <- names(firm.nets[[net_group]])
+# firms.todo <- names(firm.nets[[net_group]])
+firms.todo <- c("medallia","clarabridge", "satmetrix")
 #####
 if ( !('l.fit.b' %in% ls()) ) l.fit.b <- list()
 if ( !(net_group %in% names(l.fit.b)) ) l.fit.b[[net_group]] <- list()
@@ -481,7 +482,7 @@ l <- list(satmetrix=l.fit.b$satmetrix,
 screenreg(l, single.row = T)
 write.regtable(l, filename='fit_list_btergm_1yr_6pd_')
 
-write.regtable(l.fit.b, filename='fit_list_btergm_1yr_5pd_misc')
+write.regtable(l.fit.b$misc, filename='fit_list_btergm_1yr_5pd_misc_efm', ci.force.level=0.01)
 #----------------------------------------------
 
 
@@ -490,7 +491,7 @@ nr <- c(.38,.47,.29,.5,.4,.51,.45,.46,.32)
 #-------------------------------------------------------
 #  PLOT COEFS DISTRIBUTION
 #-------------------------------------------------------
-l.fit.b.sub <- l.fit.b$misc
+l.fit.b.sub <- l.fit.b$misc[ which(names(l.fit.b$misc) != 'medallia') ]
 if ('df.coefs' %in% ls()) rm(df.coefs) 
 for (i in seq_along(l.fit.b.sub)) {
   firm_i <- names(l.fit.b.sub)[i]
@@ -511,48 +512,279 @@ df.coefs.m <- melt(df.coefs, id.vars = 'coefs')
 df.coefs.m$market <- NA
 markets <- list(FIoT=c('fitbit','runtastic'),
                 P2PT=c('zipcar','ridejoy'),
-                PCI=c('visa','mastercard'))
+                PCI=c('visa','mastercard'),
+                EFM=c('clarabridge','satmetrix'))
 for (i in seq_along(markets)) {
   df.coefs.m[which(df.coefs.m$variable %in% markets[[i]]), 'market'] <- names(markets)[i]
 }
 
 # bwplot(value ~ coefs, data=df.coefs.m)
 
-## PLOT BWPLOT
-df.sub <- subset(df.coefs.m, subset= (coefs != 'edges') )
-ggplot(data=df.sub, aes(x=coefs, y=value, fill=market)) + ## fill=industry
+##RENAME
+sw <- function(x){
+  switch(x,
+    'absdiff.constraint' = '2. Abs. Diff. Constraint',
+    'nodematch.ipo_status.1' = '1. Size Homophily (IPO)',
+    'nodematch.ipo_status.0' = '1. Size Homophily (Private)',
+    'nodecov.net_risk' = '0. Net Risk',
+    'cycle3' = '3. cycle3',
+    'cycle4' = '3. cycle4',
+    'cycle5' = '3. cycle5',
+    'cycle6' = '3. cycle6'
+  )
+}
+
+## HYPOTHESES
+hyp <- c('absdiff.constraint', 'nodematch.ipo_status.1',
+         'nodematch.ipo_status.0','nodecov.net_risk','cycle3','cycle4',
+         'cycle5','cycle6')
+df.sub.hyp <- subset(df.coefs.m, subset= (coefs %in% hyp) )
+df.sub.hyp$coefs <- sapply(df.sub.hyp$coefs, function(x) sw(as.character(x)))
+## CONTROLS
+df.sub.con <- subset(df.coefs.m, subset= !(coefs %in% hyp) )
+## BW PLOT of COEFFICIENTS
+ggplot(data=df.sub.hyp, aes(x=coefs, y=value, fill=market)) + ## fill=industry
   geom_boxplot() +
   scale_fill_brewer(type = 'qual') + 
   geom_hline(yintercept = 0) + coord_flip() +
   ylab('Point Estimate') + xlab('Variable') + 
   # scale_y_log10() +
-  theme_minimal() + theme(legend.position="top")
-ggsave('btergm_coef_bwplot_compare_misc3.png',width = 9, height = 6, units = 'in', dpi = 250)
+  theme_bw() + theme(legend.position="top")
+ggsave('btergm_coef_bwplot_compare_misc_HYP.png',width = 8, height = 6, units = 'in', dpi = 250)
+
+ggplot(data=df.sub.con, aes(x=coefs, y=value, fill=market)) + ## fill=industry
+  geom_boxplot() +
+  scale_fill_brewer(type = 'qual') + 
+  geom_hline(yintercept = 0) + coord_flip() +
+  ylab('Point Estimate') + xlab('Variable') + 
+  # scale_y_log10() +
+  theme_bw() + theme(legend.position="top")
+ggsave('btergm_coef_bwplot_compare_misc_CONTR.png',width = 8, height = 6, units = 'in', dpi = 250)
+
+
+#---------------------------------------------------------
+# --------- BTERGM HYPOTHESES MODEL  COMPARE -------------
+#---------------------------------------------------------
+nPeriods <- 5
+resamp <- 100
+net_group <- 'misc'
+firm_i <- 'clarabridge'
+if ( !('l.hyp' %in% ls()) ) l.hyp <- list()
+if ( !(net_group %in% names(l.hyp)) ) l.hyp[[net_group]] <- list()
+if ( !(firm_i %in% names(l.hyp[[net_group]])) ) l.hyp[[net_group]][[firm_i]] <- list()
+nets.sub <- firm.nets[[net_group]][[firm_i]]
+nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
+mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+
+l.hyp[[net_group]][[firm_i]]$fbc <- btergm(
+                nets.sub ~ edges + gwesp(0, fixed=T) + 
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodematch('npm',diff=F) + 
+                edgecov(sim)  #+
+              , R = resamp, parallel = "multicore", ncpus = detectCores())
+
+l.hyp[[net_group]][[firm_i]]$fb0 <- btergm(
+                nets.sub ~ edges + gwesp(0, fixed=T) + 
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodematch('npm',diff=F) + 
+                edgecov(sim)  +
+                nodecov('net_risk') + nodecov('net_risk_lag') 
+              , R = resamp, parallel = "multicore", ncpus = detectCores())
+
+l.hyp[[net_group]][[firm_i]]$fb1 <- btergm(
+                nets.sub ~ edges + gwesp(0, fixed=T) + 
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodematch('npm',diff=F) + 
+                edgecov(sim)  +
+                nodematch('ipo_status', diff=TRUE)
+              , R = resamp, parallel = "multicore", ncpus = detectCores())
+
+l.hyp[[net_group]][[firm_i]]$fb2 <- btergm(
+                nets.sub ~ edges + gwesp(0, fixed=T) + 
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodematch('npm',diff=F) + 
+                edgecov(sim)  +
+                nodecov('constraint') + absdiff('constraint') 
+              , R = resamp, parallel = "multicore", ncpus = detectCores())
+
+l.hyp[[net_group]][[firm_i]]$fb3 <- btergm(
+                nets.sub ~ edges + gwesp(0, fixed=T)   +
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodematch('npm',diff=F) + 
+                edgecov(sim)  +
+                cycle(3:6)
+              , R = resamp, parallel = "multicore", ncpus = detectCores())
+
+l.hyp[[net_group]][[firm_i]]$fb4 <- btergm(
+                nets.sub ~ edges + gwesp(0, fixed=T) + 
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodematch('npm',diff=F) + 
+                edgecov(sim)  +
+                nodecov('net_risk') + nodecov('net_risk_lag') +
+                nodematch('ipo_status', diff=TRUE)  +
+                nodecov('constraint') + absdiff('constraint') + 
+                cycle(3:6)
+              , R = resamp, parallel = "multicore", ncpus = detectCores())
+
+save.image(sprintf('btergm_fit_HYP_%s_%s_%sR.RData',net_group,firm_i,resamp))
+
+write.regtable(l.hyp$misc$clarabridge, html = T, filename = 'btergm_HYP_model_compare_clarabridge')
 
 #----------------------------------------------------------
 #                MCMLE TERGM
 ##--------------------------------------------------------
 # load('netrisk_dynamic_netflix_2y.RData')
 
-nPeriods <- 3
-nets <- firm.nets$satmetrix
-nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
-## Covariate Matrices
-mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+net_group <- 'misc'
+nets.group <- firm.nets[[net_group]]
+firms.todo <- names(firm.nets[[net_group]])
+#####
+if ( !('l.fit.m' %in% ls()) ) l.fit.m <- list()
+if ( !(net_group %in% names(l.fit.m)) ) l.fit.m[[net_group]] <- list()
+nPeriods <- min(sapply(nets.group,function(net)length(net))) 
+resamp <- 100
+yrpd <- 1
+if ('tmp.npds' %in% ls()) rm(tmp.npds)
+for (i in 1:length(firms.todo)) {
+  firm_i <- firms.todo[i]; cat(sprintf('---------%s---------\n',firm_i))
+  nets <- nets.group[[firm_i]]
+  nets.sub <- nets[ (length(nets)-nPeriods+1):length(nets) ]
+  if ( !('tmp.npds' %in% ls()) )   tmp.npds <- length(nets.sub)
+  mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+  sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+  fit <- mtergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
+                  nodefactor('state_code') + nodematch('state_code', diff=F) +
+                  nodecov('age') +   edgecov(mmc)  +
+                  nodecov('net_risk') + nodecov('net_risk_lag') +
+                  nodematch('npm',diff=F) + 
+                  nodematch('ipo_status', diff=TRUE)  +
+                  nodecov('constraint') + absdiff('constraint') + 
+                  edgecov(sim)  #+
+                # nodecov('betweenness') + absdiff('betweenness')
+                ,  parallel = "multicore", ncpus = detectCores())
+  l.fit.m[[net_group]][[firm_i]] <- fit
+  file.name <- sprintf('fit_list_mtergm_%syr_%spd_%s-grp.RData', yrpd, tmp.npds,net_group)
+  save.image(file.name) # save.image('fit_list_btergm_med_clar_qual_1yr_.RData')
+}
 
-mt6 <- mtergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
-                nodefactor('state_code') + nodematch('state_code', diff=F) +
-                nodecov('age') +   edgecov(mmc)  +
-                nodecov('net_risk') + nodecov('net_risk_lag') +
-                nodematch('npm',diff=F) + 
-                nodematch('ipo_status', diff=TRUE)  +
-                nodecov('constraint') + absdiff('constraint') #+
-              #nodecov('betweenness') + absdiff('betweenness')
-              , 
-              parallel = "multicore", ncpus = detectCores())
-save.image('netrisk_dynamic_firm_mtergm_2yr_3pd_.RData')
 write.regtable(list(mt6), filename='fit_mtergm_clar')
 
+
+
+
+
+#--------------------------------------------------------------------
+#------------------- 1000 Resample to check normality ---------------
+#--------------------------------------------------------------------
+load('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
+## save.image('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
+n <- length(firm.nets$misc$clarabridge)
+nets.sub <- firm.nets$misc$clarabridge[(n-6+1):n]
+mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+fbc6.100 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T) + 
+                      nodefactor('state_code') + nodematch('state_code', diff=F) +
+                      nodecov('age') +   edgecov(mmc)  +
+                      nodematch('npm',diff=F) + 
+                      edgecov(sim)  +
+                      nodecov('net_risk') + nodecov('net_risk_lag') +
+                      nodematch('ipo_status', diff=TRUE)  +
+                      nodecov('constraint') + absdiff('constraint') + 
+                    cycle(3) + cycle(4) + cycle(5) + 
+                    cycle(6)
+                    , R=100, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+btergm.se(fbc6.100, print=T)
+(gofc6.100 <- btergm::gof(fbc6.100, nsim=30))
+btergm::plot(gofc6.100)
+###
+fbc5.100 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T) + 
+                 nodefactor('state_code') + nodematch('state_code', diff=F) +
+                 nodecov('age') +   edgecov(mmc)  +
+                 nodematch('npm',diff=F) + 
+                 edgecov(sim)  +
+                 nodecov('net_risk') + nodecov('net_risk_lag') +
+                 nodematch('ipo_status', diff=TRUE)  +
+                 nodecov('constraint') + absdiff('constraint') + 
+                 cycle(3) + cycle(4) + cycle(5)
+               , R=100, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+btergm.se(fbc5.100, print=T)
+(gofc5.100 <- btergm::gof(fbc5.100, nsim=30))
+btergm::plot(gofc5.100)
+###
+fbc4.100 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T) + 
+                     nodefactor('state_code') + nodematch('state_code', diff=F) +
+                     nodecov('age') +   edgecov(mmc)  +
+                     nodematch('npm',diff=F) + 
+                     edgecov(sim)  +
+                     nodecov('net_risk') + nodecov('net_risk_lag') +
+                     nodematch('ipo_status', diff=TRUE)  +
+                     nodecov('constraint') + absdiff('constraint') + 
+                     cycle(3) + cycle(4)
+                   , R=100, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+btergm.se(fbc4.100, print=T)
+(gofc4.100 <- btergm::gof(fbc4.100, nsim=30))
+btergm::plot(gofc4.100)
+###
+fbc4r.100 <- btergm(nets.sub ~ edges + 
+                     nodematch('state_code', diff=F) +
+                     nodecov('age') +   edgecov(mmc)  +
+                     nodematch('npm',diff=F) + 
+                     nodecov('net_risk') +
+                     nodematch('ipo_status', diff=TRUE)  +
+                     nodecov('constraint') + absdiff('constraint') + 
+                     cycle(3) + cycle(4)
+                   , R=100, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+btergm.se(fbc4r.100, print=T)
+(gofc4r.100 <- btergm::gof(fbc4r.100, nsim=30))
+btergm::plot(gofc4r.100)
+###
+fbc4nl.50 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T) + 
+                       nodefactor('state_code') + nodematch('state_code', diff=F) +
+                       nodecov('age') +   edgecov(mmc)  +
+                       nodematch('npm',diff=F) + 
+                       edgecov(sim)  +
+                       nodecov('net_risk') + 
+                       nodematch('ipo_status', diff=TRUE)  +
+                       nodecov('constraint') + absdiff('constraint') + 
+                       cycle(3) + cycle(4)
+                    , R=10, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+btergm.se(fbc4nl.50, print=T)
+(gofc4nl.50 <- btergm::gof(fbc4nl.50, nsim=30))
+btergm::plot(gofc4nl.50)
+###
+fbc3.100 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T) + 
+                     nodefactor('state_code') + nodematch('state_code', diff=F) +
+                     nodecov('age') +   edgecov(mmc)  +
+                     nodematch('npm',diff=F) + 
+                     edgecov(sim)  +
+                     nodecov('net_risk') + nodecov('net_risk_lag') +
+                     nodematch('ipo_status', diff=TRUE)  +
+                     nodecov('constraint') + absdiff('constraint') + 
+                     cycle(3) 
+                   , R=100, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+btergm.se(fbc3.100, print=T)
+(gofc3.100 <- btergm::gof(fbc3.100, nsim=30))
+btergm::plot(gofc3.100)
+###
+fbcno <- btergm(nets.sub ~ edges + gwesp(0, fixed=T) + 
+                     nodefactor('state_code') + nodematch('state_code', diff=F) +
+                     nodecov('age') +   edgecov(mmc)  +
+                     nodematch('npm',diff=F) + 
+                     edgecov(sim)  +
+                     nodecov('net_risk') + nodecov('net_risk_lag') +
+                     nodematch('ipo_status', diff=TRUE)  +
+                     nodecov('constraint') + absdiff('constraint') 
+                   , R=100, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+btergm.se(fbcno, print=T)
+(gofno <- btergm::gof(fbcno, nsim=30))
+btergm::plot(gofno)
 #--------------------------------------------------------------------
 
 mt1 <- mtergm(nets ~ edges + gwesp(0, fixed=T) + 
