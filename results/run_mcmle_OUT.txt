@@ -92,3 +92,45 @@ sim (col)      475 475 475 475 475 475
 
 Starting maximum likelihood estimation via MCMLE:
 Iteration 1 of at most 20: 
+The log-likelihood improved by 2.192 
+Iteration 2 of at most 20: 
+The log-likelihood improved by 1.426 
+Iteration 3 of at most 20: 
+The log-likelihood improved by 1.332 
+Iteration 4 of at most 20: 
+The log-likelihood improved by 1.553 
+Iteration 5 of at most 20: 
+The log-likelihood improved by 1.45 
+Iteration 6 of at most 20: 
+The log-likelihood improved by 1.66 
+Iteration 7 of at most 20: 
+The log-likelihood improved by 1.424 
+Iteration 8 of at most 20: 
+The log-likelihood improved by 1.7 
+Iteration 9 of at most 20: 
+The log-likelihood improved by 1.583 
+Iteration 10 of at most 20: 
+The log-likelihood improved by 1.402 
+Iteration 11 of at most 20: 
+The log-likelihood improved by 1.485 
+Iteration 12 of at most 20: 
+The log-likelihood improved by 1.806 
+Iteration 13 of at most 20: 
+The log-likelihood improved by 1.609 
+Iteration 14 of at most 20: 
+The log-likelihood improved by 1.674 
+Iteration 15 of at most 20: 
+The log-likelihood improved by 1.341 
+Iteration 16 of at most 20: 
+The log-likelihood improved by 1.824 
+Iteration 17 of at most 20: 
+The log-likelihood improved by 1.642 
+Iteration 18 of at most 20: 
+The log-likelihood improved by 1.605 
+Iteration 19 of at most 20: 
+The log-likelihood improved by 1.46 
+Iteration 20 of at most 20: 
+The log-likelihood improved by 1.114 
+Iteration 5 of at most 20: 
+The log-likelihood improved by 1.539 
+Evaluating log-likelihood at the estimate. Using 20 bridges: 1 
