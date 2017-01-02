@@ -6,14 +6,6 @@ library(snow)
 setwd('/home/sdowning/data')
 load('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
 
-n <- length(firm.nets$misc$clarabridge)
-nets.sub <- firm.nets$misc$clarabridge[(n-6+1):n]
-
-mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
-sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
-cat('summary(sim)\n')
-print(summary(sim))
-
 ncores <- detectCores()
 ncpus <- ifelse(ncores > 24, 24, ncores)
 cat(sprintf('using %s cpus of %s detected cores\n', ncpus, ncores))
@@ -112,6 +104,7 @@ g2 <- tryCatch( btergm::gof(f2, nsim=30), error=function(e) e, finally=cat('\n\n
 g3 <- tryCatch( btergm::gof(f3, nsim=30), error=function(e) e, finally=cat('\n\npassing gof(f3)\n\n'))
 g4 <- tryCatch( btergm::gof(f4, nsim=30), error=function(e) e, finally=cat('\n\npassing gof(f4)\n\n'))
 
+#-----------------------------------------------------------------------------
 
 cat('saving image\n')
 save.image('run_mcmle_hyp.RData')
