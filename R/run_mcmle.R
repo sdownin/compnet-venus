@@ -6,11 +6,8 @@ library(snow)
 setwd('/home/sdowning/data')
 load('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
 
-ncores <- detectCores()
-ncpus <- ifelse(ncores > 24, 24, ncores)
-cat(sprintf('using %s cpus of %s detected cores\n', ncpus, ncores))
-
-cl <- snow::makeCluster(ncpus)
+ncpus <- 24
+(cl <- snow::makeCluster(ncpus))
 
 ctrl <- control.ergm(MCMC.burnin=50000, MCMC.interval=5000, MCMC.samplesize=50000)
 
