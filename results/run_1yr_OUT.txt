@@ -1,0 +1,16 @@
+beginning tergm computationdetected 4 cores               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 146 146 146 146 146 146
+nets.sub (col) 146 146 146 146 146 146
+mmc (row)      146 146 146 146 146 146
+mmc (col)      146 146 146 146 146 146
+sim (row)      146 146 146 146 146 146
+sim (col)      146 146 146 146 146 146
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 146 146 146 146 146 146
+nets.sub (col) 146 146 146 146 146 146
+mmc (row)      146 146 146 146 146 146
+mmc (col)      146 146 146 146 146 146
+sim (row)      146 146 146 146 146 146
+sim (col)      146 146 146 146 146 146
+saving image
+completed successfully.
