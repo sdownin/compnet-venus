@@ -105,12 +105,12 @@ print(btergm::btergm.se(f3, print=T))
 print(btergm::btergm.se(f4, print=T))
 
 cat('completed btergm fit. running diagnostics...\n')
-gc <- tryCatch( btergm::gof(fc, nsim=30), error=function(e) e, finally=print('\n\npassing gof(fc)\n\n'))
-g0 <- tryCatch( btergm::gof(f0, nsim=30), error=function(e) e, finally=print('\n\npassing gof(f0)\n\n'))
-g1 <- tryCatch( btergm::gof(f1, nsim=30), error=function(e) e, finally=print('\n\npassing gof(f1)\n\n'))
-g2 <- tryCatch( btergm::gof(f2, nsim=30), error=function(e) e, finally=print('\n\npassing gof(f2)\n\n'))
-g3 <- tryCatch( btergm::gof(f3, nsim=30), error=function(e) e, finally=print('\n\npassing gof(f3)\n\n'))
-g4 <- tryCatch( btergm::gof(f4, nsim=30), error=function(e) e, finally=print('\n\npassing gof(f4)\n\n'))
+gc <- tryCatch( btergm::gof(fc, nsim=30), error=function(e) e, finally=cat('\n\npassing gof(fc)\n\n'))
+g0 <- tryCatch( btergm::gof(f0, nsim=30), error=function(e) e, finally=cat('\n\npassing gof(f0)\n\n'))
+g1 <- tryCatch( btergm::gof(f1, nsim=30), error=function(e) e, finally=cat('\n\npassing gof(f1)\n\n'))
+g2 <- tryCatch( btergm::gof(f2, nsim=30), error=function(e) e, finally=cat('\n\npassing gof(f2)\n\n'))
+g3 <- tryCatch( btergm::gof(f3, nsim=30), error=function(e) e, finally=cat('\n\npassing gof(f3)\n\n'))
+g4 <- tryCatch( btergm::gof(f4, nsim=30), error=function(e) e, finally=cat('\n\npassing gof(f4)\n\n'))
 
 
 cat('saving image\n')

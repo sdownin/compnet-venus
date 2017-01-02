@@ -62,3 +62,33 @@ The log-likelihood improved by 1.377
 Iteration 3 of at most 20: 
 The log-likelihood improved by 1.412 
 Iteration 4 of at most 20: 
+
+
+##------ Thu Dec  8 19:25:07 2016 ------##
+
+summary(sim)
+     Length Class  Mode   
+2012 225625 -none- numeric
+2013 225625 -none- numeric
+2014 225625 -none- numeric
+2015 225625 -none- numeric
+2016 225625 -none- numeric
+2017 225625 -none- numeric
+using 4 cpus of 4 detected cores
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+Starting maximum likelihood estimation via MCMLE:
+Iteration 1 of at most 20: 
