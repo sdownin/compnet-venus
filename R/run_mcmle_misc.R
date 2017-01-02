@@ -3,8 +3,10 @@ library(btergm)
 library(parallel)
 library(snow)
 
-setwd('/home/sdowning/data')
-load('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
+data_dir <- '/home/sdowning/data'
+data_file <- 'netrisk_dynamic_firm_nets_1yr_v2_misc.RData'
+out_file <- 'run_mcmle_misc.RData'
+load(sprintf('%s/%s',data_dir,data_file))
 
 ncpus <- 24
 (cl <- snow::makeCluster(ncpus))
@@ -47,7 +49,7 @@ for (i in 1:length(firms.todo)) {
   l.fit.m[[net_group]][[firm_i]] <- fit
   #file.name <- sprintf('fit_list_btergm_%syr_%spd_%sR_%s-grp.RData', yrpd, tmp.npds, resamp,net_group)
   #save.image(file.name) # 
-  save.image('run_mcmle_misc.RData')
+  save.image(sprintf('%s/%s',data_dir,out_file))
 }
 
 #-------------------------------------------------------------------------------
