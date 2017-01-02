@@ -12,6 +12,8 @@ cat(sprintf('using %s cpus of %s detected cores\n', ncpus, ncores))
 
 cl <- snow::makeCluster(ncpus)
 
+ctrl <- control.ergm(MCMC.burnin=50000, MCMC.interval=5000, MCMC.samplesize=50000)
+
 #------------------------------------------------------------------------------
 #------------- MISCELLANEOUS markets mtergm firm MODEL FIT LIST ---------------
 #------------------------------------------------------------------------------
@@ -44,7 +46,7 @@ for (i in 1:length(firms.todo)) {
                   nodematch('ipo_status', diff=TRUE)  +
                   nodecov('constraint') + absdiff('constraint') + 
                   cycle(3) + cycle(4) + cycle(5) + cycle(6)
-                , parallel = "snow", ncpus = ncpus, cl=cl)
+                , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
   l.fit.m[[net_group]][[firm_i]] <- fit
   #file.name <- sprintf('fit_list_btergm_%syr_%spd_%sR_%s-grp.RData', yrpd, tmp.npds, resamp,net_group)
   #save.image(file.name) # 

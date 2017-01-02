@@ -12,6 +12,8 @@ cat(sprintf('using %s cpus of %s detected cores\n', ncpus, ncores))
 
 cl <- snow::makeCluster(ncpus)
 
+ctrl <- control.ergm(MCMC.burnin=50000, MCMC.interval=5000, MCMC.samplesize=50000)
+
 #---------------------------------------------------------
 # --------- BTERGM HYPOTHESES MODEL  COMPARE -------------
 #---------------------------------------------------------
@@ -32,7 +34,7 @@ l.hyp[[net_group]][[firm_i]]$fc <- mtergm(
     nodecov('age') +   edgecov(mmc)  +
     nodematch('npm',diff=F) + 
     edgecov(sim)  #+
-  , parallel = "snow", ncpus = ncpus, cl=cl)
+  , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
 save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f0 <- mtergm(
@@ -42,7 +44,7 @@ l.hyp[[net_group]][[firm_i]]$f0 <- mtergm(
     nodematch('npm',diff=F) + 
     edgecov(sim)  +
     nodecov('net_risk') 
-  , parallel = "snow", ncpus = ncpus, cl=cl)
+  , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
 save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f1 <- mtergm(
@@ -52,7 +54,7 @@ l.hyp[[net_group]][[firm_i]]$f1 <- mtergm(
     nodematch('npm',diff=F) + 
     edgecov(sim)  +
     nodematch('ipo_status', diff=TRUE)
-  , parallel = "snow", ncpus = ncpus, cl=cl)
+  , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
 save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f2 <- mtergm(
@@ -62,7 +64,7 @@ l.hyp[[net_group]][[firm_i]]$f2 <- mtergm(
     nodematch('npm',diff=F) + 
     edgecov(sim)  +
     nodecov('constraint') + absdiff('constraint') 
-  , parallel = "snow", ncpus = ncpus, cl=cl)
+  , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
 save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f3 <- mtergm(
@@ -72,7 +74,7 @@ l.hyp[[net_group]][[firm_i]]$f3 <- mtergm(
     nodematch('npm',diff=F) + 
     edgecov(sim)  +
     cycle(3) + cycle(4) + cycle(5) + cycle(6)
-  , parallel = "snow", ncpus = ncpus, cl=cl)
+  , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
 save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f4 <- mtergm(
@@ -85,7 +87,7 @@ l.hyp[[net_group]][[firm_i]]$f4 <- mtergm(
     nodematch('ipo_status', diff=TRUE)  +
     nodecov('constraint') + absdiff('constraint') + 
     cycle(3) + cycle(4) + cycle(5) + cycle(6)
-  , parallel = "snow", ncpus = ncpus, cl=cl)
+  , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
 save.image('run_mcmle_hyp.RData')
 #-----------------------------------------------------------------------------
 
