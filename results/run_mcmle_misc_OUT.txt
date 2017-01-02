@@ -1,0 +1,23 @@
+
+
+##------ Tue Jan  3 05:53:35 2017 ------##
+
+using 8 cpus of 8 detected cores
+---------fitbit---------
+               t=1 t=2 t=3 t=4 t=5
+nets.sub (row) 193 193 193 193 193
+nets.sub (col) 193 193 193 193 193
+mmc (row)      193 193 193 193 193
+mmc (col)      193 193 193 193 193
+sim (row)      193 193 193 193 193
+sim (col)      193 193 193 193 193
+               t=1 t=2 t=3 t=4 t=5
+nets.sub (row) 193 193 193 193 193
+nets.sub (col) 193 193 193 193 193
+mmc (row)      193 193 193 193 193
+mmc (col)      193 193 193 193 193
+sim (row)      193 193 193 193 193
+sim (col)      193 193 193 193 193
+
+Starting maximum likelihood estimation via MCMLE:
+Iteration 1 of at most 20: 
