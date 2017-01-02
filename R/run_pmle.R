@@ -18,8 +18,6 @@ ncores <- detectCores()
 ncpus <- ifelse(ncores > 24, 24, ncores)
 cat(sprintf('using %s cpus of %s detected cores\n', ncpus, ncores))
 
-cl <- snow::makeCluster(ncpus)
-
 cat('starting btergm fit\n')
 fb1 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  +
               nodefactor('state_code') + nodematch('state_code', diff=F) +
@@ -29,8 +27,8 @@ fb1 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  +
               nodecov('net_risk')  +
               nodematch('ipo_status', diff=T)  +
               nodecov('constraint') + absdiff('constraint') +
-              cycle(3) + cycle(4) + cycle(5)
-            , R=10, parallel = "snow", ncpus = ncpus, cl=cl)
+              cycle(3) + cycle(4) + cycle(5) + cycle(6)
+            , R=10, parallel = "multicore", ncpus = ncpus)
 
 cat('completed btergm fit. running diagnostics...\n')
 btergm::btergm.se(fb1, print=T)
@@ -39,8 +37,6 @@ g1 <- tryCatch( btergm::gof(fb1, nsim=30), error=function(e) e, finally=print('\
 
 cat('saving image\n')
 save.image('run_pmle.RData')
-
-snow::stopCluster(cl)
 
 cat('completed successfully.\n\n')
 

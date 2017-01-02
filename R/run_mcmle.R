@@ -41,6 +41,7 @@ l.hyp[[net_group]][[firm_i]]$fc <- mtergm(
     nodematch('npm',diff=F) + 
     edgecov(sim)  #+
   , parallel = "snow", ncpus = ncpus, cl=cl)
+save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f0 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -50,6 +51,7 @@ l.hyp[[net_group]][[firm_i]]$f0 <- mtergm(
     edgecov(sim)  +
     nodecov('net_risk') 
   , parallel = "snow", ncpus = ncpus, cl=cl)
+save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f1 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -59,6 +61,7 @@ l.hyp[[net_group]][[firm_i]]$f1 <- mtergm(
     edgecov(sim)  +
     nodematch('ipo_status', diff=TRUE)
   , parallel = "snow", ncpus = ncpus, cl=cl)
+save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f2 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -68,6 +71,7 @@ l.hyp[[net_group]][[firm_i]]$f2 <- mtergm(
     edgecov(sim)  +
     nodecov('constraint') + absdiff('constraint') 
   , parallel = "snow", ncpus = ncpus, cl=cl)
+save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f3 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T)   +
@@ -77,6 +81,7 @@ l.hyp[[net_group]][[firm_i]]$f3 <- mtergm(
     edgecov(sim)  +
     cycle(3) + cycle(4) + cycle(5) + cycle(6)
   , parallel = "snow", ncpus = ncpus, cl=cl)
+save.image('run_mcmle_hyp.RData')
 
 l.hyp[[net_group]][[firm_i]]$f4 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -89,8 +94,7 @@ l.hyp[[net_group]][[firm_i]]$f4 <- mtergm(
     nodecov('constraint') + absdiff('constraint') + 
     cycle(3) + cycle(4) + cycle(5) + cycle(6)
   , parallel = "snow", ncpus = ncpus, cl=cl)
-
-save.image(sprintf('mtergm_fit_HYP_%s_%s_.RData',net_group,firm_i))
+save.image('run_mcmle_hyp.RData')
 #-----------------------------------------------------------------------------
 
 print(btergm::btergm.se(fc, print=T))
