@@ -3,8 +3,10 @@ library(btergm)
 library(parallel)
 library(snow)
 
-setwd('/home/sdowning/data')
-load('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
+data_dir <- '/home/sdowning/data'
+data_file <- 'netrisk_dynamic_firm_nets_1yr_v2_misc.RData'
+out_file <- 'run_mcmle_hyp.RData'
+load(sprintf('%s/%s',data_dir,data_file))
 
 ncpus <- 24
 (cl <- snow::makeCluster(ncpus))
@@ -32,7 +34,7 @@ l.hyp[[net_group]][[firm_i]]$fc <- mtergm(
     nodematch('npm',diff=F) + 
     edgecov(sim)  #+
   , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
-save.image('run_mcmle_hyp.RData')
+save.image(sprintf('%s/%s',data_dir,out_file))
 
 l.hyp[[net_group]][[firm_i]]$f0 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -42,7 +44,7 @@ l.hyp[[net_group]][[firm_i]]$f0 <- mtergm(
     edgecov(sim)  +
     nodecov('net_risk') 
   , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
-save.image('run_mcmle_hyp.RData')
+save.image(sprintf('%s/%s',data_dir,out_file))
 
 l.hyp[[net_group]][[firm_i]]$f1 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -52,7 +54,7 @@ l.hyp[[net_group]][[firm_i]]$f1 <- mtergm(
     edgecov(sim)  +
     nodematch('ipo_status', diff=TRUE)
   , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
-save.image('run_mcmle_hyp.RData')
+save.image(sprintf('%s/%s',data_dir,out_file))
 
 l.hyp[[net_group]][[firm_i]]$f2 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -62,7 +64,7 @@ l.hyp[[net_group]][[firm_i]]$f2 <- mtergm(
     edgecov(sim)  +
     nodecov('constraint') + absdiff('constraint') 
   , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
-save.image('run_mcmle_hyp.RData')
+save.image(sprintf('%s/%s',data_dir,out_file))
 
 l.hyp[[net_group]][[firm_i]]$f3 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T)   +
@@ -72,7 +74,7 @@ l.hyp[[net_group]][[firm_i]]$f3 <- mtergm(
     edgecov(sim)  +
     cycle(3) + cycle(4) + cycle(5) + cycle(6)
   , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
-save.image('run_mcmle_hyp.RData')
+save.image(sprintf('%s/%s',data_dir,out_file))
 
 l.hyp[[net_group]][[firm_i]]$f4 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -85,7 +87,7 @@ l.hyp[[net_group]][[firm_i]]$f4 <- mtergm(
     nodecov('constraint') + absdiff('constraint') + 
     cycle(3) + cycle(4) + cycle(5) + cycle(6)
   , parallel = "snow", ncpus = ncpus, cl=cl, control=ctrl)
-save.image('run_mcmle_hyp.RData')
+save.image(sprintf('%s/%s',data_dir,out_file))
 #-----------------------------------------------------------------------------
 
 print(btergm::btergm.se(fc, print=T))
@@ -106,7 +108,7 @@ g4 <- tryCatch( btergm::gof(f4, nsim=30), error=function(e) e, finally=cat('\n\n
 #-----------------------------------------------------------------------------
 
 cat('saving image\n')
-save.image('run_mcmle_hyp.RData')
+save.image(sprintf('%s/%s',data_dir,out_file))
 
 snow::stopCluster(cl)
 
