@@ -2,11 +2,13 @@ cat('\n\n');timestamp();cat('\n')
 library(btergm)
 library(parallel)
 library(snow)
+library(texreg)
 
-data_dir <- '/home/sdowning/data'
-data_file <- 'netrisk_dynamic_firm_nets_1yr_v2_misc.RData'
-out_file <- 'run_mcmle_misc.RData'
-load(sprintf('%s/%s',data_dir,data_file))
+data.dir <- '/home/sdowning/data'
+data.file <- 'netrisk_dynamic_firm_nets_1yr_v2_misc.RData'
+out.file <- 'run_mcmle_misc_OUT.RData'
+out.txt  <- 'run_mcmle_misc_OUT.txt'
+load(sprintf('%s/%s',data.dir,data.file))
 
 ncpus <- 24
 (cl <- snow::makeCluster(ncpus))
@@ -19,16 +21,16 @@ ctrl <- control.ergm(MCMC.burnin=50000, MCMC.interval=5000, MCMC.samplesize=5000
 
 net_group <- 'misc'
 nets.group <- firm.nets[[net_group]]
-firms.todo <- names(firm.nets[[net_group]])
-# firms.todo <- c("fitbit", "runtastic", "zipcar", "ridejoy", "visa", "mastercard", 
-#                 "medallia", "clarabridge", "satmetrix")
+#firms.todo <- names(firm.nets[[net_group]])
+firms.todo <- c("medallia","satmetrix","clarabridge","fitbit", "runtastic", "zipcar", "ridejoy", "visa", "mastercard")
 
-#####
+
 if ( !('l.fit.m' %in% ls()) ) l.fit.m <- list()
 if ( !(net_group %in% names(l.fit.m)) ) l.fit.m[[net_group]] <- list()
 nPeriods <- min(sapply(nets.group,function(net)length(net))) 
 yrpd <- 1
 if ('tmp.npds' %in% ls()) rm(tmp.npds)
+
 for (i in 1:length(firms.todo)) {
   firm_i <- firms.todo[i]; cat(sprintf('---------%s---------\n',firm_i))
   nets <- nets.group[[firm_i]]
@@ -49,10 +51,26 @@ for (i in 1:length(firms.todo)) {
   l.fit.m[[net_group]][[firm_i]] <- fit
   #file.name <- sprintf('fit_list_btergm_%syr_%spd_%sR_%s-grp.RData', yrpd, tmp.npds, resamp,net_group)
   #save.image(file.name) # 
-  save.image(sprintf('%s/%s',data_dir,out_file))
+  save.image(sprintf('%s/%s',data.dir,out.file))
 }
+
+#---------------------------------------------------------------------------------
+
+cat('finished fits.\n')
+
+tryCatch(
+        screenreg( l.fit.m[[net_group]] )  ,
+        error=function(e) e,
+        finally=print('finishing screenreg')
+)
+tryCatch(
+        screenreg( l.fit.m[[net_group]], file=sprintf('%s/%s',data.dir,out.txt)  )  ,
+        error=function(e) e,
+        finally=print('finishing screenreg output')
+)
 
 #-------------------------------------------------------------------------------
 
 snow::stopCluster(cl)
 cat('completed successfully.\n\n')
+

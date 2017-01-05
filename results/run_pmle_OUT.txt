@@ -130,3 +130,220 @@ sim (col)      475 475 475 475 475 475
 saving image
 completed successfully.
 
+
+
+##------ Tue Jan  3 23:05:49 2017 ------##
+
+socket cluster with 16 nodes on host ‘localhost’
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Tue Jan  3 23:08:45 2017 ------##
+
+socket cluster with 16 nodes on host ‘localhost’
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Wed Jan  4 01:02:33 2017 ------##
+
+socket cluster with 16 nodes on host ‘localhost’
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Wed Jan  4 01:08:06 2017 ------##
+
+socket cluster with 16 nodes on host ‘localhost’
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+finished model fits
+[1] "finishing screenreg"
+<simpleError in w - mean(w, na.rm = TRUE): non-numeric argument to binary operator>
+[1] "finishing screenreg output"
+<simpleError in w - mean(w, na.rm = TRUE): non-numeric argument to binary operator>
+saving image
+completed successfully.
+
+
+
+##------ Wed Jan  4 03:16:00 2017 ------##
+
+socket cluster with 16 nodes on host ‘localhost’
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Wed Jan  4 03:32:15 2017 ------##
+
+socket cluster with 16 nodes on host ‘localhost’
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Wed Jan  4 03:34:35 2017 ------##
+

@@ -34,67 +34,17 @@ nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
 mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
 sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
 
-l.hyp[[net_group]][[firm_i]]$fc <- mtergm(
-  nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  #+
-  , parallel = parm, ncpus = ncpus,  control=ctrl)
-save.image(sprintf('%s/%s',data.dir,out.file))
-
-l.hyp[[net_group]][[firm_i]]$f0 <- mtergm(
-  nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  +
-    nodecov('net_risk') 
-  , parallel = parm, ncpus = ncpus,  control=ctrl)
-save.image(sprintf('%s/%s',data.dir,out.file))
-
-l.hyp[[net_group]][[firm_i]]$f1 <- mtergm(
-  nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  +
-    nodematch('ipo_status', diff=TRUE)
-  , parallel = parm, ncpus = ncpus,  control=ctrl)
-save.image(sprintf('%s/%s',data.dir,out.file))
-
-l.hyp[[net_group]][[firm_i]]$f2 <- mtergm(
-  nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  +
-    nodecov('constraint') + absdiff('constraint') 
-  , parallel = parm, ncpus = ncpus,  control=ctrl)
-save.image(sprintf('%s/%s',data.dir,out.file))
-
 l.hyp[[net_group]][[firm_i]]$f3 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T)   +
     nodefactor('state_code') + nodematch('state_code', diff=F) +
     nodecov('age') +   edgecov(mmc)  +
     nodematch('npm',diff=F) + 
     edgecov(sim)  +
+    nodematch('ipo_status', diff=TRUE) + 
     cycle(3) + cycle(4) + cycle(5) + cycle(6)
   , parallel = parm, ncpus = ncpus,  control=ctrl)
 save.image(sprintf('%s/%s',data.dir,out.file))
 
-l.hyp[[net_group]][[firm_i]]$f4 <- mtergm(
-  nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  +
-    nodecov('net_risk') +
-    nodematch('ipo_status', diff=TRUE)  +
-    nodecov('constraint') + absdiff('constraint') + 
-    cycle(3) + cycle(4) + cycle(5) + cycle(6)
-  , parallel = parm, ncpus = ncpus,  control=ctrl)
-save.image(sprintf('%s/%s',data.dir,out.file))
 #-----------------------------------------------------------------------------
 
 cat('finished model fits\n')
