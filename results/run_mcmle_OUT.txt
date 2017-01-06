@@ -936,3 +936,13 @@ The log-likelihood improved by 2.885
 Iteration 10 of at most 20: 
 The log-likelihood improved by 2.968 
 Iteration 11 of at most 20: 
+The log-likelihood improved by 2.899 
+Iteration 12 of at most 20: 
+The log-likelihood improved by 2.97 
+Iteration 13 of at most 20: 
+The log-likelihood improved by 3.267 
+Iteration 14 of at most 20: 
+The log-likelihood improved by 3.382 
+Iteration 15 of at most 20: 
+The log-likelihood improved by 3.152 
+Iteration 16 of at most 20: 

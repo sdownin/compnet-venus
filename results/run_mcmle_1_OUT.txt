@@ -20,3 +20,31 @@ sim (col)      475 475 475 475 475 475
 
 Starting maximum likelihood estimation via MCMLE:
 Iteration 1 of at most 20: 
+The log-likelihood improved by 7.882 
+Iteration 2 of at most 20: 
+The log-likelihood improved by 2.453 
+Iteration 3 of at most 20: 
+The log-likelihood improved by 2.761 
+Iteration 4 of at most 20: 
+The log-likelihood improved by 2.863 
+Iteration 5 of at most 20: 
+The log-likelihood improved by 2.838 
+Iteration 6 of at most 20: 
+The log-likelihood improved by 2.62 
+Iteration 7 of at most 20: 
+The log-likelihood improved by 2.797 
+Iteration 8 of at most 20: 
+The log-likelihood improved by 2.939 
+Iteration 9 of at most 20: 
+The log-likelihood improved by 2.953 
+Iteration 10 of at most 20: 
+The log-likelihood improved by 2.563 
+Iteration 11 of at most 20: 
+The log-likelihood improved by 2.87 
+Iteration 12 of at most 20: 
+The log-likelihood improved by 2.667 
+Iteration 13 of at most 20: 
+The log-likelihood improved by 3.067 
+Iteration 14 of at most 20: 
+The log-likelihood improved by 2.911 
+Iteration 15 of at most 20: 
