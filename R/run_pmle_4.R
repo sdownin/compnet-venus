@@ -14,7 +14,7 @@ ncores <- detectCores()
 ncpus <- ncores
 cat(sprintf('using %s cpus of %s cores detected.\n'))
 
-R <- 20
+R <- 1000
 
 #---------------------------------------------------------
 # --------- BTERGM HYPOTHESES MODEL COMPARE MCMLE --------
@@ -33,48 +33,6 @@ mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
 sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
 ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
 
-l.hyp[[net_group]][[firm_i]]$f0 <- btergm(
-  nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  + edgecov(ldv) +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  + 
-    nodematch('ipo_status', diff=TRUE)
-  , R=R, parallel = "multicore", ncpus = ncpus)
-save.image(sprintf('%s/%s',data.dir,out.file))
-
-l.hyp[[net_group]][[firm_i]]$f1 <- btergm(
-  nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  + edgecov(ldv) +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  +
-    nodematch('ipo_status', diff=TRUE) +
-    nodecov('net_risk') 
-  , R=R, parallel = "multicore", ncpus = ncpus)
-save.image(sprintf('%s/%s',data.dir,out.file))
-
-l.hyp[[net_group]][[firm_i]]$f2 <- btergm(
-  nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  + edgecov(ldv) +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  +
-    nodematch('ipo_status', diff=TRUE)  +
-    nodecov('constraint') + absdiff('constraint') 
-  , R=R, parallel = "multicore", ncpus = ncpus)
-save.image(sprintf('%s/%s',data.dir,out.file))
-
-l.hyp[[net_group]][[firm_i]]$f3 <- btergm(
-  nets.sub ~ edges + gwesp(0, fixed=T)   +
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  + edgecov(ldv) +
-    nodematch('npm',diff=F) + 
-    edgecov(sim)  +
-    nodematch('ipo_status', diff=TRUE)  +
-    cycle(3) + cycle(4) + cycle(5) + cycle(6)
-  , R=R, parallel = "multicore", ncpus = ncpus)
-save.image(sprintf('%s/%s',data.dir,out.file))
 
 l.hyp[[net_group]][[firm_i]]$f4 <- btergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -93,14 +51,14 @@ save.image(sprintf('%s/%s',data.dir,out.file))
 cat('finished model fits\n')
 
 tryCatch( 
-	screenreg( l.hyp[[net_group]][[firm_i]] )  , 
-	error=function(e) e, 
-	finally=print('finishing screenreg')
+  screenreg( l.hyp[[net_group]][[firm_i]] )  , 
+  error=function(e) e, 
+  finally=print('finishing screenreg')
 )
 tryCatch( 
-	screenreg( l.hyp[[net_group]][[firm_i]], file=sprintf('%s/%s',data.dir,out.txt)  )  , 
-	error=function(e) e, 
-	finally=print('finishing screenreg output')
+  screenreg( l.hyp[[net_group]][[firm_i]], file=sprintf('%s/%s',data.dir,out.txt)  )  , 
+  error=function(e) e, 
+  finally=print('finishing screenreg output')
 )
 
 

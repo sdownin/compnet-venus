@@ -188,7 +188,8 @@ net_group <- 'misc'
 if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
-firms.todo <- c('clarabridge','medallia','satmetrix')  ## c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
+# firms.todo <- c('clarabridge','medallia','satmetrix')  ## c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
+firms.todo <- c('customergauge')
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
@@ -676,21 +677,22 @@ write.regtable(list(mt6), filename='fit_mtergm_clar')
 #--------------------------------------------------------------------
 load('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
 ## save.image('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
-n <- length(firm.nets$misc$clarabridge)
+n <- 3#length(firm.nets$misc$clarabridge)
 nets.sub <- firm.nets$misc$clarabridge[(n-6+1):n]
 mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
 sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
 fbc6.100 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T) + 
                       nodefactor('state_code') + nodematch('state_code', diff=F) +
                       nodecov('age') +   edgecov(mmc)  +
                       nodematch('npm',diff=F) + 
-                      edgecov(sim)  +
+                      edgecov(sim)  + edgecov(ldv) +
                       nodecov('net_risk') + nodecov('net_risk_lag') +
                       nodematch('ipo_status', diff=TRUE)  +
                       nodecov('constraint') + absdiff('constraint') + 
                     cycle(3) + cycle(4) + cycle(5) + 
                     cycle(6)
-                    , R=100, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+                    , R=30, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
 btergm.se(fbc6.100, print=T)
 (gofc6.100 <- btergm::gof(fbc6.100, nsim=30))
 btergm::plot(gofc6.100)

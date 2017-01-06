@@ -380,9 +380,54 @@ getMultiProdEgoNet <- function(g, firms, k=1, include.competitor.egonet=TRUE)
 }
 
 ##
+#
+##
+##
 # Plot Competition Network coloring the Multi-Product firms in red
 ##
-plotCompNet <- function(gs, membership=NA, focal.firm=NA, focal.color=TRUE, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, ...) 
+plotCompNetAOM <- function(gs, membership=NA, focal.firm=NA, is.focal.color=TRUE, 
+                           multi.prod=NA, vertex.log.base=exp(1),label.log.base=10, 
+                           layout.algo=layout.fruchterman.reingold,margins=NA, seed=1111, ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  ##
+  if (!all(is.na(membership)))
+    vertcol <- rainbow(length(unique(membership)), alpha=.7)[ membership ]
+  ##
+  if (!all(is.na(multi.prod)))
+    vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), vertcol)
+  ##
+  if(!all(is.na(focal.firm))) {
+    if(is.focal.color) 
+      vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
+    vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
+  }
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=log(d,base=vertex.log.base)*2 + 1.1
+              , vertex.color=vertcol
+              , vertex.label.cex=log(d,base=label.log.base)/2 + .005
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+##
+# Plot Competition Network coloring the Multi-Product firms in red
+##
+plotCompNet <- function(gs, layout.algo, membership=NA, focal.firm=NA, focal.color=TRUE, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, ...) 
 {
   if(all(is.na(margins)))
       margins <- c(.1,.1,.1,.1)
@@ -406,7 +451,7 @@ plotCompNet <- function(gs, membership=NA, focal.firm=NA, focal.color=TRUE, mult
   ##
   set.seed(1111)
   plot.igraph(gs
-              , layout=layout.kamada.kawai
+              , layout=layout.algo
               , vertex.size=log(d,base=vertex.log.base)*2 + 2
               , vertex.color=vertcol
               , vertex.label.cex=log(d,base=label.log.base)/2 + .01
