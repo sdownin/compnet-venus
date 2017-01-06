@@ -175,7 +175,9 @@ View(head(co[grep('biotec',
 
 
 ##--------------------------------------------------------------
+##--------------------------------------------------------------
 ##--------- CREATE FIRM NETWORK PERIOD LISTS ------------------
+##--------------------------------------------------------------
 ##--------------------------------------------------------------
 
 ## creat list if not exists
@@ -186,7 +188,7 @@ net_group <- 'misc'
 if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
-firms.todo <- c('medallia','clarabridge','satmetrix')  ## c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
+firms.todo <- c('clarabridge','medallia','satmetrix')  ## c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
@@ -194,7 +196,7 @@ for (i in 1:length(firms.todo)) {
   k <- 3
   yrpd <- 1
   startYr <- 2007
-  endYr <- 2017  
+  endYr <- 2017
   ## --------------
   name_i <- firms.todo[i]
   cat(sprintf('\n---------%s----------\n',name_i))
@@ -218,9 +220,6 @@ for (i in 1:length(firms.todo)) {
                              netRiskCommunityAlgo='multilevel.community',
                              downweight.env.risk=FALSE,
                              acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
-    # nl[[t]] <- makePdNetworkSetCovariates(net.k.sub, start=periods[t-1], end=periods[t],
-    #                                       acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo,
-    #                                       netRiskCommunityAlgo='multilevel.community')
   }
   nl.bak <- nl
   nl <- nl[which(sapply(nl, length)>0)]
@@ -228,15 +227,7 @@ for (i in 1:length(firms.todo)) {
   ## ---------- add LAGS ----------------
   for (t in 2:length(nl)) { 
     nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
-    .dist <- nl[[t-1]] %n% 'dist'
-    if ( ! any(is.null(.dist)) ) {
-      nl[[t]] %n% 'dist_lag' <- as.matrix(.dist)      
-    } else {
-      nl[[t]] %n% 'dist_lag' <- NA      
-    }
-    dl <- nl[[t]] %n% 'dist_lag'
-    dl[dl == Inf] <- 999999 
-    nl[[t]] %n% 'dist_lag' <- dl 
+    nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
     # nl[[t]] <- network::set.network.attribute(nl[[t]], 'dist_lag', (nl[[t-1]] %n% 'dist') )
     # g.tmp <- getIgraphFromNet(nl[[t]])
     # if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
@@ -254,7 +245,7 @@ for (i in 1:length(firms.todo)) {
   firm.nets[[net_group]][[name_i]] <- nets
   
   ## CAREFUL TO OVERWRITE 
-  file.name <- sprintf('netrisk_dynamic_firm_nets_1yr_v2_%s.RData',net_group)
+  file.name <- sprintf('netrisk_dynamic_firm_nets_1yr_v3_%s.RData',net_group)
   save.image(file.name)
     
 }
