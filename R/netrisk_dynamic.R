@@ -175,7 +175,9 @@ View(head(co[grep('biotec',
 
 
 ##--------------------------------------------------------------
+##--------------------------------------------------------------
 ##--------- CREATE FIRM NETWORK PERIOD LISTS ------------------
+##--------------------------------------------------------------
 ##--------------------------------------------------------------
 
 ## creat list if not exists
@@ -186,7 +188,8 @@ net_group <- 'misc'
 if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
-firms.todo <- c('medallia','clarabridge','satmetrix')  ## c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
+# firms.todo <- c('clarabridge','medallia','satmetrix')  ## c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
+firms.todo <- c('customergauge')
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
@@ -194,7 +197,7 @@ for (i in 1:length(firms.todo)) {
   k <- 3
   yrpd <- 1
   startYr <- 2007
-  endYr <- 2017  
+  endYr <- 2017
   ## --------------
   name_i <- firms.todo[i]
   cat(sprintf('\n---------%s----------\n',name_i))
@@ -218,9 +221,6 @@ for (i in 1:length(firms.todo)) {
                              netRiskCommunityAlgo='multilevel.community',
                              downweight.env.risk=FALSE,
                              acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
-    # nl[[t]] <- makePdNetworkSetCovariates(net.k.sub, start=periods[t-1], end=periods[t],
-    #                                       acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo,
-    #                                       netRiskCommunityAlgo='multilevel.community')
   }
   nl.bak <- nl
   nl <- nl[which(sapply(nl, length)>0)]
@@ -228,15 +228,7 @@ for (i in 1:length(firms.todo)) {
   ## ---------- add LAGS ----------------
   for (t in 2:length(nl)) { 
     nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
-    .dist <- nl[[t-1]] %n% 'dist'
-    if ( ! any(is.null(.dist)) ) {
-      nl[[t]] %n% 'dist_lag' <- as.matrix(.dist)      
-    } else {
-      nl[[t]] %n% 'dist_lag' <- NA      
-    }
-    dl <- nl[[t]] %n% 'dist_lag'
-    dl[dl == Inf] <- 999999 
-    nl[[t]] %n% 'dist_lag' <- dl 
+    nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
     # nl[[t]] <- network::set.network.attribute(nl[[t]], 'dist_lag', (nl[[t-1]] %n% 'dist') )
     # g.tmp <- getIgraphFromNet(nl[[t]])
     # if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
@@ -254,7 +246,7 @@ for (i in 1:length(firms.todo)) {
   firm.nets[[net_group]][[name_i]] <- nets
   
   ## CAREFUL TO OVERWRITE 
-  file.name <- sprintf('netrisk_dynamic_firm_nets_1yr_v2_%s.RData',net_group)
+  file.name <- sprintf('netrisk_dynamic_firm_nets_1yr_v3_%s.RData',net_group)
   save.image(file.name)
     
 }
@@ -685,21 +677,22 @@ write.regtable(list(mt6), filename='fit_mtergm_clar')
 #--------------------------------------------------------------------
 load('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
 ## save.image('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
-n <- length(firm.nets$misc$clarabridge)
+n <- 3#length(firm.nets$misc$clarabridge)
 nets.sub <- firm.nets$misc$clarabridge[(n-6+1):n]
 mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
 sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
 fbc6.100 <- btergm(nets.sub ~ edges + gwesp(0, fixed=T) + 
                       nodefactor('state_code') + nodematch('state_code', diff=F) +
                       nodecov('age') +   edgecov(mmc)  +
                       nodematch('npm',diff=F) + 
-                      edgecov(sim)  +
+                      edgecov(sim)  + edgecov(ldv) +
                       nodecov('net_risk') + nodecov('net_risk_lag') +
                       nodematch('ipo_status', diff=TRUE)  +
                       nodecov('constraint') + absdiff('constraint') + 
                     cycle(3) + cycle(4) + cycle(5) + 
                     cycle(6)
-                    , R=100, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
+                    , R=30, parallel = "multicore", ncpus = detectCores())  #parallel = "multicore", ncpus = detectCores()
 btergm.se(fbc6.100, print=T)
 (gofc6.100 <- btergm::gof(fbc6.100, nsim=30))
 btergm::plot(gofc6.100)
