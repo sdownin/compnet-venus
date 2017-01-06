@@ -5,7 +5,7 @@ library(snow)
 library(texreg)
 
 data.dir <- '/home/sdowning/data'
-data.file <- 'netrisk_dynamic_firm_nets_1yr_v2_misc.RData'
+data.file <- 'netrisk_dynamic_firm_nets_1yr_v3_misc.RData'
 out.file <- 'run_pmle_hyp_OUT.RData'
 out.txt <- 'run_pmle_hyp_OUT.txt'
 load(sprintf('%s/%s',data.dir,data.file))
