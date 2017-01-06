@@ -1,0 +1,54 @@
+
+
+##------ Thu Jan  5 14:55:46 2017 ------##
+
+using 8 cpus of 8 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+Starting maximum likelihood estimation via MCMLE:
+Iteration 1 of at most 20: 
+The log-likelihood improved by 9.147 
+Iteration 2 of at most 20: 
+The log-likelihood improved by 2.998 
+Iteration 3 of at most 20: 
+The log-likelihood improved by 2.61 
+Iteration 4 of at most 20: 
+The log-likelihood improved by 2.769 
+Iteration 5 of at most 20: 
+The log-likelihood improved by 3.209 
+Iteration 6 of at most 20: 
+The log-likelihood improved by 3.214 
+Iteration 7 of at most 20: 
+The log-likelihood improved by 2.854 
+Iteration 8 of at most 20: 
+The log-likelihood improved by 3.037 
+Iteration 9 of at most 20: 
+The log-likelihood improved by 2.96 
+Iteration 10 of at most 20: 
+The log-likelihood improved by 3 
+Iteration 11 of at most 20: 
+The log-likelihood improved by 3.024 
+Iteration 12 of at most 20: 
+The log-likelihood improved by 2.919 
+Iteration 13 of at most 20: 
+The log-likelihood improved by 3.466 
+Iteration 14 of at most 20: 
+The log-likelihood improved by 3.395 
+Iteration 15 of at most 20: 
+The log-likelihood improved by 3.138 
+Iteration 16 of at most 20: 
+The log-likelihood improved by 2.561 
+Iteration 17 of at most 20: 

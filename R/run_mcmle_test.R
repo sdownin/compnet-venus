@@ -2,42 +2,35 @@ cat('\n\n');timestamp();cat('\n')
 library(btergm)
 library(parallel)
 library(snow)
+library(texreg)
 
-setwd('/home/sdowning/data')
-load('netrisk_dynamic_firm_nets_1yr_v2_misc.RData')
+load('/home/sdowning/data/run_mcmle_test.RData')
 
-n <- length(firm.nets$misc$clarabridge)
-nets.sub <- firm.nets$misc$clarabridge[(n-6+1):n]
+nets.sub <- firm.nets$test$clarabridge
 
 mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
 sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
 cat('summary(sim)\n')
 print(summary(sim))
 
-ncores <- detectCores()
-ncpus <- ifelse(ncores > 24, 24, ncores)
-cat(sprintf('using %s cpus of %s detected cores\n', ncpus, ncores))
 
-cl <- snow::makeCluster(ncpus)
+ncpus <- 8
+(cl <- snow::makeCluster(ncpus))
 
 fm1 <- mtergm(nets.sub ~ edges + gwesp(0, fixed=T)  +
-                nodefactor('state_code') + nodematch('state_code', diff=F) +
-                nodecov('age') +   edgecov(mmc)  +
-                nodematch('npm',diff=F) +
-                edgecov(sim)  +
-                nodecov('net_risk')  +
-                nodematch('ipo_status', diff=T)  +
-                nodecov('constraint') + absdiff('constraint') +
-                cycle(3) + cycle(4) + cycle(5)
+                nodecov('age') +   edgecov(sim)  +
+                absdiff('constraint') +
+                cycle(3)  
               , parallel = "snow", ncpus = ncpus, cl=cl)
 
-btergm::btergm.se(fm1, print=T)
+cat('completed fit.')
+save.image('/home/sdowning/data/run_mcmle_test_OUT.RData')
 
-cat('completed btergm fit. running diagnostics...\n')
-g1 <- tryCatch( btergm::gof(fm1, nsim=30), error=function(e) e, finally=print('\n\npassing gof()\n\n'))
+tryCatch( screenreg(fm1), error=function(e) e, finally=print('finishing screenreg'))
+tryCatch( screenreg(fm1, file="/home/sdowning/data/run_mcmle_test_OUT.txt"), error=function(e) e, finally=print('finishing screenreg to file'))
 
 cat('saving image\n')
-save.image('run_mcmle.RData')
+save.image('/home/sdowning/data/run_mcmle_test_OUT.RData')
 
 snow::stopCluster(cl)
 
