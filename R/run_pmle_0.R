@@ -14,7 +14,7 @@ ncores <- detectCores()
 ncpus <- ncores
 cat(sprintf('using %s cpus of %s cores detected.\n'))
 
-R <- 20
+R <- 100
 
 #---------------------------------------------------------
 # --------- BTERGM HYPOTHESES MODEL COMPARE MCMLE --------

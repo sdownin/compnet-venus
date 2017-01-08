@@ -43,7 +43,7 @@ l.hyp[[net_group]][[firm_i]]$f4 <- btergm(
     nodematch('ipo_status', diff=TRUE)  +
     nodecov('net_risk') +
     nodecov('constraint') + absdiff('constraint') + 
-    cycle(3) + cycle(4) + cycle(5) + cycle(6)
+    cycle(3) + cycle(4) + cycle(5) #+ cycle(6)
   , R=R, parallel = "multicore", ncpus = ncpus)
 save.image(sprintf('%s/%s',data.dir,out.file))
 #-----------------------------------------------------------------------------

@@ -136,6 +136,7 @@ g.full <- read.graph('g_full.graphml', format='graphml')
 #fastgreedy
 #label.propagation
 #edge.betweenness
+gl <- sapply()
 #----------------------------------------------------------------
 ##-------------------FIND MARKET of suitable size --------------
 #----------------------------------------------------------------
@@ -144,7 +145,7 @@ deg <- igraph::degree(g.full)
 firms.sub <- firms[which(deg > 8 & deg < 13)]
 #View(data.frame(name=firms.sub))
 ##
-name_i <- 'fitbit'   ## check companies
+name_i <- 'crackle'   ## check companies
 k <- 3
 (nbs <- neighbors(g.full, v = V(g.full)[which(V(g.full)$name==name_i)]))
 g.ego <- make_ego_graph(g.full, order=k, 
@@ -188,8 +189,7 @@ net_group <- 'misc'
 if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
-# firms.todo <- c('clarabridge','medallia','satmetrix')  ## c('ridejoy','visa','mastercard')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
-firms.todo <- c('customergauge')
+firms.todo <- c('visa','mastercard','fitbit','ridejoy')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
@@ -628,6 +628,25 @@ l.hyp[[net_group]][[firm_i]]$fb4 <- btergm(
 save.image(sprintf('btergm_fit_HYP_%s_%s_%sR.RData',net_group,firm_i,resamp))
 
 write.regtable(l.hyp$misc$clarabridge, html = T, filename = 'btergm_HYP_model_compare_clarabridge')
+
+#---------------------------------------------------------
+#             REMOVE BOOTSAMP OUTLIERS
+#---------------------------------------------------------
+
+l.fix = list()
+l.fix$misc = list()
+l.fix$misc$clarabridge = list()
+for (model in c('f0', 'f1', 'f2', 'f3', 'f4')) {
+  fit <- l.hyp$misc$clarabridge[[model]]
+  ol.list <- apply(fit@bootsamp, 2, function(x) which(x > median(x, na.rm = T) + 1.5*IQR(x, na.rm = T) 
+                                                      | x < median(x, na.rm = T) - 1.5*IQR(x, na.rm = T)) )
+  ol <- unique(unlist(ol.list))
+  keep <- seq_len(nrow(fit@bootsamp))[ !( seq_len(nrow(fit@bootsamp)) %in% ol) ]
+  fit@bootsamp <- fit@bootsamp[keep, ]
+  l.fix$misc$clarabridge[[model]] <- fit
+}
+
+l.fix$misc$clarabridge$f3 = f3
 
 #----------------------------------------------------------
 #                MCMLE TERGM
