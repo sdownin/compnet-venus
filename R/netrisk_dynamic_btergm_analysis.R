@@ -165,11 +165,11 @@ png(sprintf('%s_net_time_slice_colored_dists_c42_s11.png',focal.firm), width=6*l
     plotCompNetAOMequalSize(g,
                             rcolors=rcolors,
                             competitors= competitors, 
-                            focal.firm = focal.firm, 
+                            focal.firm = focal.firm, is.focal.color = F,
                             layout.algo = layout.fruchterman.reingold,
                             seed=1111, margins = c(.1,.5,.1,2.5))
     ds <- igraph::distances(g, v = V(g)[V(g)$name==focal.firm], to=V(g)[V(g)$name%in%competitors] ) 
-    leg <- sprintf('Yr = %s\nE = %s\nV = %s\nDistances:\n    %s=%s\n    %s=%s\n    %s=%s\n    %s=%s',
+    leg <- sprintf('Yr = %s\nE = %s\nV = %s\nDistances:\n    %s = %s\n    %s = %s\n    %s = %s\n    %s = %s',
                    as.numeric(year_i)-1,ecount(g),vcount(g),
                    'IBM',ds[,competitors[1]],
                    'NI',ds[,competitors[2]],
@@ -180,6 +180,17 @@ png(sprintf('%s_net_time_slice_colored_dists_c42_s11.png',focal.firm), width=6*l
 dev.off()
 
 
+## reference plot
+ref.year <- '2014'
+net <- firm.nets$misc$clarabridge[[ref.year]]
+g <- getIgraphFromNet(net)
+g <- induced.subgraph(g, vids=V(g)[igraph::degree(g)>0])
+mem <- igraph::multilevel.community(g)$membership
+png(sprintf('%s_%s_labeled_reference_CNG_plot.png',focal.firm,ref.year), height=20, width = 20, units='in', res=400)
+  plotCompNetAOMequalSizeRefLabel(g, rcolors=rcolors, competitors= competitors, 
+                        focal.firm = focal.firm,  layout.algo = layout.fruchterman.reingold,
+                        seed=1111)
+dev.off()
 #-----------------------------------------------------------------
 #              Plotting Predictors over time
 #-----------------------------------------------------------------
@@ -251,3 +262,125 @@ for (i in indices) {
 }
 
 
+##-----------------------------------------------------------------
+#             probability interactions
+#
+#_-----------------------------------------------------------------
+sig <- function(a) (1/(1+exp(-a)))[1]
+
+fit <- l.fix$misc$clarabridge$f4
+
+bnames <- names(fit@coef)
+b <- fit@coef
+xbar <- apply(fit@effects, 2, function(x) quantile(x, probs=.5, na.rm = T))
+
+quantile(fit@effects$nodecov.net_risk)
+
+sig(b%*%xbar)
+
+predict.tie <- function(model,firm_j,firm_i='clarabridge',periods=NA) 
+{
+  net <- firm.nets$misc$clarabridge$`2017`
+  p <- sapply(firm_j, function(fj){
+    cat(sprintf('interpreting %s\n',fj))
+    vi <- which(net %v% 'vertex.names' == firm_i )
+    vj <- which(net %v% 'vertex.names'  == fj )
+    return(interpret(model, type='tie', i=vi, j=vj))
+  })
+  n <- ifelse(length(firm_j) > 8, 8, length(firm_j))
+  if(any(is.na(periods)))
+    x <- seq_len(model@time.steps)
+  matplot(x=x, y=p, xlab='Period',ylab='Conditional Tie Probability', type='b', lty=1:n, pch=1:n)
+  legend('topleft', legend=firm_j[1:n], lty=1:n,pch=1:n, col=1:n)
+  return(p)
+}
+
+periods <- 2011:2016
+firms1 <- c('satmetrix','networked-insights','mopinion')
+firms2 <- c('satmetrix','networked-insights','mopinion','ibm')
+n1 <- ifelse(length(firms1) > 8, 8, length(firms1))
+n2 <-  ifelse(length(firms2) > 8, 8, length(firms2))
+
+## INTERPRET ( slow )
+pred.1 <- predict.tie(fit, firms1, periods=periods)
+pred.2 <- predict.tie(fit, firms2, periods=periods)
+
+## PLOT
+png('predicted_tie_probs_sp_vs_gen.png',height=6.5,width=6.5,units='in',res=200)
+  par(mfrow=c(2,1), mar=c(4,4,3,1))
+  matplot(2011:2016, pred.1,  main='Specialists',
+          xlab='Period',ylab='Conditional Tie Probability',
+          ylim=c(0,.0009), type='b', lty=1:n1, pch=1:n1, lwd=2)
+  legend('topleft', legend=stringr::str_to_title(firms1), lty=1:n1,pch=1:n1, col=1:n1, lwd=2)
+  ##
+  matplot(2011:2016, pred.2, main="Specialists vs. Generalist",
+          xlab='Period',ylab='Conditional Tie Probability', 
+          ylim=c(0,.0085), type='b', lty=1:n2, pch=1:n2, lwd=2)
+  legend('topleft', legend=stringr::str_to_title(firms2), lty=1:n2, pch=1:n2, col=1:n2, lwd=2)
+dev.off()
+
+png('predicted_tie_probs_ln.png',height=5,width=7,units='in',res=200)
+matplot(2011:2016, pred.2,
+        xlab='Period',ylab='Conditional Tie Probability (Ln scale)', log='y',
+        type='b', lty=1:n2, pch=1:n2, lwd=2)
+abline(v=2015,lty=3,col=3)
+legend('topleft', legend=c(stringr::str_to_title(firms1),'IBM'), lty=1:n2, pch=1:n2, col=1:n2, lwd=2)
+dev.off()
+
+
+#-----------------------------------------------------------------
+#  Predicting Edge probabilities
+#-----------------------------------------------------------------
+
+mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
+## (long running time; parallelization doesn't work on Windows)
+ep <- btergm::edgeprob(l.fix$misc$clarabridge$f4)
+
+#-----------------------------------------------------------------
+# Correlations & Stats
+#_---------------------------------------------------------------
+skip <- c('nodematch.ipo_status.1','nodematch.ipo_status.0','edges', 'gwesp.fixed.0')
+eff.sub <- fit@effects[, which( !(colnames(fit@effects) %in% skip))]
+cr <- round(cor(eff.sub), 2)
+cr[upper.tri(cr, diag=T)] <- NA
+colnames(cr) <- seq_len(ncol(cr))
+write.table(cr, file = 'f4_corr_mat.csv',sep=',') 
+
+
+## summary stat
+write.table(psych::describe(eff.sub), file = 'f4_summary_stats.csv',sep=',') 
+
+## regression outpu
+write.regtable(l.fix$misc$clarabridge, html = T, single.row = F, digits=3)
+
+
+
+
+##_-------------------------------------------------------------------
+#  Out of Sample GOF
+#----------------------------------------------------------------------
+
+ix <- 1:(length(nets.sub)-1)
+mmc <- lapply(nets.sub[ix], function(net) as.matrix(net %n% 'mmc'))
+sim <- lapply(nets.sub[ix], function(net) as.matrix(net %n% 'similarity'))
+ldv <- lapply(nets.sub[ix], function(net) as.matrix(net %n% 'DV_lag'))
+
+osfit <- btergm(
+  nets.sub[ix] ~ edges + gwesp(0, fixed=T) + 
+    #nodefactor('state_code') + 
+    nodematch('state_code', diff=F) +
+    nodecov('age') +   edgecov(mmc)  + edgecov(ldv) +
+    nodematch('npm',diff=F) + 
+    edgecov(sim)  +
+    nodematch('ipo_status', diff=TRUE)  +
+    nodecov('net_risk') +
+    nodecov('constraint') + absdiff('constraint') + 
+    cycle(3) + cycle(4) + cycle(5) 
+  , R=100, parallel = "multicore", ncpus = detectCores())
+
+osgof <- btergm::gof(osfit, target=nets.sub[length(nets.sub)], nsim=50, statistics=c(dsp,esp,deg,geodesic))
+
+par(mfrow=c(2,2))
+btergm::plot(osgof)
