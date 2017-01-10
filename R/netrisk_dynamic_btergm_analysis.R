@@ -23,6 +23,18 @@ apply(l.hyp$misc$clarabridge$f4@bootsamp, 2, function(x) {
   any(is.na(x)) | any(is.nan(x)) | any(x==Inf) | any(x==-Inf)
 })
 
+## uncorrected
+bs <- l.hyp$misc$clarabridge$f4@bootsamp
+png('boot_coefs_qqnorm_unfixed.png',height=2.6*n,width=2.6*m, units='in', res=200)
+par(mfrow=c(n,m))  
+sapply(1:ncol(bs), function(i)qqnorm(bs[,i],
+                                     main=names(l.fix$misc$clarabridge$f0@coef)[i]))
+dev.off()
+png('boot_coefs_hist_unfixed.png',height=2.6*n,width=2.6*m, units='in', res=200)
+par(mfrow=c(n,m))  
+sapply(1:ncol(bs), function(i)hist(bs[,i],  breaks=19,
+                                   main=names(l.fix$misc$clarabridge$f0@coef)[i]))
+dev.off()
 
 #---------------------------------------------------------
 #   Init fixed object
@@ -44,11 +56,11 @@ for (model in c('f0','f1','f2','f3','f4')) {
 }
 
 #---------------------------------------------------------
-#             REMOVE BOOTSAMP OUTLIERS
+#             REMOVE BOOTSAMP OUTLIERS (keep 500 resampled)
 #---------------------------------------------------------
 for (model in c('f0', 'f1', 'f2', 'f3', 'f4')) {
   fit <- l.fix[[net_group]][[firm_i]][[model]]
-  ol.list <- apply(fit@bootsamp, 2, function(x) which(x > median(x, na.rm = T) + 1.5*IQR(x, na.rm = T) 
+  ol.list <- apply(fit@bootsamp, 2, function(x) which(x > median(x, na.rm = T) + 1.5*IQR(x, na.rm = T)
                                                       | x < median(x, na.rm = T) - 1.5*IQR(x, na.rm = T)) )
   ol <- unique(unlist(ol.list))
   keep <- seq_len(nrow(fit@bootsamp))[ !( seq_len(nrow(fit@bootsamp)) %in% ol) ]
@@ -57,11 +69,20 @@ for (model in c('f0', 'f1', 'f2', 'f3', 'f4')) {
 }
 
 ## Check visually
-par(mfrow=c(3,4))
-sapply(1:12, function(i)qqnorm(l.fix$misc$clarabridge$f3@bootsamp[,i], 
+bs <- l.fix$misc$clarabridge$f3@bootsamp
+n <- ceiling(sqrt(ncol(bs)))
+m <- ifelse(n*(n-1) < ncol(bs), n, n-1)
+
+png('boot_coefs_qqnorm.png',height=2.6*n,width=2.6*m, units='in', res=200)
+  par(mfrow=c(n,m))  
+  sapply(1:ncol(bs), function(i)qqnorm(bs[,i],
                                main=names(l.fix$misc$clarabridge$f0@coef)[i]))
-sapply(1:12, function(i)hist(l.fix$misc$clarabridge$f3@bootsamp[,i],  breaks=19,
+dev.off()
+png('boot_coefs_hist.png',height=2.6*n,width=2.6*m, units='in', res=200)
+  par(mfrow=c(n,m))  
+  sapply(1:ncol(bs), function(i)hist(bs[,i],  breaks=19,
                                main=names(l.fix$misc$clarabridge$f0@coef)[i]))
+dev.off()
 
 ## check remaining
 remains <- sapply(l.fix$misc$clarabridge, function(m) nrow(m@bootsamp))
@@ -135,7 +156,7 @@ View(dl[which(dl[,'2017']==2),])
 # 
 
 #-----------------------------------------------------------------#
-#                  PLOTS NETWORK SLICE
+#                  PLOTS NETWORK TIME SLICE (group colors)
 #-----------------------------------------------------------------#
 focal.firm <- 'clarabridge'
 competitors <- c('ibm','networked-insights','satmetrix', 'mopinion')
@@ -191,75 +212,75 @@ png(sprintf('%s_%s_labeled_reference_CNG_plot.png',focal.firm,ref.year), height=
                         focal.firm = focal.firm,  layout.algo = layout.fruchterman.reingold,
                         seed=1111)
 dev.off()
-#-----------------------------------------------------------------
-#              Plotting Predictors over time
-#-----------------------------------------------------------------
-
-year.names <- as.numeric(names(nets.sub)) - 1
-probs <- c(.25,.5,.75)
-
-fit <- l.fix$misc$clarabridge$f4
-
-# qt <- apply(fit@effects, 2, function(x) quantile(x, probs = c(.25,.5,.75), na.rm = T))
-
-## NET RISK
-net_risk <- sapply(nets.sub, function(net) quantile(net %v% 'net_risk', probs = probs))
-matplot(year.names, t(net_risk), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
-
-## CONSTRAINT
-const <- sapply(nets.sub, function(net) quantile(net %v% 'constraint', probs = probs))
-matplot(year.names, t(const), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
-
-
-# ## ABS DIFF CONSTRAINT
-# abs_diff_const <- sapply(nets.sub, function(net) {
-#   const <- net %v% 'constraint'
-#   dm <- outer(const, const, "-")
-#   x <- dm[lower.tri(dm, diag=F)]
-#   quantile(x, probs = c(.05,.5,.95))
+# #-----------------------------------------------------------------
+# #              Plotting Predictors over time
+# #-----------------------------------------------------------------
+# 
+# year.names <- as.numeric(names(nets.sub)) - 1
+# probs <- c(.25,.5,.75)
+# 
+# fit <- l.fix$misc$clarabridge$f4
+# 
+# # qt <- apply(fit@effects, 2, function(x) quantile(x, probs = c(.25,.5,.75), na.rm = T))
+# 
+# ## NET RISK
+# net_risk <- sapply(nets.sub, function(net) quantile(net %v% 'net_risk', probs = probs))
+# matplot(year.names, t(net_risk), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
+# 
+# ## CONSTRAINT
+# const <- sapply(nets.sub, function(net) quantile(net %v% 'constraint', probs = probs))
+# matplot(year.names, t(const), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
+# 
+# 
+# # ## ABS DIFF CONSTRAINT
+# # abs_diff_const <- sapply(nets.sub, function(net) {
+# #   const <- net %v% 'constraint'
+# #   dm <- outer(const, const, "-")
+# #   x <- dm[lower.tri(dm, diag=F)]
+# #   quantile(x, probs = c(.05,.5,.95))
+# # })
+# # matplot(year.names, t(abs_diff_const), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
+# 
+# ## Cycles
+# ## 3
+# cycle3 <- sapply(nets.sub, function(net) {
+#   k <- 3
+#   km <- as.data.frame(kcycle.census(net[,], maxlen = k, mode='graph'))
+#   tkm <- t(km)
+#   cnt <- tkm[, as.character(k)]
+#   quantile(cnt, probs = probs)
 # })
-# matplot(year.names, t(abs_diff_const), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
-
-## Cycles
-## 3
-cycle3 <- sapply(nets.sub, function(net) {
-  k <- 3
-  km <- as.data.frame(kcycle.census(net[,], maxlen = k, mode='graph'))
-  tkm <- t(km)
-  cnt <- tkm[, as.character(k)]
-  quantile(cnt, probs = probs)
-})
-matplot(year.names, t(cycle3), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
-
-## 4
-cycle4 <- sapply(nets.sub, function(net) {
-  k <- 4
-  km <- as.data.frame(kcycle.census(net[,], maxlen = k, mode='graph'))
-  tkm <- t(km)
-  cnt <- tkm[, as.character(k)]
-  quantile(cnt, probs = probs)
-})
-matplot(year.names, t(cycle4), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
-## 5
-cycle5 <- sapply(nets.sub, function(net) {
-  k <- 5
-  km <- as.data.frame(kcycle.census(net[,], maxlen = k, mode='graph'))
-  tkm <- t(km)
-  cnt <- tkm[, as.character(k)]
-  quantile(cnt, probs = probs)
-})
-matplot(year.names, t(cycle5), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
-
-indices <- c(2,3,4,5)
-## plot GRAPH TIME SLICE -- COLOR BY COMMUNITY
-par(mfrow=c(2,2))
-for (i in indices) {
-  net <- nets.sub[[i]]
-  g.tmp <- getIgraphFromNet(net)
-  g.sub <- igraph::induced.subgraph(g.tmp, vids=V(g.tmp)[igraph::degree(g.tmp)>0])
-  mem <- igraph::multilevel.community(g.sub)$membership
-  plotCompNetAOM(g.sub, membership = mem, is.focal.color = T, focal.firm = 'clarabridge', seed=12)
-}
+# matplot(year.names, t(cycle3), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
+# 
+# ## 4
+# cycle4 <- sapply(nets.sub, function(net) {
+#   k <- 4
+#   km <- as.data.frame(kcycle.census(net[,], maxlen = k, mode='graph'))
+#   tkm <- t(km)
+#   cnt <- tkm[, as.character(k)]
+#   quantile(cnt, probs = probs)
+# })
+# matplot(year.names, t(cycle4), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
+# ## 5
+# cycle5 <- sapply(nets.sub, function(net) {
+#   k <- 5
+#   km <- as.data.frame(kcycle.census(net[,], maxlen = k, mode='graph'))
+#   tkm <- t(km)
+#   cnt <- tkm[, as.character(k)]
+#   quantile(cnt, probs = probs)
+# })
+# matplot(year.names, t(cycle5), type='o', pch=1:3, lty=1:3, col=c(1,2,4))
+# 
+# indices <- c(2,3,4,5)
+# ## plot GRAPH TIME SLICE -- COLOR BY COMMUNITY
+# par(mfrow=c(2,2))
+# for (i in indices) {
+#   net <- nets.sub[[i]]
+#   g.tmp <- getIgraphFromNet(net)
+#   g.sub <- igraph::induced.subgraph(g.tmp, vids=V(g.tmp)[igraph::degree(g.tmp)>0])
+#   mem <- igraph::multilevel.community(g.sub)$membership
+#   plotCompNetAOM(g.sub, membership = mem, is.focal.color = T, focal.firm = 'clarabridge', seed=12)
+# }
 
 
 ##-----------------------------------------------------------------
@@ -341,9 +362,13 @@ ep <- btergm::edgeprob(l.fix$misc$clarabridge$f4)
 #-----------------------------------------------------------------
 # Correlations & Stats
 #_---------------------------------------------------------------
+library(psych)
+fit <- l.fix$misc$clarabridge$f4
+
 skip <- c('nodematch.ipo_status.1','nodematch.ipo_status.0','edges', 'gwesp.fixed.0')
 eff.sub <- fit@effects[, which( !(colnames(fit@effects) %in% skip))]
 cr <- round(cor(eff.sub), 2)
+cr <- psych::corr.test(eff.sub, adjust = 'bonferroni')
 cr[upper.tri(cr, diag=T)] <- NA
 colnames(cr) <- seq_len(ncol(cr))
 write.table(cr, file = 'f4_corr_mat.csv',sep=',') 
