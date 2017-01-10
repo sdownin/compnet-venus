@@ -6,15 +6,15 @@ library(texreg)
 
 data.dir <- '/home/sdowning/data'
 data.file <- 'netrisk_dynamic_firm_nets_1yr_v3_misc.RData'
-out.file <- 'run_pmle_hyp_OUT.RData'
-out.txt <- 'run_pmle_hyp_OUT.txt'
+out.file <- 'run_pmle_4_hyp_OUT.RData'
+out.txt <- 'run_pmle_4_hyp_OUT.txt'
 load(sprintf('%s/%s',data.dir,data.file))
 
 ncores <- detectCores()
-ncpus <- ncores
-cat(sprintf('using %s cpus of %s cores detected.\n'))
+ncpus <- 4 # ncores
+cat(sprintf('using %s cpus of %s cores detected.\n', ncpus, ncores))
 
-R <- 1000
+R <- 100
 
 #---------------------------------------------------------
 # --------- BTERGM HYPOTHESES MODEL COMPARE MCMLE --------
@@ -36,7 +36,8 @@ ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
 
 l.hyp[[net_group]][[firm_i]]$f4 <- btergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
+    #nodefactor('state_code') + 
+    nodematch('state_code', diff=F) +
     nodecov('age') +   edgecov(mmc)  + edgecov(ldv) +
     nodematch('npm',diff=F) + 
     edgecov(sim)  +
