@@ -1,0 +1,77 @@
+
+
+##------ Sat Jan  7 00:08:28 2017 ------##
+
+using 16 cpus of 16 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Fri Jan  6 22:42:20 2017 ------##
+
+using 8 cpus of 8 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Fri Jan  6 23:27:38 2017 ------##
+
+using 4 cpus of 8 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+finished model fits
+[1] "finishing screenreg"
+<simpleError in boot::boot.ci(object@boot, conf = level, type = type, index = x): 't' must of length 1000>
+[1] "finishing screenreg output"
+<simpleError in boot::boot.ci(object@boot, conf = level, type = type, index = x): 't' must of length 1000>
+saving image
+completed successfully.
+

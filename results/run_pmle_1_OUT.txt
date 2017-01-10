@@ -1,0 +1,360 @@
+
+
+##------ Fri Jan  6 16:12:52 2017 ------##
+
+using 4 cpus of 4 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Sun Dec 18 06:24:19 2016 ------##
+
+using 4 cpus of 4 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+finished model fits
+[1] "finishing screenreg"
+
+=====================================================================
+                          f1                                         
+---------------------------------------------------------------------
+edges                                    -12.53 *                    
+                          [-2238912977867035.50;              -10.55]
+gwesp.fixed.0                             -0.17                      
+                          [               -0.31;   21401064734245.38]
+nodefactor.state_code.AZ                  -0.55                      
+                          [-1076860385843674.50;                0.71]
+nodefactor.state_code.BC                   0.66                      
+                          [               -0.07;   23829864924278.88]
+nodefactor.state_code.CA                   0.51                      
+                          [               -0.35;                3.80]
+nodefactor.state_code.CO                   0.55                      
+                          [               -0.25;                3.70]
+nodefactor.state_code.CT                   0.41                      
+                          [               -0.34;  355125048328687.25]
+nodefactor.state_code.DC                   0.02                      
+                          [               -0.93;   81513278400749.91]
+nodefactor.state_code.DE                   0.12                      
+                          [ -124629230362797.78;                4.49]
+nodefactor.state_code.FL                   0.19                      
+                          [               -0.41;                1.04]
+nodefactor.state_code.GA                  -0.57                      
+                          [               -1.50;                3.09]
+nodefactor.state_code.IL                   0.56 *                    
+                          [                0.12;    1327321609810.64]
+nodefactor.state_code.IN                  -0.50                      
+                          [ -303597671506741.50;                2.50]
+nodefactor.state_code.KS                   2.06                      
+                          [              -15.61;                6.24]
+nodefactor.state_code.MA                   0.23                      
+                          [               -0.51;                3.25]
+nodefactor.state_code.MD                  -0.70 *                    
+                          [ -863170449192204.50;               -0.23]
+nodefactor.state_code.MI                  -1.19                      
+                          [               -2.20;                1.59]
+nodefactor.state_code.MN                   0.13                      
+                          [               -0.25;  281776246139918.81]
+nodefactor.state_code.MO                   0.52                      
+                          [              -18.53;                4.99]
+nodefactor.state_code.MT                  -1.10                      
+                          [               -1.35;                0.44]
+nodefactor.state_code.NA                   0.29                      
+                          [               -0.52;   37736587977993.58]
+nodefactor.state_code.NC                   1.35 *                    
+                          [                0.50;                4.44]
+nodefactor.state_code.NE                  -1.11                      
+                          [ -494093856942028.50;                3.85]
+nodefactor.state_code.NH                  -0.51                      
+                          [ -343155920146266.75;                0.28]
+nodefactor.state_code.NJ                  -1.62                      
+                          [  -70539317458094.00;                3.03]
+nodefactor.state_code.NS                   1.72                      
+                          [  -43753105451654.88;                3.19]
+nodefactor.state_code.NV                  -1.14                      
+                          [ -754466660264729.88;                2.87]
+nodefactor.state_code.NY                   0.82                      
+                          [               -0.77;  157720059875285.41]
+nodefactor.state_code.OH                  -0.83                      
+                          [ -583348635577829.88;                3.22]
+nodefactor.state_code.OK                  -0.35                      
+                          [-1210992551467467.25;                4.32]
+nodefactor.state_code.ON                   0.53                      
+                          [               -0.35;   47827285756820.80]
+nodefactor.state_code.OR                  -0.88                      
+                          [ -810947239469609.25;                2.09]
+nodefactor.state_code.PA                   1.00                      
+                          [              -20.79;                6.25]
+nodefactor.state_code.QC                  -0.12                      
+                          [               -1.04;                2.85]
+nodefactor.state_code.TN                   0.26                      
+                          [              -22.50;                5.42]
+nodefactor.state_code.TX                  -0.25                      
+                          [               -1.13;                3.28]
+nodefactor.state_code.UT                   0.76                      
+                          [               -0.31;                4.62]
+nodefactor.state_code.VA                  -0.02                      
+                          [               -0.96;                4.02]
+nodefactor.state_code.WA                   0.74                      
+                          [               -0.10;                4.03]
+nodefactor.state_code.WI                   1.22                      
+                          [-1459716752705112.25;                8.61]
+nodefactor.state_code.WV                  -1.25                      
+                          [-1334794594973032.50;                0.07]
+nodematch.state_code                      -0.18                      
+                          [               -0.27;                0.68]
+nodecov.age                                0.02                      
+                          [  -10514163242847.24;                0.03]
+edgecov.mmc[[i]]                          -1.12                      
+                          [               -1.86;                1.50]
+edgecov.ldv[[i]]                          10.71 *                    
+                          [                8.69; 4978989181156006.00]
+nodematch.npm                              3.66 *                    
+                          [                3.44;   74199629972433.83]
+edgecov.sim[[i]]                           1.02 *                    
+                          [                0.17;  237698780728143.06]
+nodematch.ipo_status.0                    -1.12 *                    
+                          [  -62355002747909.27;               -0.94]
+nodematch.ipo_status.1                    -0.08                      
+                          [               -1.89;   39657654440981.74]
+nodecov.net_risk                           0.25                      
+                          [  -17884969488778.82;                0.31]
+---------------------------------------------------------------------
+Num. obs.                             400753                         
+=====================================================================
+* 0 outside the confidence interval
+[1] "finishing screenreg output"
+saving image
+completed successfully.
+
+
+
+##------ Fri Jan  6 23:26:56 2017 ------##
+
+using 8 cpus of 8 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+finished model fits
+[1] "finishing screenreg"
+
+=======================================
+                        f1             
+---------------------------------------
+edges                      -11.59 *    
+                        [-13.28; -9.79]
+gwesp.fixed.0               -0.20 *    
+                        [ -0.37; -0.06]
+nodematch.state_code        -0.21 *    
+                        [ -0.30; -0.01]
+nodecov.age                  0.02 *    
+                        [  0.01;  0.02]
+edgecov.mmc[[i]]            -0.61      
+                        [ -1.37;  1.02]
+edgecov.ldv[[i]]            10.81 *    
+                        [  9.13; 13.79]
+nodematch.npm                3.60 *    
+                        [  3.35;  4.80]
+edgecov.sim[[i]]             1.21 *    
+                        [  0.37;  1.57]
+nodematch.ipo_status.0      -1.11 *    
+                        [ -1.28; -0.85]
+nodematch.ipo_status.1      -0.20      
+                        [ -1.79;  0.31]
+nodecov.net_risk             0.24 *    
+                        [  0.08;  0.29]
+---------------------------------------
+Num. obs.               323045         
+=======================================
+* 0 outside the confidence interval
+[1] "finishing screenreg output"
+saving image
+completed successfully.
+
+
+
+##------ Sat Jan  7 01:18:54 2017 ------##
+
+using 16 cpus of 16 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+
+##------ Mon Dec 12 14:16:33 2016 ------##
+
+using 4 cpus of 4 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+finished model fits
+[1] "finishing screenreg"
+
+========================================
+                        f1              
+----------------------------------------
+edges                      -11.59 *     
+                        [-13.57; -10.00]
+gwesp.fixed.0               -0.20 *     
+                        [ -0.34;  -0.09]
+nodematch.state_code        -0.21       
+                        [ -0.29;   0.02]
+nodecov.age                  0.02 *     
+                        [  0.01;   0.02]
+edgecov.mmc[[i]]            -0.61       
+                        [ -1.25;   0.87]
+edgecov.ldv[[i]]            10.81 *     
+                        [  8.74;  13.79]
+nodematch.npm                3.60 *     
+                        [  3.41;   4.53]
+edgecov.sim[[i]]             1.21 *     
+                        [  0.37;   1.56]
+nodematch.ipo_status.0      -1.11 *     
+                        [ -1.26;  -0.93]
+nodematch.ipo_status.1      -0.20       
+                        [ -1.76;   0.28]
+nodecov.net_risk             0.24 *     
+                        [  0.16;   0.29]
+----------------------------------------
+Num. obs.               323045          
+========================================
+* 0 outside the confidence interval
+[1] "finishing screenreg output"
+saving image
+completed successfully.
+
+
+
+##------ Sun Dec 18 07:50:22 2016 ------##
+
+using 4 cpus of 4 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+finished model fits
+[1] "finishing screenreg"
+
+=======================================
+                        f1             
+---------------------------------------
+edges                      -11.59 *    
+                        [-13.74; -9.91]
+gwesp.fixed.0               -0.20 *    
+                        [ -0.34; -0.07]
+nodematch.state_code        -0.21      
+                        [ -0.30;  0.06]
+nodecov.age                  0.02 *    
+                        [  0.01;  0.02]
+edgecov.mmc[[i]]            -0.61      
+                        [ -1.25;  0.86]
+edgecov.ldv[[i]]            10.81 *    
+                        [  8.70; 13.80]
+nodematch.npm                3.60 *    
+                        [  3.36;  4.48]
+edgecov.sim[[i]]             1.21 *    
+                        [  0.33;  1.56]
+nodematch.ipo_status.0      -1.11 *    
+                        [ -1.27; -0.93]
+nodematch.ipo_status.1      -0.20      
+                        [ -1.86;  0.28]
+nodecov.net_risk             0.24 *    
+                        [  0.14;  0.29]
+---------------------------------------
+Num. obs.               323045         
+=======================================
+* 0 outside the confidence interval
+[1] "finishing screenreg output"
+saving image
+completed successfully.
+

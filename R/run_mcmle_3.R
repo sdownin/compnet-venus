@@ -17,7 +17,7 @@ ncpus <- ifelse(cores > 30, 30, cores)
 cat(sprintf('using %s cpus of %s cores detected.\n', ncpus, cores))
 parm <- "multicore" ## "snow"
 
-ctrl <- control.ergm(MCMC.burnin=20000, MCMC.interval=2000, MCMC.samplesize=20000)
+ctrl <- control.ergm(MCMC.burnin=30000, MCMC.interval=3000, MCMC.samplesize=30000)
 
 #---------------------------------------------------------
 # --------- BTERGM HYPOTHESES MODEL COMPARE MCMLE --------
@@ -36,12 +36,13 @@ sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
 
 l.hyp[[net_group]][[firm_i]]$f3 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T)   +
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
+   # nodefactor('state_code') +
+    nodematch('state_code', diff=F) +
     nodecov('age') +   edgecov(mmc)  +
     nodematch('npm',diff=F) + 
     edgecov(sim)  +
     nodematch('ipo_status', diff=TRUE) + 
-    cycle(3) + cycle(4) + cycle(5) + cycle(6)
+    cycle(3) + cycle(4) + cycle(5) #+ cycle(6)
   , parallel = parm, ncpus = ncpus,  control=ctrl)
 save.image(sprintf('%s/%s',data.dir,out.file))
 
