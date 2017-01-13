@@ -48,3 +48,7 @@ The log-likelihood improved by 3.067
 Iteration 14 of at most 20: 
 The log-likelihood improved by 2.911 
 Iteration 15 of at most 20: 
+
+
+##------ Sat Dec 24 23:20:51 2016 ------##
+
