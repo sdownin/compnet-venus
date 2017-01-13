@@ -2353,13 +2353,13 @@ setCovariates <- function(net, start, end,
                               mode = "all", method = "invlogweighted" )
     sim[is.nan(sim) | is.na(sim)] <- 0
     net %n% 'similarity' <- sim
-    ##------------------------------------
-    ## # 7. Centrality (betweenness)
-    ##------------------------------------
-    cat('computing betweenness...\n')
-    betw <- igraph::betweenness(g.net)
-    net %v% 'betweenness' <- betw
-    net %v% 'betweenness_log' <- log(betw + .001) 
+    # ##------------------------------------
+    # ## # 7. Centrality (betweenness)
+    # ##------------------------------------
+    # cat('computing betweenness...\n')
+    # betw <- igraph::betweenness(g.net)
+    # net %v% 'betweenness' <- betw
+    # net %v% 'betweenness_log' <- log(betw + .001) 
     ##------------------------------------
     ## # 8. Customer Status (coopetition) -- EDGE ATTRIBUTE
     ##------------------------------------
@@ -2391,5 +2391,5 @@ ev <- sapply(firm.nets$misc$clarabridge, function(net) {
   return(c(v=v,e=e,d=e/v)) 
 })
 
-matplot(t(ev),type='o', pch=1:3,lty=1:3)
+# matplot(t(ev),type='o', pch=1:3,lty=1:3)
 

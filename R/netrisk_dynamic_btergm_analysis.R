@@ -367,11 +367,17 @@ fit <- l.fix$misc$clarabridge$f4
 
 skip <- c('nodematch.ipo_status.1','nodematch.ipo_status.0','edges', 'gwesp.fixed.0')
 eff.sub <- fit@effects[, which( !(colnames(fit@effects) %in% skip))]
-cr <- round(cor(eff.sub), 2)
-cr <- psych::corr.test(eff.sub, adjust = 'bonferroni')
+# cr <- round(cor(eff.sub), 2)
+pcor <-  psych::corr.test(eff.sub)
+cr <- round(pcor$r,2)
 cr[upper.tri(cr, diag=T)] <- NA
 colnames(cr) <- seq_len(ncol(cr))
 write.table(cr, file = 'f4_corr_mat.csv',sep=',') 
+##
+pv <- round(pcor$p, 5)
+pv[upper.tri(pv, diag=T)] <- NA
+colnames(pv) <- seq_len(ncol(pv))
+write.table(pv, file = 'f4_corr_mat_pval.csv',sep=',') 
 
 
 ## summary stat

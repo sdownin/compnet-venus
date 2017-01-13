@@ -17,7 +17,7 @@ ncpus <- ifelse(cores > 30, 30, cores)
 cat(sprintf('using %s cpus of %s cores detected.\n', ncpus, cores))
 parm <- "multicore" ## "snow"
 
-ctrl <- control.ergm(MCMC.burnin=30000, MCMC.interval=3000, MCMC.samplesize=30000)
+ctrl <- control.ergm(MCMC.burnin=30, MCMC.interval=3, MCMC.samplesize=30)
 
 #---------------------------------------------------------
 # --------- BTERGM HYPOTHESES MODEL COMPARE MCMLE --------

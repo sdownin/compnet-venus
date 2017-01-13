@@ -185,7 +185,7 @@ View(head(co[grep('biotec',
 if( !('firm.nets' %in% ls()) ) firm.nets <- list()
 
 ## set market group of firms
-net_group <- 'misc'
+net_group <- 'test'
 if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
@@ -194,7 +194,7 @@ firms.todo <- c('visa','mastercard','fitbit','ridejoy')  # c('fitbit','runtastic
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
   ## -- settings --
-  k <- 3
+  k <- 2
   yrpd <- 1
   startYr <- 2007
   endYr <- 2017
@@ -1021,7 +1021,52 @@ ndtv::render.d3movie(ss, filename = )
 
 
 
+#-------------------------------------------------------------------------
+#                    TEST NET
+#--------------------------------------------------------------------------
 
+nets.sub = firm.nets$test$clarabridge
+
+for(i in 2:length(nets.sub)) {
+  nets.sub[[i]] %n% 'DV_lag' <- as.matrix(nets.sub[[i-1]][,])
+}; nets.sub <- nets.sub[2:length(nets.sub)]
+
+nPeriods <- 3
+net_group <- 'test'
+firm_i <- 'clarabridge'
+
+if ( !('l.hyp' %in% ls()) ) l.hyp <- list()
+if ( !(net_group %in% names(l.hyp)) ) l.hyp[[net_group]] <- list()
+if ( !(firm_i %in% names(l.hyp[[net_group]])) ) l.hyp[[net_group]][[firm_i]] <- list()
+
+mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
+
+
+l.hyp[[net_group]][[firm_i]]$f4 <- btergm(
+  nets.sub ~ edges + gwesp(0, fixed=T) + 
+    #nodefactor('state_code') + 
+    nodematch('state_code', diff=F) +
+    nodecov('age') +   edgecov(mmc)  + edgecov(ldv) +
+    nodematch('npm',diff=F) + 
+    edgecov(sim)  +
+    nodematch('ipo_status', diff=TRUE)  +
+    nodecov('net_risk') +
+    nodecov('constraint') + absdiff('constraint') + 
+    cycle(3) + cycle(4) #+ cycle(5) #+ cycle(6)
+  , R=30, parallel = "multicore", ncpus = detectCores())
+
+fit <- l.hyp$test$clarabridge$f4
+interpret(fit, type='tie', i=1,j=2)
+
+system.time(
+  ep <- edgeprob(fit)
+)
+
+#-------------------------------------------------------------------------
+#                    
+#--------------------------------------------------------------------------
 
 # library("statnet")
 # set.seed(5)
