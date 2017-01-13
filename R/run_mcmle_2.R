@@ -5,9 +5,9 @@ library(snow)
 library(texreg)
 
 data.dir <- '/home/sdowning/data'
-data.file <- 'netrisk_dynamic_firm_nets_1yr_v2_misc.RData'
-out.file <- 'run_mcmle_hyp_OUT.RData'
-out.txt <- 'run_mcmle_hyp_OUT.txt'
+data.file <- 'netrisk_dynamic_firm_nets_1yr_v3_misc.RData'
+out.file <- 'run_mcmle_hyp_2_OUT.RData'
+out.txt <- 'run_mcmle_hyp_2_OUT.txt'
 load(sprintf('%s/%s',data.dir,data.file))
 
 ##ncpus <- 12
@@ -17,7 +17,7 @@ ncpus <- ifelse(cores > 30, 30, cores)
 cat(sprintf('using %s cpus of %s cores detected.\n', ncpus, cores))
 parm <- "multicore" ## "snow"
 
-ctrl <- control.ergm(MCMC.burnin=20000, MCMC.interval=2000, MCMC.samplesize=20000)
+ctrl <- control.ergm(MCMC.burnin=50000, MCMC.interval=5000, MCMC.samplesize=50000)
 
 #---------------------------------------------------------
 # --------- BTERGM HYPOTHESES MODEL COMPARE MCMLE --------
@@ -33,12 +33,14 @@ nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
 
 mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
 sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
 
 
 l.hyp[[net_group]][[firm_i]]$f2 <- mtergm(
   nets.sub ~ edges + gwesp(0, fixed=T) + 
-    nodefactor('state_code') + nodematch('state_code', diff=F) +
-    nodecov('age') +   edgecov(mmc)  +
+    #nodefactor('state_code') + 
+    nodematch('state_code', diff=F) +
+    nodecov('age') +   edgecov(mmc)  + edgecov(ldv)  +
     nodematch('npm',diff=F) + 
     edgecov(sim)  +
     nodematch('ipo_status', diff=TRUE) + 
