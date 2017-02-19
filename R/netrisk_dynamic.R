@@ -136,14 +136,14 @@ g.full <- read.graph('g_full.graphml', format='graphml')
 #fastgreedy
 #label.propagation
 #edge.betweenness
-gl <- sapply()
+
 #----------------------------------------------------------------
 ##-------------------FIND MARKET of suitable size --------------
 #----------------------------------------------------------------
 firms <- V(g.full)$name
 deg <- igraph::degree(g.full)
 firms.sub <- firms[which(deg > 8 & deg < 13)]
-#View(data.frame(name=firms.sub))
+#View(data.frame(name=firms.sub)) 
 ##
 name_i <- 'crackle'   ## check companies
 k <- 3
@@ -175,9 +175,57 @@ View(head(co[grep('biotec',
 #                  'mindshare-technologies','markettools')
 
 
+#--------------------------------------------------------------------
+#    Envelopment Risk Firms (without too many connections)
+#--------------------------------------------------------------------
+firms <- V(g.full)$name
+deg <- igraph::degree(g.full)
+min <- 7
+max <- 20
+firms.sub <- firms[which(deg > min & deg < max)]
+
+rindex <- which(co$status %in% c('closed','acquired') 
+                #& co$company_name_unique %in% firms.sub
+                & (co$acquired_year >= 2012 | co$closed_year >= 2012)
+                )
+
+cindex <- c('company_name_unique', 'acquired_on','closed_on','homepage_url','short_description','category_list') 
+sub <- co[rindex, cindex]
+dim(sub)
+View(sub)
+
+filename <- sprintf('envrisk_companies_%s_%s_r%s.csv', min,max, nrow(sub))
+write.table(sub, file = filename, sep = ',', row.names = F, col.names = T, na = " ")
+
+
+##---------------------------------------------------------------------
+#       News stories
+#_---------------------------------------------------------------------
+filename <- 'C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/cb_cem/cb_cem_news_3.csv'
+news <- read.table(filename, header = T, sep = ',', na.strings = c('NA','','na'), fill = T, stringsAsFactors = F)
+head(news$url, 30)
+
+# pattern1 <- "^http(?s)[:\\/.]+"
+# pattern2 <- "\\.com.+"
+# text <- "https://gigaom.com/2014/05/27/acquia-scores-50m-in-series-f-funding/"
+
+getDomain <- function(text) {
+  pattern1 <- "http(?s)(w{0,3})[:\\/.]+"
+  pattern2 <- "\\.com.+"
+  x <- gsub(pattern1, '', text, ignore.case=T, perl=T)
+  out <- gsub(pattern2, '', x, ignore.case=T, perl=T)
+  return(out)
+}
+
+
+domains <- unname(sapply(news$url[1:30], getDomain))
+
+cnt <- plyr::count(domains)
+head(cnt)
+
 ##--------------------------------------------------------------
 ##--------------------------------------------------------------
-##--------- CREATE FIRM NETWORK PERIOD LISTS ------------------
+##--------- CREATE FIRM NETWORK PERIOD LISTS  ------------------
 ##--------------------------------------------------------------
 ##--------------------------------------------------------------
 
@@ -671,15 +719,15 @@ for (i in 1:length(firms.todo)) {
   mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
   sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
   fit <- mtergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
-                  nodefactor('state_code') + nodematch('state_code', diff=F) +
-                  nodecov('age') +   edgecov(mmc)  +
-                  nodecov('net_risk') + nodecov('net_risk_lag') +
-                  nodematch('npm',diff=F) + 
-                  nodematch('ipo_status', diff=TRUE)  +
-                  nodecov('constraint') + absdiff('constraint') + 
-                  edgecov(sim)  #+
-                # nodecov('betweenness') + absdiff('betweenness')
-                ,  parallel = "multicore", ncpus = detectCores())
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodecov('net_risk') + nodecov('net_risk_lag') +
+                nodematch('npm',diff=F) + 
+                nodematch('ipo_status', diff=TRUE)  +
+                nodecov('constraint') + absdiff('constraint') + 
+                edgecov(sim)  #+
+              # nodecov('betweenness') + absdiff('betweenness')
+              ,  parallel = "multicore", ncpus = detectCores())
   l.fit.m[[net_group]][[firm_i]] <- fit
   file.name <- sprintf('fit_list_mtergm_%syr_%spd_%s-grp.RData', yrpd, tmp.npds,net_group)
   save.image(file.name) # save.image('fit_list_btergm_med_clar_qual_1yr_.RData')
@@ -689,6 +737,26 @@ write.regtable(list(mt6), filename='fit_mtergm_clar')
 
 
 
+##-----------------------------------------------------------
+#            TEST MTERGM MCMLE
+#----------------------------------------------------------
+load('netrisk_dynamic_firm_nets_1yr_v3_misc.RData')
+
+nets.sub <- firm.nets$test$clarabridge
+mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+
+fm.c5 <- mtergm(  nets.sub ~ edges + gwesp(0, fixed=T) + 
+             # nodefactor('state_code') +
+             # nodematch('state_code', diff=F) +
+             nodecov('age') +   # edgecov(mmc)  + # edgecov(ldv) +
+             nodematch('npm',diff=F) + 
+             edgecov(sim)  +
+             #nodematch('ipo_status', diff=TRUE)  +
+             nodecov('net_risk') +
+             nodecov('constraint') + absdiff('constraint') + 
+             cycle(3) + cycle(4) + cycle(5) 
+       ,  parallel = "multicore", ncpus = detectCores())
 
 
 #--------------------------------------------------------------------

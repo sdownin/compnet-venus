@@ -469,36 +469,36 @@ makeGraph.previous <- function(comp,vertdf,name='company_name_unique',
   return(g)
 }
 
-###
-# CREATE SUBGRAPH WITH VERTICES EXISTING 
-#       & NOT REMOVED (closed,acquired) 
-#       BEFORE `end` DATE
-#       FROM  GRAPH BUILT WITH makeGraph()
-##
-makePdSubgraph <- function(g,acq,start,end,pdAttr='founded_at',closedPdAttr='closed_at')
-{
-  vertexAttrs <- names(igraph::vertex.attributes(g))
-  keepVids <- c();   removeVids <- c()
-  # g.sub <- igraph::delete_edges(graph=g,edges = E(g)[which(E(g)$relation_created_at>end )])
-  ##  KEEP VERTICES (EDGES) IF   FOUNDED BEFORE `end`
-  if(pdAttr %in% vertexAttrs){
-    tmp <- igraph::get.vertex.attribute(g,pdAttr)
-    pdVids <- V(g)[which( !is.na(tmp) & tmp < end)]
-    keepVids <- c(keepVids, pdVids )
-  }
-  ##  REMOVE VERTICES (EDGES) IF   CLOSED BEFORE `end`
-  if(closedPdAttr %in% vertexAttrs) {
-    tmp <- igraph::get.vertex.attribute(g,closedPdAttr) 
-    closedPdVids <- V(g)[which( !is.na(tmp) & tmp < end)]
-    removeVids <- c(removeVids, closedPdVids )    
-  }
-  ## INDUCE SUBGRAPH
-  uKeepVids <- unique(keepVids)
-  uRemoveVids <- unique(removeVids)
-  vids <- uKeepVids[which( !(uKeepVids %in% uRemoveVids) )]
-  g.sub <- igraph::induced.subgraph(graph=g,vids=vids)
-  return(g.sub)
-}
+# ###
+# # CREATE SUBGRAPH WITH VERTICES EXISTING 
+# #       & NOT REMOVED (closed,acquired) 
+# #       BEFORE `end` DATE
+# #       FROM  GRAPH BUILT WITH makeGraph()
+# ##
+# makePdSubgraph <- function(g,acq,start,end,pdAttr='founded_at',closedPdAttr='closed_at')
+# {
+#   vertexAttrs <- names(igraph::vertex.attributes(g))
+#   keepVids <- c();   removeVids <- c()
+#   # g.sub <- igraph::delete_edges(graph=g,edges = E(g)[which(E(g)$relation_created_at>end )])
+#   ##  KEEP VERTICES (EDGES) IF   FOUNDED BEFORE `end`
+#   if(pdAttr %in% vertexAttrs){
+#     tmp <- igraph::get.vertex.attribute(g,pdAttr)
+#     pdVids <- V(g)[which( !is.na(tmp) & tmp < end)]
+#     keepVids <- c(keepVids, pdVids )
+#   }
+#   ##  REMOVE VERTICES (EDGES) IF   CLOSED BEFORE `end`
+#   if(closedPdAttr %in% vertexAttrs) {
+#     tmp <- igraph::get.vertex.attribute(g,closedPdAttr) 
+#     closedPdVids <- V(g)[which( !is.na(tmp) & tmp < end)]
+#     removeVids <- c(removeVids, closedPdVids )    
+#   }
+#   ## INDUCE SUBGRAPH
+#   uKeepVids <- unique(keepVids)
+#   uRemoveVids <- unique(removeVids)
+#   vids <- uKeepVids[which( !(uKeepVids %in% uRemoveVids) )]
+#   g.sub <- igraph::induced.subgraph(graph=g,vids=vids)
+#   return(g.sub)
+# }
 
 ###
 # Remove edges between companies that weren't created yet
@@ -603,3 +603,192 @@ getNetworkPropertiesDataframe <- function(lcc, name='company_name_unique',what='
 }
 
 
+
+
+##
+#
+##
+.getMarketsDf <- function(df, pd.end, drop=FALSE, ...)
+{
+  if( !('company_name_unique' %in% names(df)))
+    stop('df must contain `company_name_unique` column')
+  if( !('mmc_code' %in% names(df)))
+    stop('df must contain `mmc_code` column')
+  plyr::ddply(df, .variables = .(company_name_unique),.drop = drop,
+              summarise,
+              concat = paste(mmc_code,collapse = "|"),
+              .progress = 'text', ...)
+}
+
+# outer(V(g)$community, V(g)$community,
+#       Vectorize(function(x,y){paste(c(x,y),collapse="_")}))
+
+##
+# x string  Concatenated markets, eg, 'USA_CA|USA_NY|ARG_9'
+# y == x
+##
+.getMMCfromMarketConcat <- function(x,y)
+{
+  mx <- c(stringr::str_split(x, '[|]', simplify = T))
+  my <- c(stringr::str_split(y, '[|]', simplify = T))
+  if (length(mx)==0 | length(my)==0)
+    return(0)
+  nx <- sum(mx %in% my)
+  ny <- sum(my %in% mx)
+  mmc <- (nx / length(mx)) * (ny / length(my))
+  mmc[diag(mmc)] <- 0
+  return(mmc)
+}
+
+##
+#
+##
+getMultiMarketContact <- function(br, firms, end, ...)
+{
+  brsub <- br[which(br$company_name_unique %in% firms & br$created_year < end), ]
+  cat('concatenating firm branch markets...\n')
+  df <- .getMarketsDf(brsub, end, ...)
+  df.m <- merge(data.frame(company_name_unique=firms,stringsAsFactors = F),
+                df, by = 'company_name_unique', all.x=T, all.y=F)
+  cat('computing MMC outer product matrix...')
+  mmc <- outer(df.m$concat, df.m$concat, Vectorize(.getMMCfromMarketConcat))
+  cat('done.\n')
+  return( mmc )
+}
+
+
+##
+#
+##
+makePdSubgraph <- function(g, start, end, 
+                          edgeCreatedAttr='relation_began_on',
+                          edgeDeletedAttr='relation_ended_on',
+                          vertFoundedAttr='founded_year',
+                          vertClosedAttr='closed_year',
+                          vertAcquiredAttr='acquired_year')
+{
+  cat('collecting edges to remove...\n')
+  vertAttrs <- igraph::list.vertex.attributes(g)
+  edgeAttrs <- igraph::list.edge.attributes(g)
+  inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
+  ##------------------ COLLECT EDGES TO REMOVE -----------
+  ## Get EDGES CREATED AT ___ to be removed
+  if (edgeCreatedAttr %in% edgeAttrs) {
+    tmp <- igraph::get.edge.attribute(g, edgeCreatedAttr)
+    eids <- which(tmp > end)
+    inactiveEdges <- c(inactiveEdges, eids)
+  }
+  ##------------------ COLLECT VERTICES TO REMOVE ------- 
+  ##  REMOVE VERTICES founded_on > `end`
+  if(vertFoundedAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g, vertFoundedAttr)
+    vids <- which(tmp > end) #(g)[which(tmp > end)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES closed_on < `start`
+  if(vertClosedAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g, vertClosedAttr)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES acquired_at < `start`
+  if(vertAcquiredAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g, vertAcquiredAttr)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
+  el <- igraph::as_edgelist(g, names=FALSE)
+  inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
+  inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
+  ##------------- DELTE EDGES --------------------------------------
+  g <- igraph::delete.edges(g, inactiveEdges)
+  ##
+  return(g)
+}
+
+##
+#
+##
+setCovariates <- function(g, start, end,
+                          downweight.env.risk=FALSE,
+                          netRiskCommunityAlgo='multilevel.community',
+                          acq=NA,rou=NA,br=NA,ipo=NA)
+{ 
+  if( ecount(g) > 0 ) {
+    ##------------------------------------
+    ## # 0. AGE
+    ##------------------------------------
+    year <- V(g)$founded_year
+    year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
+    age <- end - year
+    age[age < 0] <- 0
+    V(g)$age <- age
+    ##------------------------------------
+    ## # 1. ENV RISK -- VERTEX ATTRIBUTE
+    ##------------------------------------
+    # cat('\ncomputing risk measure...\n')
+    # if (downweight.env.risk) {
+    #   rl <- envRisk(g) 
+    #   prefix <- 'env_risk'
+    # } else {
+    #   rl <- netRisk(g, community.type = netRiskCommunityAlgo)
+    #   prefix <- 'net_risk'
+    # }
+    # V(g)$npm <- V(rl$g)$community
+    ##------------------------------------
+    ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
+    ##------------------------------------
+    cat('computing multi-market contact...\n')
+    mmc <- getMultiMarketContact(br, V(g)$name, end)
+    g <- igraph::set.graph.attribute(g, 'mmc', as.matrix(mmc))
+    ##------------------------------------
+    ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
+    ##------------------------------------
+    cat('computing distances lag contact...\n')
+    D <- as.matrix(igraph::distances(g))
+    rownames(D) <- NULL;  colnames(D) <- NULL
+    D[D==0] <- 1e-16
+    net %n% 'dist' <- D
+    #
+    D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
+    D[(is.na(D) | D == -Inf | D == Inf)] <- 0
+    net %n% 'de_alio_entry' <- D
+    ##------------------------------------
+    ## # 4. IPO STATUS -- VERTEX ATTRIBUTE
+    ##------------------------------------
+    cat('computing IPO status contact...\n')
+    iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
+                        & ipo$went_public_year < end), ]
+    net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
+    ##------------------------------------
+    ## # 5. Constraint -- NODE ATTR
+    ##------------------------------------
+    cat('computing constraint...\n')
+    cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
+    cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
+    net %v% 'constraint' <- cons
+    ##------------------------------------
+    ## # 6. Similarity 
+    ##------------------------------------
+    cat('computing inv.log.w.similarity...\n')
+    sim <- igraph::similarity(g.net,vids = V(g.net), 
+                              mode = "all", method = "invlogweighted" )
+    sim[is.nan(sim) | is.na(sim)] <- 0
+    net %n% 'similarity' <- sim
+    # ##------------------------------------
+    # ## # 7. Centrality (betweenness)
+    # ##------------------------------------
+    # cat('computing betweenness...\n')
+    # betw <- igraph::betweenness(g.net)
+    # net %v% 'betweenness' <- betw
+    # net %v% 'betweenness_log' <- log(betw + .001) 
+    ##------------------------------------
+    ## # 8. Customer Status (coopetition) -- EDGE ATTRIBUTE
+    ##------------------------------------
+  } else {
+    cat('zero edges, skipping attributes.\n')
+  }
+  
+  return(net)
+}
