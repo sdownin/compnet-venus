@@ -2,6 +2,8 @@
 #
 #  Competition Networks and Acquisition Activity
 #
+#  Data frame preparation
+#
 #############################################################################################
 setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
 
@@ -11,6 +13,8 @@ library(lattice); library(latticeExtra)
 library(ggplot2)
 library(igraph)
 library(stringr)
+library(sna)
+library(network)
 
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
@@ -116,24 +120,25 @@ yc <- plyr::count(acq.r$acquired_year)
 yc <- yc[order(yc$freq, decreasing = T),]
 plot(yc$x, yc$freq, main=sprintf('n=%d',nrow(acq.r)), log='y',col='steelblue',pch=16)
 
+periods <- c(2011,2013,2015,2017)
+
 if( !('l' %in% ls()) ) l <- list()   ## coariates list
-start <- 2011 ## including
-end <- 2013   ## exluding
-  
+for (t in 2:length(periods)) {
+  start <- periods[t-1] ## including
+  end <- periods[t]   ## exluding
+  cat(sprintf('\n\n#------starting period %s-%s-------#\n',start,end-1))
+  ## pd subgraph
   pd <- as.character(end)
   gx.sub <- makePdSubgraph(g.full, start, end)
   ## Period induced subgraph (degree >= 1)
   gx <- igraph::induced.subgraph(gx.sub, vids=V(gx.sub)[which(igraph::degree(gx.sub)>0)])
-  
+  ## init period covariates list
   l[[pd]] <- list()
-  
   ## Names of companies with acquisitions (acquired|acquiree) this period
   acq.sub <- co_acq[which(co_acq$acquired_year >= start  &  co_acq$acquired_year < end), ]
   acq.sub.names <- unique(c(acq.sub$acquirer_name_unique, acq.sub$acquiree_name_unique))
-  
   # Names and indices of companies that had an acquisiton and are in the period induced subgraph (degree >= 1)
   gx.names <- V(gx)$name[which(V(gx)$name %in% acq.sub.names)]
-  
   # Dependent variable Acquisition network
   acq.sub.idx <- which(acq.sub$acquirer_name_unique %in% gx.names 
                        | acq.sub$acquiree_name_unique %in% gx.names)
@@ -141,7 +146,6 @@ end <- 2013   ## exluding
   g.acq <- igraph::graph.data.frame(acq.sub[acq.sub.idx, c('acquirer_name_unique','acquiree_name_unique')],
                                     directed = T,
                                     vertices = vertices )
-  
   ## Dyadic data frame
   cat('creating period dyadic dataframe...\n')
   gx.names.df <- data.frame(i=seq_along(gx.names),name=gx.names)
@@ -149,9 +153,10 @@ end <- 2013   ## exluding
   l[[pd]]$df <- data.frame(e=seq_len(n), i=rep(NA,n), j=rep(NA,n), firm_i=rep(NA,n), firm_j=rep(NA,n), 
                            Y_ij=rep(NA,n), Y_ji=rep(NA,n))
   counter <- 1
-  for(j in 1:length(gx.names)) {
+  ## !! SLOW
+  for(j in 1:length(gx.names)) { cat(sprintf('%s ',j));
     for(i in 1:length(gx.names)) {
-      if (i > j) {
+      if (i > j) {  ## Only fill in lower triangle (treat network as symmetric) to save time
         l[[pd]]$df[counter, 'i'] <- i
         l[[pd]]$df[counter, 'j'] <- j
         l[[pd]]$df[counter, 'firm_i'] <- gx.names[i]
@@ -164,11 +169,12 @@ end <- 2013   ## exluding
         l[[pd]]$df[counter, 'Y_ji'] <- ifelse(nrow(y_ji)>0, 1, 0)
         counter <- counter +1
       }
-    }; cat(sprintf('%s ',j))
+    }
   }
   l[[pd]]$df$Y <-  l[[pd]]$df$Y_ij + l[[pd]]$df$Y_ji
   l[[pd]]$df$start <- start
   l[[pd]]$df$end <- end
+  l[[pd]]$df$period <- as.factor(paste(c(start,end-1),collapse='-'))
   ## DEPENDENT VARIABLE --------------------------------------------------------
   
   ## Matrix covariates ----------------------------------------------------------
@@ -213,6 +219,7 @@ end <- 2013   ## exluding
   l[[pd]]$df <- merge(l[[pd]]$df, acq.cnt.j, by.x = 'firm_j', by.y = 'company_name_unique', all.x = T)
   l[[pd]]$df$acq_exp_i[is.na(l[[pd]]$df$acq_exp_i)] <- 0
   l[[pd]]$df$acq_exp_j[is.na(l[[pd]]$df$acq_exp_j)] <- 0
+  l[[pd]]$df$acq_exp <- l[[pd]]$df$acq_exp_i + l[[pd]]$df$acq_exp_j
   
   ## Centrality Diff
   # between <- igraph::betweenness(gx)
@@ -269,13 +276,9 @@ end <- 2013   ## exluding
   l[[pd]]$df$ipo_d <- 1 - abs(dist(as.numeric(l[[pd]]$ipo)))  ## 1=same; 0=not same
   
   #------------------------- END Dyadic predictors ----------------------------------
+}
   
-  
-  
-
-
-
-
+save(l, file="acquisitions_l_13-15-17.RData")
 
 
 
