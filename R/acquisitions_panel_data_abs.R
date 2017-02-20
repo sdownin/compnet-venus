@@ -24,12 +24,6 @@ img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition network
 par.default <- par()
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 #---------------------------------------------------------------------
-# f6 <- count ~ age + m100_usd  + t10_employees + status + state_code + 
-#   comp_count + density + overlap + 
-#   full_net_constraint + full_net_log_betweenness + 
-#   full_net_constraint:comp_count + full_net_constraint:density + full_net_constraint:overlap + 
-#   full_net_log_betweenness:comp_count + full_net_log_betweenness:density + full_net_log_betweenness:overlap +
-#   I(full_net_constraint^2) + I(full_net_log_betweenness^2)
 
 #####################################################################################
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
@@ -64,38 +58,11 @@ g.full <- read.graph('g_full_compacq.graphml', format='graphml')
 #          # funding rounds, $ funding, 
 #          acq experience, MMC, 
 #----------------------------------------------------------------------------------
-baseCols <- c('company_name_unique','country_code','state_code','region','city', 'category_group_list')
-baseRows <- which(co$company_name_unique %in% V(g.full)$name)
-rdf <- co[ baseRows , baseCols]
-
-rdf$category <- sapply(rdf$category, function(x)str_split(x, '[|]')[[1]][1])
-
-
-
-###--------------------------------------------------------------------------------
-# Compute Dynamic covariates
-#----------------------------------------------------------------------------------
-
-
-
-
-
-
-
-#----------------------------------------------------------------------------------
-#  Test distance proxy competition --> acquisitions
-#----------------------------------------------------------------------------------
-name_i <- 'medallia'
-k <- 4
-gsub <- igraph::make_ego_graph(g.full, order=k, nodes=V(g.full)[V(g.full)$name==name_i])[[1]]
-
-d = igraph::distances(gsub, 1:2)
-
-
-
-
-
-
+# baseCols <- c('company_name_unique','country_code','state_code','region','city', 'category_group_list')
+# baseRows <- which(co$company_name_unique %in% V(g.full)$name)
+# rdf <- co[ baseRows , baseCols]
+# 
+# rdf$category <- sapply(rdf$category, function(x)str_split(x, '[|]')[[1]][1])
 
 
 ##----------------------------------------------------------------------------------
@@ -120,7 +87,7 @@ yc <- plyr::count(acq.r$acquired_year)
 yc <- yc[order(yc$freq, decreasing = T),]
 plot(yc$x, yc$freq, main=sprintf('n=%d',nrow(acq.r)), log='y',col='steelblue',pch=16)
 
-periods <- c(2011,2013,2015,2017)
+periods <- c(2014,2015,2016,2017)
 
 if( !('l' %in% ls()) ) l <- list()   ## coariates list
 for (t in 2:length(periods)) {
@@ -182,35 +149,40 @@ for (t in 2:length(periods)) {
   ## Matrix covariates ----------------------------------------------------------
   cat('computing covariates...\n')
   ## Distances to/from companies in this period subgraph if they are in list of this period acquisitions
+  cat('distances\n')
   gx.sub.idx <- which(V(gx.sub)$name %in% gx.names)
   dis <- igraph::distances(gx.sub, 
-                                      v  = V(gx.sub)[gx.sub.idx], 
-                                      to = V(gx.sub)[gx.sub.idx] )
+                            v  = V(gx.sub)[gx.sub.idx], 
+                            to = V(gx.sub)[gx.sub.idx] )
   # dis[dis == Inf ] <- 100
-  l[[pd]]$dist_d <- as.vector(dis[lower.tri(dis)])
+  #l[[pd]]$dist_d <- as.vector(dis[lower.tri(dis)])
   l[[pd]]$df$dist_d <- as.vector(dis[lower.tri(dis)])
+  
   ## MMC
+  cat('mmc\n')
   gx.tmp <- induced.subgraph(gx, vids = V(gx)[which(V(gx)$name %in% gx.names)])
   mmc.mat <- getMultiMarketContact(co_br, V(gx.tmp)$name, end)
-  l[[pd]]$mmc_d <- as.vector(mmc.mat[lower.tri(mmc.mat)])
+  #l[[pd]]$mmc_d <- as.vector(mmc.mat[lower.tri(mmc.mat)])
   l[[pd]]$df$mmc_d <- as.vector(mmc.mat[lower.tri(mmc.mat)])
   
   ## Age diff
+  cat('age\n')
   l[[pd]]$age <- (end-1) - V(gx)[which(V(gx)$name %in% gx.names)]$founded_year
-  l[[pd]]$age_d <- as.vector(dist(l[[pd]]$age))
+  #l[[pd]]$age_d <- as.vector(dist(l[[pd]]$age))
   l[[pd]]$df$age_d <- as.vector(dist(l[[pd]]$age))
   
   ## Comp size (count) diff
+  cat('degree\n')
   l[[pd]]$degree <- igraph::degree(gx, v = V(gx)[which(V(gx)$name %in% gx.names)])
-  l[[pd]]$degree_d <- as.vector(dist(l[[pd]]$degree))
   l[[pd]]$df$degree_d <- as.vector(dist(l[[pd]]$degree))
   
   ## Constraint Diff
-  l[[pd]]$constraint <- igraph::constraint(gx, nodes = V(gx)[which(V(gx)$name %in% gx.names)])
-  l[[pd]]$constraint_d <- as.vector(dist(l[[pd]]$constraint))
+  cat('constraint\n')
+  l[[pd]]$constraint <- igraph::constraint(gx, nodes = V(gx)[which(V(gx)$name %in% gx.names)]) * 100
   l[[pd]]$df$constraint_d <- as.vector(dist(l[[pd]]$constraint))
   
   ## Acquisition Experience
+  cat('acquisition experience\n')
   acq.exp <- co_acq[which(co_acq$acquired_year < end), ]
   acq.cnt.i <- plyr::count(acq.exp$acquirer_name_unique)
   names(acq.cnt.i) <- c('company_name_unique','acq_exp_i')
@@ -221,28 +193,31 @@ for (t in 2:length(periods)) {
   l[[pd]]$df <- merge(l[[pd]]$df, acq.cnt.j, by.x = 'firm_j', by.y = 'company_name_unique', all.x = T)
   l[[pd]]$df$acq_exp_i[is.na(l[[pd]]$df$acq_exp_i)] <- 0
   l[[pd]]$df$acq_exp_j[is.na(l[[pd]]$df$acq_exp_j)] <- 0
-  l[[pd]]$df$acq_exp <- l[[pd]]$df$acq_exp_i + l[[pd]]$df$acq_exp_j
+  l[[pd]]$df$acq_exp_d <- l[[pd]]$df$acq_exp_i + l[[pd]]$df$acq_exp_j
   
   ## Centrality Diff
-  # between <- igraph::betweenness(gx)
+  cat('closeness\n')
+  l[[pd]]$closeness  <- igraph::closeness(gx, vids = V(gx)[which(V(gx)$name %in% gx.names)], normalized = T) * 100
+  l[[pd]]$df$closeness_d <- as.vector(dist(l[[pd]]$closeness))
   
   ## local density diff (?)
   
   ## FACTORS / HOMOPHILY TERMS ---------------------------------------------- 
   cat('computing factor / homophily terms...\n')
   ## Same community
+  cat('community\n')
   mem <- igraph::multilevel.community(gx)$membership
   mem <- mem[ which(V(gx)$name %in% gx.names) ]
   l[[pd]]$community <- mem
   md <- dist(mem)
   dvec <- as.vector(md)
   dvec[dvec>0] <- 1  ## diff community == 1
-  l[[pd]]$community_d <- 1-dvec     ## 1=same; 0=not same
   l[[pd]]$df$community_d <- 1-dvec     ## 1=same; 0=not same
   
   ## Same HQ region
+  cat('region\n')
   vert.sub <- V(gx)[which(V(gx)$name %in% gx.names)]
-  l[[pd]]$region <- sapply(seq_along(vert.sub), function(x){
+  catRegion <- Vectorize(FUN=function(x){
     ct <- V(gx)[x]$country_code
     st <- V(gx)[x]$state_code
     if(is.na(st) | st == 'NA')
@@ -250,39 +225,38 @@ for (t in 2:length(periods)) {
     else 
       return(paste(c(ct,st),collapse = "_"))
   })
-  rd <- abs(diff(as.numeric(as.factor(l[[pd]]$region))))
+  l[[pd]]$region <- sapply(seq_along(vert.sub), catRegion)
+  rd <- abs(dist(as.numeric(as.factor(l[[pd]]$region))))
   dvec <- as.vector(rd)
   dvec[dvec>0] <- 1 
-  l[[pd]]$region_d <- 1-dvec ## 1=same; 0=not same
   l[[pd]]$df$region_d <- 1-dvec ## 1=same; 0=not same
   
   ## same category
+  cat('category\n')
   vert.sub <- V(gx)[which(V(gx)$name %in% gx.names)]
-  l[[pd]]$category <- as.factor(sapply(seq_along(vert.sub), function(x) {
+  splitCategory <- Vectorize(FUN = function(x) {
     split <- str_split(V(gx)[vert.sub]$category_group_list[x], '[|]')
     return(split[[1]][1]) 
-  }))
+  })
+  l[[pd]]$category <- as.factor(sapply(seq_along(vert.sub), splitCategory))
   cd <- abs(dist(as.numeric(l[[pd]]$category)))
   dvec <- as.vector(cd)
   dvec[dvec>0] <- 1   ## x > 1 == not same
-  l[[pd]]$category_d <- 1-dvec  ## 1=same; 0=not same
   l[[pd]]$df$category_d <- 1-dvec  ## 1=same; 0=not same
   
   ## IPO Status
+  cat('IPO status\n')
   iposub <- co_ipo[which(co_ipo$company_name_unique %in% gx.names
                       & co_ipo$went_public_year < end), ]
-  l[[pd]]$ipo <- as.factor(sapply(gx.names, function(x) {
+  codeIpo <- Vectorize(FUN = function(x) {
     ifelse(x %in% iposub$company_name_unique, 'public', 'private')
-  }))
-  l[[pd]]$ipo_d <- 1 - abs(dist(as.numeric(l[[pd]]$ipo)))  ## 1=same; 0=not same
+  })
+  l[[pd]]$ipo <- as.factor(sapply(gx.names, codeIpo))
   l[[pd]]$df$ipo_d <- 1 - abs(dist(as.numeric(l[[pd]]$ipo)))  ## 1=same; 0=not same
   
   #------------------------- END Dyadic predictors ----------------------------------
+  save(l, file="acquisitions_l_15-16-17.RData")
 }
-  
-save(l, file="acquisitions_l_13-15-17.RData")
-
-
 
 
 

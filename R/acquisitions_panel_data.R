@@ -162,9 +162,9 @@ for (t in 2:length(periods)) {
         l[[pd]]$df[counter, 'firm_i'] <- gx.names[i]
         l[[pd]]$df[counter, 'firm_j'] <- gx.names[j]
         y_ij <- acq.sub[which(acq.sub$acquirer_name_unique==gx.names[i]
-                             & acq.sub$acquiree_name_unique==gx.names[j]), ]
+                              & acq.sub$acquiree_name_unique==gx.names[j]), ]
         y_ji <- acq.sub[which(acq.sub$acquirer_name_unique==gx.names[j]
-                             & acq.sub$acquiree_name_unique==gx.names[i]), ]
+                              & acq.sub$acquiree_name_unique==gx.names[i]), ]
         l[[pd]]$df[counter, 'Y_ij'] <- ifelse(nrow(y_ij)>0, 1, 0)
         l[[pd]]$df[counter, 'Y_ji'] <- ifelse(nrow(y_ji)>0, 1, 0)
         counter <- counter +1
@@ -182,8 +182,8 @@ for (t in 2:length(periods)) {
   ## Distances to/from companies in this period subgraph if they are in list of this period acquisitions
   gx.sub.idx <- which(V(gx.sub)$name %in% gx.names)
   dis <- igraph::distances(gx.sub, 
-                                      v  = V(gx.sub)[gx.sub.idx], 
-                                      to = V(gx.sub)[gx.sub.idx] )
+                           v  = V(gx.sub)[gx.sub.idx], 
+                           to = V(gx.sub)[gx.sub.idx] )
   # dis[dis == Inf ] <- 100
   l[[pd]]$dist_d <- as.vector(dis[lower.tri(dis)])
   l[[pd]]$df$dist_d <- as.vector(dis[lower.tri(dis)])

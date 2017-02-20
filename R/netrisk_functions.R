@@ -19,7 +19,7 @@ filterModels <- function(l)
 ##
 #
 ##
-write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, single.row=T, ...)
+write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, single.row=T, ci.force=F, ...)
 {
   if(is.na(filename))
     filename <- deparse(substitute(fit))
@@ -30,8 +30,8 @@ write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, single.row=T
     filename.txt <- sprintf('%s_%s.txt',name,stamp )
     filename.html <- sprintf('%s_%s.html',name,stamp )
   }
-  if(screen) texreg::screenreg(l, file = filename.txt,  single.row = single.row, ci.force = T, ...)
-  if(html) texreg::htmlreg(l, file = filename.html,  single.row = single.row, ci.force = T, ...)
+  if(screen) texreg::screenreg(l, file = filename.txt,  single.row = single.row, ci.force = ci.force, ...)
+  if(html) texreg::htmlreg(l, file = filename.html,  single.row = single.row, ci.force = ci.force, ...)
 }
 
 ##
