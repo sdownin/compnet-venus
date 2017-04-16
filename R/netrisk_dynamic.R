@@ -101,17 +101,17 @@ lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 #####################################################################################
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
 #####################################################################################
-# g.full <- makeGraph(comp = co_comp, vertdf = co)
-# ## cut out confirmed dates >= 2016
-# g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016 
-#                                                                 | is.na(V(g.full)$founded_year)
-#                                                                 | V(g.full)$founded_year=='' ) ] )
-# g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
-# ## SIMPLIFY
-# g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T, 
-#                            edge.attr.comb = list(weight='sum', 
-#                                                  relation_began_on='min',
-#                                                  relation_ended_on='min'))
+g.full <- makeGraph(comp = co_comp, vertdf = co)
+## cut out confirmed dates >= 2016
+g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016
+                                                                | is.na(V(g.full)$founded_year)
+                                                                | V(g.full)$founded_year=='' ) ] )
+g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
+## SIMPLIFY
+g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
+                           edge.attr.comb = list(weight='sum',
+                                                 relation_began_on='min',
+                                                 relation_ended_on='min'))
 #igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
 
 g.full <- read.graph('g_full.graphml', format='graphml')
@@ -180,21 +180,28 @@ View(head(co[grep('biotec',
 #--------------------------------------------------------------------
 firms <- V(g.full)$name
 deg <- igraph::degree(g.full)
-min <- 7
-max <- 20
+min <- 1
+max <- Inf
 firms.sub <- firms[which(deg > min & deg < max)]
 
 rindex <- which(co$status %in% c('closed','acquired') 
                 #& co$company_name_unique %in% firms.sub
-                & (co$acquired_year >= 2012 | co$closed_year >= 2012)
+                #& (co$acquired_year >= 2012 | co$closed_year >= 2012)
+                & co$closed_year >= 2010
                 )
 
-cindex <- c('company_name_unique', 'acquired_on','closed_on','homepage_url','short_description','category_list') 
+cindex <- c('company_name_unique', 'company_name', 'acquired_on','closed_on','homepage_url','short_description','category_list') 
 sub <- co[rindex, cindex]
+cnt <- plyr::count(co_comp[co_comp$company_name_unique %in% sub$company_name_unique
+                           | co_comp$competitor_name_unique %in% sub$company_name_unique, 'company_name_unique'])
+names(cnt) <- c('company_name_unique','competitor_count')
+sub <- merge(sub, cnt, by.x='company_name_unique',all.x=T)
+sub <- sub[order(sub$competitor_count, decreasing=T), ]
+sub <- sub[ !is.na(sub$competitor_count) & sub$competitor_count > 0, ]
 dim(sub)
 View(sub)
 
-filename <- sprintf('envrisk_companies_%s_%s_r%s.csv', min,max, nrow(sub))
+filename <- sprintf('envrisk_CLOSED_companies_full_names_r%s.csv', nrow(sub))
 write.table(sub, file = filename, sep = ',', row.names = F, col.names = T, na = " ")
 
 

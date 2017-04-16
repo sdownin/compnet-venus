@@ -416,10 +416,12 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
                       compName='competitor_name_unique', 
                       relationStartCol='relation_began_year',
                       relationEndCol='relation_ended_year',
-                      vertAttrs=c('founded_on','founded_year','closed_on','closed_year',
-                                  'category_list','category_group_list',
-                                  'state_code','country_code','region','city') )
+                      vertAttrs=NA )
 {
+  if(is.na(vertAttrs)) {
+    vertAttrs <- c('company_name','founded_on','founded_year','closed_on','closed_year','category_list',
+                   'category_group_list','state_code','country_code','region','city')
+  }
   el <- data.frame(source=comp[,name], 
                    target=comp[,compName],
                    relation_began_on=comp[,relationStartCol], 
