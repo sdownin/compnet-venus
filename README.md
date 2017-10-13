@@ -9,9 +9,9 @@ This research was supported in part by MOST-105-2420-H-009-012-DR and  MOST-106-
 Getting Started
 ======
 
-in directory `R` download the R script `netrisk_awareness_AOM.R`. 
+In directory `R` download the R script `netrisk_awareness_AOM.R`. 
 
-Paste the binary data file `netrisk_dynamic_firm_nets_1yr_v3_misc.RData` is in the same directory that you save the above script. You can run the script in its entirety simply to get the results, but an explanation of each part is provided below in case you want to change the analysis.
+Save the binary data file [netrisk_dynamic_firm_nets_1yr_v3_misc.RData](https://drive.google.com/file/d/0BwC9gdMOvRwBbm5BSjZ2SVpqdmc/view?usp=sharing "competition networks data file") is in the same directory that you save the above script. You can run the script in its entirety simply to get the results, but an explanation of each part is provided below in case you want to change the analysis.
 
 Set working dir:
 ```R
