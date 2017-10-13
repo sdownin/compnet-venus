@@ -41,7 +41,7 @@ nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
 
 ## Edge covariates list of matrices [[NxN],[NxN],...]
 mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
-sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+smt <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
 ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
 
 ## Models
@@ -50,14 +50,14 @@ m0 <-   nets.sub ~ edges + gwesp(0, fixed=T) +
   nodematch('state_code', diff=F) +
   nodematch('npm',diff=F) + 
   nodecov('age') +   
-  edgecov(mmc)  + edgecov(ldv) +  edgecov(sim)
+  edgecov(mmc)  + edgecov(ldv) +  edgecov(smt)
 
 m1 <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
   nodematch('ipo_status', diff=TRUE) +
   nodematch('state_code', diff=F) +
   nodematch('npm',diff=F) + 
   nodecov('age') +   
-  edgecov(mmc)  + edgecov(ldv) +   edgecov(sim)  +
+  edgecov(mmc)  + edgecov(ldv) +   edgecov(smt)  +
   nodecov('net_risk') 
 
 m2 <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
@@ -65,7 +65,7 @@ m2 <-   nets.sub ~ edges + gwesp(0, fixed=T) +
   nodematch('state_code', diff=F) +
   nodematch('npm',diff=F) + 
   nodecov('age') +   
-  edgecov(mmc)  + edgecov(ldv) +   edgecov(sim)  +
+  edgecov(mmc)  + edgecov(ldv) +   edgecov(smt)  +
   nodecov('constraint') + absdiff('constraint') 
 
 m3 <- nets.sub ~ edges + gwesp(0, fixed=T)   +
@@ -73,25 +73,25 @@ m3 <- nets.sub ~ edges + gwesp(0, fixed=T)   +
   nodematch('state_code', diff=F) +
   nodematch('npm',diff=F) + 
   nodecov('age') +   
-  edgecov(mmc)  + edgecov(ldv) +  edgecov(sim)  +
-  cycle(3:5)
+  edgecov(mmc)  + edgecov(ldv) +  edgecov(smt)  +
+  cycle(3) + cycle(4) + cycle(5)
 
 m4 <-  nets.sub ~ edges + gwesp(0, fixed=T) + 
   nodematch('ipo_status', diff=TRUE)  +
   nodematch('state_code', diff=F) +
   nodematch('npm',diff=F) + 
   nodecov('age') +   
-  edgecov(mmc)  + edgecov(ldv) +  edgecov(sim)  +
+  edgecov(mmc)  + edgecov(ldv) +  edgecov(smt)  +
   nodecov('net_risk') +
   nodecov('constraint') + absdiff('constraint') + 
-  cycle(3:5) 
+  cycle(3)  + cycle(4) + cycle(5)
 
 ## RUN Bootstrap MPLE
 f0 <- btergm(m0, R=R, parallel = "multicore", ncpus = detectCores()); summary(f0)
 f1 <- btergm(m1, R=R, parallel = "multicore", ncpus = detectCores()); summary(f1)
 f2 <- btergm(m2, R=R, parallel = "multicore", ncpus = detectCores()); summary(f2)
 f3 <- btergm(m3, R=R, parallel = "multicore", ncpus = detectCores()); summary(f3)
-f4 <- btergm(m4, R=2000, parallel = "multicore", ncpus = detectCores()); summary(f4)
+f4 <- btergm(m4, R=R, parallel = "multicore", ncpus = detectCores()); summary(f4)
 
 ## save as a list of model fits
 fits <- list(f0=f0,f1=f1,f2=f2,f3=f3,f4=f4)
@@ -114,7 +114,44 @@ saveRDS(fits, file='AOM_awareness_tergm_fits.rds')
 
 ## Goodness of Fit
 options(error=function() dump.frames(to.file=TRUE))
-f4.gof1 <- gof(f1,target=firm.nets,nsim=5,statistics = c(esp, dsp, geodesic,deg, triad.undirected, walktrap.modularity))
+f4.gof1 <- gof(f4,formula=m4,nsim=100,
+               statistics = c(esp, dsp, geodesic,deg, triad.undirected, 
+                              walktrap.modularity))
+plot(f4.gof1)
+saveRDS(f4.gof1, file="tergm_f4_gof1.rds")
+
+
+## TERGM Micro-interpretation
+## Predict Ties i--j (for i:=clarabridge and all j!=i) at period 6 (2016)
+N <- nrow(f4@data$networks$`2017`[,])
+Nn <- N*(N-1)
+df4.pij <- data.frame(i=rep(NA,Nn),
+                     j=rep(NA,Nn),
+                     t1=rep(NA,Nn),
+                     t2=rep(NA,Nn),
+                     t3=rep(NA,Nn),
+                     t4=rep(NA,Nn),
+                     t5=rep(NA,Nn),
+                     t6=rep(NA,Nn))
+idx <- 1
+ts <- c(6)
+ego.j <- which(f4@data$networks$`2017` %v% 'vertex.names' == 'clarabridge')
+for (j in ego.j) { ## ego firm column j
+  for (i in 1:N) { ## alter firm row i
+    if (i != j) {
+      for (t in ts) { ## time periods
+        df4.pij$i[idx] <- i
+        df4.pij$j[idx] <- j
+        col <- paste0("t",t)
+        df4.pij[idx,col] <- btergm::interpret(f4,i=i,j=j,t=t)
+        idx <- idx + 1
+        if (idx %% 10 == 0)  cat(sprintf("finished i = %s --> j = %s",i,j))
+      }
+    }
+  }
+  cat(paste0("finished j =",j))
+}; saveRDS(df4.pij, file="tergm_f4_t6_interpret_pij.rds")
+
 
 # ##=================================================
 # ## check PMLE estimates and stderrs consistency as 

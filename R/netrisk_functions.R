@@ -2554,19 +2554,19 @@ setCovariates <- function(net, start, end,
     age <- end - year
     age[age < 0] <- 0
     net %v% 'age' <- age
-    ##------------------------------------
-    ## # 1. ENV RISK -- VERTEX ATTRIBUTE
-    ##------------------------------------
-    cat('\ncomputing risk measure...\n')
-    if (downweight.env.risk) {
-      rl <- envRisk(g.net) 
-      prefix <- 'env_risk'
-    } else {
-      rl <- netRisk(g.net, community.type = netRiskCommunityAlgo)
-      prefix <- 'net_risk'
-    }
-    net %v% prefix <- rl$r
-    net %v% 'npm' <- V(rl$g)$community
+    # ##------------------------------------
+    # ## # 1. ENV RISK -- VERTEX ATTRIBUTE
+    # ##------------------------------------
+    # cat('\ncomputing risk measure...\n')
+    # if (downweight.env.risk) {
+    #   rl <- envRisk(g.net) 
+    #   prefix <- 'env_risk'
+    # } else {
+    #   rl <- netRisk(g.net, community.type = netRiskCommunityAlgo)
+    #   prefix <- 'net_risk'
+    # }
+    # net %v% prefix <- rl$r
+    # net %v% 'npm' <- V(rl$g)$community
     ##------------------------------------
     ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
     ##------------------------------------
@@ -2644,7 +2644,7 @@ setCovariates <- function(net, start, end,
     net %v% 'com_fastgreedy'  <- igraph::fastgreedy.community(g.net)$membership
     net %v% 'com_edgebetween' <- igraph::edge.betweenness.community(g.net)$membership
     net %v% 'com_labelprop'   <- igraph::label.propagation.community(g.net)$membership
-    net %v% 'com_eigenvector' <- igraph::leading.eigenvector.community(g.net)$membership
+    # net %v% 'com_eigenvector' <- igraph::leading.eigenvector.community(g.net)$membership  ## Arpack solver error
     ## Generalist Index
     net %v% 'genidx_multilevel'  <- generalistIndex(g.net, net %v% 'com_multilevel' )
     net %v% 'genidx_infomap'     <- generalistIndex(g.net, net %v% 'com_infomap' )
@@ -2652,7 +2652,7 @@ setCovariates <- function(net, start, end,
     net %v% 'genidx_fastgreedy'  <- generalistIndex(g.net, net %v% 'com_fastgreedy' )
     net %v% 'genidx_edgebetween' <- generalistIndex(g.net, net %v% 'com_edgebetween' )
     net %v% 'genidx_labelprop'   <- generalistIndex(g.net, net %v% 'com_labelprop' )
-    net %v% 'genidx_eigenvector' <- generalistIndex(g.net, net %v% 'com_eigenvector' )
+    # net %v% 'genidx_eigenvector' <- generalistIndex(g.net, net %v% 'com_eigenvector' )
     ##------------------------------------
     ## # 9. Customer Status (coopetition) -- EDGE ATTRIBUTE
     ##------------------------------------

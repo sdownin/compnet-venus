@@ -85,7 +85,7 @@ for (i in 1:ncol(rf[[1]]@boot$t)) {
              R=unname(length(x)))
     return(out)
   })
-  matplot(x=df[,"R"],y=df[,c('L99','L95','mu','U95','U99')],
+  matplot(x=df[7:length(df$R),"R"],y=df[7:nrow(df),c('L99','L95','mu','U95','U99')],
           main=colnames(rf[[1]]@boot$t)[i],
           ylab='Estimate', xlab=('Bootstrap Resamples'),
           log='x',
@@ -111,7 +111,7 @@ for (i in 1:ncol(rf[[1]]@boot$t)) {
   })
   Rs <- df[,"R"][2:length(df[,"R"])]
   diff.prop <- diff(df$mu)/df$mu[2:length(df$mu)]
-  plot(Rs,diff.prop, ylim=c(-.4,.4), log='x', type='b', 
+  plot(Rs[1:length(Rs)],diff.prop[1:length(diff.prop)], ylim=c(-.4,.4), log='x', type='b', 
        pch=c(15), col='darkred', 
        xlab=("Bootstrap Resamples"), ylab="% Diff in Estimated Mean",
        main=colnames(rf[[1]]@boot$t)[i])
