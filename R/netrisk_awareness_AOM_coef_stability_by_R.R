@@ -55,11 +55,10 @@ m1 <-   nets.sub ~ edges + gwesp(0, fixed=T) +
 
 rf <- list()
 
-for (R in 2^c(4:10)) {
+for (R in 2^c(4:12)) {
   rf[[paste0('R',R)]] <- btergm(m1, R=R,parallel="multicore",ncpus=detectCores())
   summary(rf[[paste0('R',R)]])
 }
-
 
 
 ##=================================================
@@ -67,23 +66,56 @@ for (R in 2^c(4:10)) {
 ## number of resamples R increases
 ##-------------------------------------------------
 par(mfrow=c(3,4))
-for (i in 1:ncol(f0@boot$t)) {
-  df <- ldply(list(f0,f0.40,f0.60,f0.80,f0.100), function(fit){
-    x <- fit@boot$t[,i];
+degpct <- c()
+for (i in 1:ncol(rf[[1]]@boot$t)) {
+  df <- ldply(rf, function(fit){
+    x <- fit@boot$t[,i]
+    ## filter degenerate model coefs
+    # x <- x[x > quantile(x,.005) & x < quantile(x,.995)]
+    iqr <- IQR(x)
+    ol <- c(quantile(x,.25)-iqr, quantile(x,.75)+iqr)
+    which.outliers <- which(x < ol[1] | x > ol[2])
+    degpct <<- c(degpct, 100*length(which.outliers)/length(x)) ## break scope
+    print(sprintf("%s degenerate: %.1f",'%',100*length(which.outliers)/length(x) ))
     out <- c(L99=unname(quantile(x,.005)),
              L95=unname(quantile(x,.025)),
-             mu=mean(x,na.rm = T),
-             U99=unname(quantile(x,.975)),
+             mu=unname(median(x,na.rm = T)),
+             U95=unname(quantile(x,.975)),
              U99=unname(quantile(x,.995)),
-             R=length(x))
+             R=unname(length(x)))
     return(out)
   })
-  matplot(x=df[,6],y=df[,1:5],
-          main=colnames(f0@boot$t)[i],
+  matplot(x=df[,"R"],y=df[,c('L99','L95','mu','U95','U99')],
+          main=colnames(rf[[1]]@boot$t)[i],
           ylab='Estimate', xlab=('Bootstrap Resamples'),
-          log='x', pch=c(20,18,15,18,20),
+          log='x',
+          pch=c(20,18,15,18,20),
           type = 'b', lty=c(3,2,1,2,3),lwd=c(.5,1,2,1,.5),
-          col=c('gray','darkgray','red','darkgray','gray'))
+          col=c('steelblue','steelblue','red','steelblue','steelblue'))
+  abline(h=0)
+}; hist(degpct, main="% degenerate bootstrap coefficients")
+
+## difference in coefficients
+##-------------------------------------------------
+par(mfrow=c(3,4))
+for (i in 1:ncol(rf[[1]]@boot$t)) {
+  df <- ldply(rf, function(fit){
+    x <- fit@boot$t[,i]
+    out <- c(L99=unname(quantile(x,.005)),
+             L95=unname(quantile(x,.025)),
+             mu=unname(median(x,na.rm = T)),
+             U95=unname(quantile(x,.975)),
+             U99=unname(quantile(x,.995)),
+             R=unname(length(x)))
+    return(out)
+  })
+  Rs <- df[,"R"][2:length(df[,"R"])]
+  diff.prop <- diff(df$mu)/df$mu[2:length(df$mu)]
+  plot(Rs,diff.prop, ylim=c(-.4,.4), log='x', type='b', 
+       pch=c(15), col='darkred', 
+       xlab=("Bootstrap Resamples"), ylab="% Diff in Estimated Mean",
+       main=colnames(rf[[1]]@boot$t)[i])
+  abline(h=0)
 }
 
 

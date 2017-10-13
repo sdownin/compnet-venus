@@ -91,7 +91,7 @@ f0 <- btergm(m0, R=R, parallel = "multicore", ncpus = detectCores()); summary(f0
 f1 <- btergm(m1, R=R, parallel = "multicore", ncpus = detectCores()); summary(f1)
 f2 <- btergm(m2, R=R, parallel = "multicore", ncpus = detectCores()); summary(f2)
 f3 <- btergm(m3, R=R, parallel = "multicore", ncpus = detectCores()); summary(f3)
-f4 <- btergm(m4, R=R, parallel = "multicore", ncpus = detectCores()); summary(f4)
+f4 <- btergm(m4, R=2000, parallel = "multicore", ncpus = detectCores()); summary(f4)
 
 ## save as a list of model fits
 fits <- list(f0=f0,f1=f1,f2=f2,f3=f3,f4=f4)
@@ -108,10 +108,12 @@ htmlreg(fits, file = 'AOM_awareness_tergm_fits.html',
 ## Save model output as binary data file
 ## load saved models by running:
 ## >  load('AOM_awareness_tergm_fits.RData')
-save(fits, file='AOM_awareness_tergm_fits.RData')
+# save(fits, file='AOM_awareness_tergm_fits.RData')
 saveRDS(fits, file='AOM_awareness_tergm_fits.rds')
 
 
+## Goodness of Fit
+f4.gof1 <- gof(f4,target=firm.nets,nsim=5,statistics = c(esp, dsp, geodesic,deg, triad.undirected, walktrap.modularity))
 
 # ##=================================================
 # ## check PMLE estimates and stderrs consistency as 
