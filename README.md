@@ -11,7 +11,7 @@ Getting Started
 
 in directory `R` download the R script `netrisk_awareness_AOM.R`. 
 
-Paste the binary data file `netrisk_dynamic_firm_nets_1yr_v3_misc.RData` is in the same directory that you save the above script.
+Paste the binary data file `netrisk_dynamic_firm_nets_1yr_v3_misc.RData` is in the same directory that you save the above script. You can run the script in its entirety simply to get the results, but an explanation of each part is provided below in case you want to change the analysis.
 
 Set working dir:
 ```R
