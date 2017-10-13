@@ -30,7 +30,7 @@ load('netrisk_dynamic_firm_nets_1yr_v3_misc.RData')
 ##        BTERGM:  TERGM via MPLE with Bootstrapped standard error
 ##--------------------------------------------------------------------------
 
-R <- 20                 ## number of bootstrap resamples
+R <- 1000                 ## number of bootstrap resamples
 nPeriods <- 6           ## 6 out of 7, skips first period for DV lag
 net_group <- 'misc'     ## network group name
 firm_i <- 'clarabridge' ## focal firm name
