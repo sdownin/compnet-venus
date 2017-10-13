@@ -17,6 +17,7 @@
 *.RData
 *.RDataTmp
 *.RDat*
+*.rda*
 *.rds*
 *.Rhistory
 *.db

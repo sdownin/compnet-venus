@@ -113,7 +113,8 @@ saveRDS(fits, file='AOM_awareness_tergm_fits.rds')
 
 
 ## Goodness of Fit
-f4.gof1 <- gof(f4,target=firm.nets,nsim=5,statistics = c(esp, dsp, geodesic,deg, triad.undirected, walktrap.modularity))
+options(error=function() dump.frames(to.file=TRUE))
+f4.gof1 <- gof(f1,target=firm.nets,nsim=5,statistics = c(esp, dsp, geodesic,deg, triad.undirected, walktrap.modularity))
 
 # ##=================================================
 # ## check PMLE estimates and stderrs consistency as 
