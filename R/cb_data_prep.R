@@ -7,7 +7,7 @@
 #
 #
 ##########################################################################################
-setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
+setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet")
 #.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 #
 library(plyr, quietly = T)
@@ -15,7 +15,7 @@ library(magrittr, quietly = T)
 library(reshape2, quietly = T)
 library(lubridate, quietly = T)
 library(stringr, quietly = T)
-data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
 
 ##--------- Conversion functions---------------
 
@@ -23,9 +23,6 @@ data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/crunchba
 ## Sources
 ##---------------------------------------------------------
 ##---- entities
-# csv.jobs <- 'jobs.csv'
-# csv.ppl <- 'people.csv'
-# csv.ppl_desc <- 'people_descriptions.csv'
 csv.co <- 'organizations.csv'
 csv.co_comp <- 'competitors.csv'
 csv.co_cust <- 'customers.csv'
@@ -42,6 +39,9 @@ csv.inv_part <- 'investment_partners.csv'
 csv.ev <- 'events.csv'
 csv.ev_rel <- 'event_relationships.csv'
 csv.categ <- 'category_groups.csv'
+csv.jobs <- 'jobs.csv'
+csv.ppl <- 'people.csv'
+csv.ppl_desc <- 'people_descriptions.csv'
 #----------------------------------
 #  Data import
 #----------------------------------
@@ -62,6 +62,11 @@ inv_part <- read.table(file.path(data_dir, csv.inv_part), sep=",",header=T, quot
 ev <- read.table(file.path(data_dir, csv.ev), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
 ev_rel <- read.table(file.path(data_dir, csv.ev_rel), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
 categ <- read.table(file.path(data_dir, csv.categ), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+##
+job <- read.table(file.path(data_dir, csv.jobs), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+ppl <- read.table(file.path(data_dir, csv.ppl), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+ppl_desc <- read.table(file.path(data_dir, csv.ppl_desc), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+
 
 # MULTI_MARKET_CONTACT CODE
 co_br$mmc_code <- apply(co_br[,c('country_code3','region_code2')],1,function(x){
@@ -102,10 +107,11 @@ co_ipo$went_public_year <- as.numeric(stringr::str_sub(co_ipo$went_public_on,1,4
 # CUSTOMER
 co_cust$created_year <- as.numeric(stringr::str_sub(co_cust$created_at,1,4))
 
-## Unique Braches
+## Unique Branches
 co_br <- unique(co_br)
 
-## Firm age
+# ## Firm age
+# co$founded_year
 
 # ## Add Acquried date to company df
 # co.tmp <- merge(data.frame(company_name_unique=co$company_name_unique, stringsAsFactors = F), 
