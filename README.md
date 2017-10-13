@@ -14,12 +14,12 @@ in directory `R` download the R script `netrisk_awareness_AOM.R`.
 Paste the binary data file `netrisk_dynamic_firm_nets_1yr_v3_misc.RData` is in the same directory that you save the above script.
 
 Set working dir:
-```{R}
+```R
 setwd("<full path>")
 ```
 
 load libraries:
-```{r}
+```r
 library(parallel)
 library(btergm)
 library(texreg)
