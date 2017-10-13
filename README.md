@@ -19,7 +19,7 @@ setwd("<full path>")
 ```
 
 load libraries:
-```r
+```R
 library(parallel)
 library(btergm)
 library(texreg)
@@ -27,13 +27,12 @@ library(plyr)
 ```
 
 load binary data file in R:
-```{R}
+```R
 load('netrisk_dynamic_firm_nets_1yr_v3_misc.RData');
 ```
 
 set params and save network covariate lists:
-```{R}
-
+```R
 R <- 1000               ## number of bootstrap resamples
 nPeriods <- 6           ## 6 out of 7, skips first period for DV lag
 net_group <- 'misc'     ## network group name
@@ -50,7 +49,7 @@ ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
 ```
 
 cache models as follows:
-```{R}
+```R
 m0 <- nets.sub ~ edges + gwesp(0, fixed=T) + 
   nodematch('ipo_status', diff=TRUE) +
   nodematch('state_code', diff=F) +
@@ -60,22 +59,22 @@ m0 <- nets.sub ~ edges + gwesp(0, fixed=T) +
 ```
 
 fit TERGMs via bootstrapped MPLE as follows:
-```{r}
+```R
 f0 <- btergm(m0, R=R, parallel = "multicore", ncpus = detectCores())
 ```
 
 cache model fits as a list:
-```{r}
+```R
 fits <- list(f0=f0,f1=f1,f2=f2,f3=f3,f4=f4)
 ```
 
 echo models comparison table to screen or save to formatted HTML file with:
-```{r}
+```R
 screenreg(fits)
 htmlreg(fits, file="fits.html")
 ```
 
 save binary data file of model fits:
-```{R}
+```R
 save(fits, file="fits.RData")
 ```
