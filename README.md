@@ -23,7 +23,6 @@ load libraries:
 library(parallel)
 library(btergm)
 library(texreg)
-library(plyr)
 ```
 
 load binary data file in R:
