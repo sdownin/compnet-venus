@@ -23,8 +23,8 @@ data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
 img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 
 ## binary data file of competition network lists
-load('netrisk_dynamic_firm_nets_1yr_v3_misc.RData')
-
+#load('netrisk_dynamic_firm_nets_1yr_v3_misc.RData')
+load('tergm_firm_nets_6pd_1yr.RData')
 
 ##==========================================================================
 ##        BTERGM:  TERGM via MPLE with Bootstrapped standard error
@@ -87,11 +87,11 @@ m4 <-  nets.sub ~ edges + gwesp(0, fixed=T) +
   cycle(3:5) 
 
 ## RUN Bootstrap MPLE
-f0 <- btergm(m0, R=R, parallel = "multicore", ncpus = detectCores())
-f1 <- btergm(m1, R=R, parallel = "multicore", ncpus = detectCores())
-f2 <- btergm(m2, R=R, parallel = "multicore", ncpus = detectCores())
-f3 <- btergm(m3, R=R, parallel = "multicore", ncpus = detectCores())
-f4 <- btergm(m4, R=R, parallel = "multicore", ncpus = detectCores())
+f0 <- btergm(m0, R=R, parallel = "multicore", ncpus = detectCores()); summary(f0)
+f1 <- btergm(m1, R=R, parallel = "multicore", ncpus = detectCores()); summary(f1)
+f2 <- btergm(m2, R=R, parallel = "multicore", ncpus = detectCores()); summary(f2)
+f3 <- btergm(m3, R=R, parallel = "multicore", ncpus = detectCores()); summary(f3)
+f4 <- btergm(m4, R=R, parallel = "multicore", ncpus = detectCores()); summary(f4)
 
 ## save as a list of model fits
 fits <- list(f0=f0,f1=f1,f2=f2,f3=f3,f4=f4)
@@ -108,7 +108,7 @@ htmlreg(fits, file = 'AOM_awareness_tergm_fits.html',
 ## Save model output as binary data file
 ## load saved models by running:
 ## >  load('AOM_awareness_tergm_fits.RData')
-save.image(fits, 'AOM_awareness_tergm_fits.RData')
+save.image(fits, file='AOM_awareness_tergm_fits.RData')
 
 
 
