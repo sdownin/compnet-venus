@@ -1,7 +1,7 @@
 cat('\n\n');timestamp();cat('\n')
 library(btergm)
 library(parallel)
-library(snow)
+# library(snow)
 library(texreg)
 
 data.dir <- '/home/sdowning/data'

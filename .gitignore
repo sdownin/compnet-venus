@@ -14,7 +14,9 @@
 *.tmp
 *.ppt
 *.pptx
-*.Rdata*
+*.RData
+*.RDataTmp
+*.RDat*
 *.Rhistory
 *.db
 *.bgs

@@ -384,6 +384,7 @@ getMultiProdEgoNet <- function(g, firms, k=1, include.competitor.egonet=TRUE)
 #
 ##
 ##
+<<<<<<< HEAD
 # Plot Competition Network coloring the Multi-Product firms in red
 ##
 plotCompNetAOM <- function(gs, membership=NA, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
@@ -586,6 +587,210 @@ plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, i
 ##
 # Plot Competition Network coloring the Multi-Product firms in red
 ##
+=======
+# Plot Competition Network coloring the Multi-Product firms in red
+##
+plotCompNetAOM <- function(gs, membership=NA, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+                           label.scale=0.3, vertex.scale=2,
+                           multi.prod=NA, vertex.log.base=exp(1),label.log.base=10, 
+                           layout.algo=layout.fruchterman.reingold,margins=NA, seed=1111, ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  ##
+  if (!all(is.na(membership)))
+    vertcol <- rainbow(length(unique(membership)), alpha=.3)[ membership ]
+  ##
+  if (!all(is.na(multi.prod)))
+    vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), vertcol)
+  if(!all(is.na(competitors)))
+    vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), vertcol)
+  ##
+  if(!all(is.na(focal.firm))) {
+    if(is.focal.color) 
+      vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
+    vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
+  }
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=log(d,base=vertex.log.base)*vertex.scale + 1.1
+              , vertex.color=vertcol
+              , vertex.label.cex=log(d,base=label.log.base)*label.scale + .005
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+##
+#
+##
+plotCompNetAOMequalSize <- function(gs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+                           label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                           layout.algo=layout.fruchterman.reingold,margins=NA,
+                           seed=1111,  ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  ##
+  gs <- igraph::induced.subgraph(gs, vids=V(gs)[igraph::degree(gs)>0])   
+  membership <- igraph::multilevel.community(gs)$membership
+  V(gs)$mem <- membership
+  ## HANDLE SAME COLORS FOR COMPETITORS
+  if(!all(is.na(competitors))) {
+    mem_i=-Inf
+    l <- list()
+    tmp.mem <- membership
+    for(i in 1:length(competitors)) {
+      l[[i]] <- list(indices=c(), from.mem=NA,to.mem=NA)
+      if (V(gs)[V(gs)$name==competitors[i]]$mem != mem_i) {
+        mem_i <- V(gs)[V(gs)$name==competitors[i]]$mem
+        l[[i]]$from.mem <- mem_i
+        l[[i]]$to.mem <- i
+        l[[i]]$indices <- which(V(gs)$mem==mem_i)
+        # swp[which(V(gs)$mem==i)] <- mem_i
+        # tmp.mem[which(V(gs)$mem==mem_i)] <- i        
+      }
+    }
+   tmp.mem <- membership
+   for (i in 1:length(l)) tmp.mem[l[[i]]$indices] <- l[[i]]$to.mem
+   V(gs)$mem <- membership <- tmp.mem
+  }
+  ##
+  ##
+  if (length(rcolors) >= length(unique(membership)))
+    vertcol <- rcolors[ membership ]
+  ##
+  if(!all(is.na(competitors)))
+    #vertcol <- ifelse(V(gs)$name %in% competitors, rgb(.8,.2,.2,.9), vertcol)
+  ##
+  if(!all(is.na(focal.firm))) {
+    if(is.focal.color) 
+      vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
+    vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+  }
+  ##
+  if(is.na(vertex.scale)) 
+    vertex.scale <- 100 * (1/vcount(gs)^.5)
+  if(is.na(label.scale)) 
+    label.scale <- 13 * (1/vcount(gs)^.5)
+  ##
+  vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), stringr::str_to_upper(V(gs)$name), '')
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=vertex.scale
+              , vertex.color=vertcol
+              , vertex.label=vertex.label
+              , vertex.label.cex=label.scale
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              # , vertex.label.degree = 120
+              # , vertex.label.dist = .3
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+##
+#
+##
+plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+                                    label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                    layout.algo=layout.fruchterman.reingold,margins=NA,
+                                    seed=1111,  ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  ##
+  gs <- igraph::induced.subgraph(gs, vids=V(gs)[igraph::degree(gs)>0])   
+  membership <- igraph::multilevel.community(gs)$membership
+  V(gs)$mem <- membership
+  ## HANDLE SAME COLORS FOR COMPETITORS
+  if(!all(is.na(competitors))) {
+    mem_i=-Inf
+    l <- list()
+    tmp.mem <- membership
+    for(i in 1:length(competitors)) {
+      l[[i]] <- list(indices=c(), from.mem=NA,to.mem=NA)
+      if (V(gs)[V(gs)$name==competitors[i]]$mem != mem_i) {
+        mem_i <- V(gs)[V(gs)$name==competitors[i]]$mem
+        l[[i]]$from.mem <- mem_i
+        l[[i]]$to.mem <- i
+        l[[i]]$indices <- which(V(gs)$mem==mem_i)
+      }
+    }
+    tmp.mem <- membership
+    for (i in 1:length(l)) tmp.mem[l[[i]]$indices] <- l[[i]]$to.mem
+    V(gs)$mem <- membership <- tmp.mem
+  }
+  ##
+  ##
+  if (length(rcolors) >= length(unique(membership)))
+    vertcol <- rcolors[ membership ]
+  ##
+  if(!all(is.na(competitors)))
+    #vertcol <- ifelse(V(gs)$name %in% competitors, rgb(.8,.2,.2,.9), vertcol)
+    ##
+    if(!all(is.na(focal.firm))) {
+      if(is.focal.color) 
+        vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
+      vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+    }
+  ##
+  if(is.na(vertex.scale)) 
+    vertex.scale <- 100 * (1/vcount(gs)^.5)
+  if(is.na(label.scale)) 
+    label.scale <- 13 * (1/vcount(gs)^.5)
+  ##
+  #vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), stringr::str_to_upper(V(gs)$name), '')
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=vertex.scale
+              , vertex.color=vertcol
+              # , vertex.label=vertex.label
+              , vertex.label.cex=label.scale
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              # , vertex.label.degree = 120
+              # , vertex.label.dist = .3
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+
+##
+# Plot Competition Network coloring the Multi-Product firms in red
+##
+>>>>>>> fcb780d05d127814c9ae2b6058899ec58defdc4d
 plotCompNet <- function(gs, layout.algo, membership=NA, focal.firm=NA, focal.color=TRUE, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, seed=1111,...) 
 {
   if(all(is.na(margins)))
