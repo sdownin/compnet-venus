@@ -108,8 +108,8 @@ htmlreg(fits, file = 'AOM_awareness_tergm_fits.html',
 ## Save model output as binary data file
 ## load saved models by running:
 ## >  load('AOM_awareness_tergm_fits.RData')
-save.image(fits, file='AOM_awareness_tergm_fits.RData')
-
+save(fits, file='AOM_awareness_tergm_fits.RData')
+saveRDS(fits, file='AOM_awareness_tergm_fits.rds')
 
 
 
