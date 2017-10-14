@@ -25,7 +25,8 @@ source(file.path(getwd(),'R','cb_data_prep.R'))
 
 # load('netrisk_dynamic_firm_nets_1yr_v3_misc.RData')
 # load('tergm_firm_nets_6pd_1yr.RData')
-firm.nets <- readRDS('tergm_firm_nets_6pd_1yr.rds')
+# firm.nets <- readRDS('tergm_firm_nets_6pd_1yr.rds')
+firm.nets <- readRDS('tergm_firm_nets_1yr_6pd_v4_cem.rds')
 
 par.default <- par()
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
@@ -101,10 +102,14 @@ if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
 name_i <- 'clarabridge'
+## Forrester research competitors
+forr.comp.names <- c('satmetrix','empathica','medallia','verint',
+                     'qualtrics','maritzcx','smg','nice-systems')
+##
 nbhd <- neighborhood(g.full, order=1, nodes=V(g.full)[V(g.full)$name==name_i])[[1]]
 gsub <- induced.subgraph(g.full, vids = nbhd)
-firms.todo <- names(nbhd)
-# firms.todo <- c('visa','mastercard','fitbit','ridejoy')  # c('fitbit','runtastic','zipcar','ridejoy','visa','mastercard')
+firms.todo <- unique(c(names(nbhd),forr.comp.names))
+firms.todo <- rev(firms.todo[ !(firms.todo %in% names(firm.nets$cem)) ])
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
@@ -192,29 +197,29 @@ for (i in 1:length(firms.todo)) {
 #   }
 # }
 
-# # ADD DISTANCE NETWORK PROPERTY TO FIRM.NETS
-firm.nets.bak <- firm.nets
-for (i in seq_along(firm.nets)) {
-  firm.list <- firm.nets[[i]]
-  for (j in seq_along(firm.list)) {
-    firm.years <- firm.list[[j]]
-    years <- sapply(names(firm.years),as.numeric)
-    for (k in seq_along(firm.years)) {
-      firm.nets[[i]][[j]][[k]] %n% 'inv_dist' <- 1 / (firm.nets[[i]][[j]][[k]] %n% 'dist')
-      firm.nets[[i]][[j]][[k]] %n% 'exp_inv_dist' <- exp(1 / (firm.nets[[i]][[j]][[k]] %n% 'dist'))
-      if (k > 1) {
-        firm.nets[[i]][[j]][[k]] %n% 'inv_dist_lag' <- firm.nets[[i]][[j]][[k-1]] %n% 'inv_dist'
-        firm.nets[[i]][[j]][[k]] %n% 'exp_inv_dist_lag' <- firm.nets[[i]][[j]][[k-1]] %n% 'exp_inv_dist'
-      }
-    }
-  }
-}
-
-for (i in seq_along(firm.nets$test$clarabridge)) {
-  if (i > 1) {
-    firm.nets$test$clarabridge[[i]] %n% 'DV_lag' <- firm.nets$test$clarabridge[[i-1]][,]
-  }
-}
+# # # ADD DISTANCE NETWORK PROPERTY TO FIRM.NETS
+# firm.nets.bak <- firm.nets
+# for (i in seq_along(firm.nets)) {
+#   firm.list <- firm.nets[[i]]
+#   for (j in seq_along(firm.list)) {
+#     firm.years <- firm.list[[j]]
+#     years <- sapply(names(firm.years),as.numeric)
+#     for (k in seq_along(firm.years)) {
+#       firm.nets[[i]][[j]][[k]] %n% 'inv_dist' <- 1 / (firm.nets[[i]][[j]][[k]] %n% 'dist')
+#       firm.nets[[i]][[j]][[k]] %n% 'exp_inv_dist' <- exp(1 / (firm.nets[[i]][[j]][[k]] %n% 'dist'))
+#       if (k > 1) {
+#         firm.nets[[i]][[j]][[k]] %n% 'inv_dist_lag' <- firm.nets[[i]][[j]][[k-1]] %n% 'inv_dist'
+#         firm.nets[[i]][[j]][[k]] %n% 'exp_inv_dist_lag' <- firm.nets[[i]][[j]][[k-1]] %n% 'exp_inv_dist'
+#       }
+#     }
+#   }
+# }
+# 
+# for (i in seq_along(firm.nets$test$clarabridge)) {
+#   if (i > 1) {
+#     firm.nets$test$clarabridge[[i]] %n% 'DV_lag' <- firm.nets$test$clarabridge[[i-1]][,]
+#   }
+# }
 
 # #------------------------------------------------------
 # #              Predictors Diagnostics
@@ -241,46 +246,53 @@ for (i in seq_along(firm.nets$test$clarabridge)) {
 #   })
 # }
 
-
-
 ############################################################################
-#--------------------- STERGM ------------------------------
+#--------------------- BTERGM BY INDUSTRY ------------------------------
 ############################################################################
-library(tergm)
-R <- 100
-nPeriods <- 6 #6 # test
-net_group <- 'misc' #misc
-firm_i <- 'clarabridge'
 
-nets.sub <- firm.nets[[net_group]][[firm_i]]
-nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
+R <- 200
+nPeriods <- 6
+net_group <- 'cem'
+firms <- which(sapply(firm.nets$cem,function(x)length(x)>=nPeriods))
 
-## samp
-# sums <- rowSums(nets.sub$`2017`[,])
-# samp <- which(sums > 8)
-# # samp <- sample(which(sums > 8), size = length(which(sums > 8)), replace = F)
-# nets.sub <- lapply(nets.sub,function(net) network(net[samp,samp]) )
+if (!("fits" %in% ls())) fits <- list()
+if (!(net_group %in% names(fits))) fits[[net_group]] <- list()
 
-mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
-sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
-ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
-#lid <- lapply(nets.sub, function(net) as.matrix(net %n% 'inv_dist_lag'))
+for (firm_i in firms) {
+  nets.sub <- firm.nets[[net_group]][[firm_i]]
+  nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
+  
+  mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+  smt <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+  ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
+  for (index in 1:length(nets.sub)) {
+    tmp <- nets.sub[[index]] %v% 'genidx_multilevel'
+    tmp[is.na(tmp) | is.null(tmp) | is.nan(tmp)] <- 0
+    nets.sub[[index]] %v% 'genidx_multilevel_narm' <- tmp
+  }
+  
+  m5 <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+    nodematch('ipo_status', diff=TRUE) +
+    nodematch('state_code', diff=F) +
+    nodecov('age') + absdiff('age') +   
+    edgecov(mmc)  + # edgecov(ldv) +   edgecov(smt)  +
+    memory(type="stability",lag=1) + 
+    nodecov('cent_pow_1_5')  + absdiff('cent_pow_1_5') +
+    cycle(3) + cycle(4) + cycle(5) + 
+    nodecov('genidx_multilevel_narm')  + absdiff('genidx_multilevel_narm')
+  
+  ## RUN Bootstrap MPLE
+  fits[[net_group]][[firm_i]] <- btergm(m5, R=R, parallel = "multicore", ncpus = detectCores()); summary(fits[[net_group]][[firm_i]])
+  
+  ## save serialized object
+  saveRDS(fits, file=sprintf('tergm_fits_new_m5_pow_%s_pd%s_R%s.rds',net_group,nPeriods,R))
+}
 
-#st0
-st2.cmple<- stergm(nets.sub,
-             formation= ~edges + gwesp(0,fixed=T) + cycle(3:5),
-             dissolution = ~edges, 
-             estimate = "CMPLE", #  "CMLE", # CMLE
-             #control=control.stergm(SA.plot.progress=TRUE)
-             times=1:length(nets.sub), verbose = 99999
-)
-st2.cmle<- stergm(nets.sub,
-             formation= ~edges + cycle(3:5) + edgecov('mmc'),
-             dissolution = ~edges ,
-             estimate = "CMLE", #  "CMLE", # CMLE
-             #control=control.stergm(SA.plot.progress=TRUE)
-             times=1:length(nets.sub), verbose = 99999
-)
+
+
+
+
+
 
 #------------------------------------------------------
 ############################################################################

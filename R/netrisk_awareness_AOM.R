@@ -22,6 +22,10 @@ library(plyr)
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
 img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 
+## helper functions
+source(file.path(getwd(),'R','comp_net_functions.R'))
+source(file.path(getwd(),'R','netrisk_functions.R'))
+
 ## binary data file of competition network lists
 #load('netrisk_dynamic_firm_nets_1yr_v3_misc.RData')
 load('tergm_firm_nets_6pd_1yr.RData')
@@ -112,46 +116,51 @@ htmlreg(fits, file = 'AOM_awareness_tergm_fits.html',
 saveRDS(fits, file='AOM_awareness_tergm_fits.rds')
 
 
-## Goodness of Fit
-options(error=function() dump.frames(to.file=TRUE))
-f4.gof1 <- gof(f4,formula=m4,nsim=100,
-               statistics = c(esp, dsp, geodesic,deg, triad.undirected, 
-                              walktrap.modularity))
-plot(f4.gof1)
-saveRDS(f4.gof1, file="tergm_f4_gof1.rds")
-
-
-## TERGM Micro-interpretation
-## Predict Ties i--j (for i:=clarabridge and all j!=i) at period 6 (2016)
-N <- nrow(f4@data$networks$`2017`[,])
-Nn <- N*(N-1)
-df4.pij <- data.frame(i=rep(NA,Nn),
-                     j=rep(NA,Nn),
-                     t1=rep(NA,Nn),
-                     t2=rep(NA,Nn),
-                     t3=rep(NA,Nn),
-                     t4=rep(NA,Nn),
-                     t5=rep(NA,Nn),
-                     t6=rep(NA,Nn))
-idx <- 1
-ts <- c(6)
-ego.j <- which(f4@data$networks$`2017` %v% 'vertex.names' == 'clarabridge')
-for (j in ego.j) { ## ego firm column j
-  for (i in 1:N) { ## alter firm row i
-    if (i != j) {
-      for (t in ts) { ## time periods
-        df4.pij$i[idx] <- i
-        df4.pij$j[idx] <- j
-        col <- paste0("t",t)
-        df4.pij[idx,col] <- btergm::interpret(f4,i=i,j=j,t=t)
-        idx <- idx + 1
-        if (idx %% 10 == 0)  cat(sprintf("finished i = %s --> j = %s",i,j))
-      }
-    }
-  }
-  cat(paste0("finished j =",j))
-}; saveRDS(df4.pij, file="tergm_f4_t6_interpret_pij.rds")
-
+# ## UNCOMMENT this section to run Goodness of Fit and Predict Ties
+# ## Goodness of Fit
+# options(error=function() dump.frames(to.file=TRUE))
+# f4.gof1 <- gof(f4,formula=m4,nsim=100,
+#                statistics = c(esp, dsp, geodesic,deg, triad.undirected, 
+#                               walktrap.modularity))
+# plot(f4.gof1)
+# saveRDS(f4.gof1, file="tergm_f4_gof1.rds")
+# 
+# 
+# ## TERGM Micro-interpretation
+# ## Predict Ties i--j (for i:=clarabridge and all j!=i) at period 6 (2016)
+# N <- nrow(f4@data$networks$`2017`[,])
+# df4.pij <- data.frame(i=rep(NA,N),
+#                      j=rep(NA,N),
+#                      t1=rep(NA,N),
+#                      t2=rep(NA,N),
+#                      t3=rep(NA,N),
+#                      t4=rep(NA,N),
+#                      t5=rep(NA,N),
+#                      t6=rep(NA,N))
+# idx <- 1
+# ts <- c(6)
+# ego.j <- which(f4@data$networks$`2017` %v% 'vertex.names' == 'clarabridge')
+# for (j in ego.j) { ## ego firm column j
+#   for (i in 1:N) { ## alter firm row i
+#     if (i != j) {
+#       for (t in ts) { ## time periods
+#         df4.pij$i[idx] <- i
+#         df4.pij$j[idx] <- j
+#         col <- paste0("t",t)
+#         df4.pij[idx,col] <- btergm::interpret(f4,i=i,j=j,t=t)
+#         idx <- idx + 1
+#         if (idx %% 5 == 0)  cat(sprintf("finished i = %s --> j = %s",i,j),'\n')
+#       }
+#     }
+#   }
+#   cat(paste0("finished j =",j))
+# }; saveRDS(df4.pij, file="tergm_f4_t6_interpret_pij.rds")
+# 
+# par(mfrow=c(1,1),mar=c(.5,.5,1,.5))
+# n2017 <- f4@data$networks$`2017`
+# plotCompNetAOMequalSize(gs=getIgraphFromNet(n2017),is.focal.color = F,
+#                                 focal.firm = 'clarabridge'
+#                           )
 
 # ##=================================================
 # ## check PMLE estimates and stderrs consistency as 

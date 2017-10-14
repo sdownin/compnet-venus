@@ -580,6 +580,65 @@ plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, i
 }
 
 
+##
+#
+##
+plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+                                    label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                    layout.algo=layout.fruchterman.reingold,margins=NA,
+                                    seed=1111,  ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  ##
+  ## HANDLE SAME COLORS FOR COMPETITORS
+  ##
+  ##
+  logprobs <- log(probs)
+  # qts <- quantile(logprobs, seq(0,1,.1))
+  # colors <- rev(heat.colors(length(qts)))
+  # groups <- cut(logprobs, include.lowest = T, breaks = qts, labels=1:(length(qts)-1))
+  # vertcol <- colors[ groups ]
+  # plot(logprobs, col=vertcol,pch=15)
+  col2 <- rev(heat.colors(2))
+  vertcol <- ifelse(logprobs > quantile(logprobs,.95), col2[2], col2[1] )
+
+  vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+  # vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
+  vertex.label <- ifelse( (logprobs > quantile(logprobs,.95)) 
+                           | (V(gs)$name==focal.firm), V(gs)$name, '' )
+ 
+  vertcol[which(V(gs)$name==focal.firm)] <- 'steelblue'
+  
+  if(is.na(vertex.scale)) 
+    vertex.scale <- 100 * (1/vcount(gs)^.5)
+  if(is.na(label.scale)) 
+    label.scale <- 13 * (1/vcount(gs)^.5)
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=vertex.scale
+              , vertex.color=vertcol
+              , vertex.label=vertex.label
+              , vertex.label.cex=label.scale
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              # , vertex.label.degree = 120
+              # , vertex.label.dist = .3
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+
 
 # #-----------------------------------------------------------------------
 #   # Plot Competition Network coloring the Multi-Product firms in red
@@ -2509,7 +2568,8 @@ generalistIndex <- function(g, memberships)
       ## total possible edges node i to cluster k
       max.e.k <- length(sub.k.x)
       ## increment value by cluster ratio
-      val <- val + (cnt.e.k / max.e.k)
+      ## define ratio as 0 if empty denominator (max.e.k=0)
+      val <- val + ifelse(max.e.k > 0, (cnt.e.k / max.e.k), 0)
     }
     return(val)
   })
@@ -2652,6 +2712,22 @@ setCovariates <- function(net, start, end,
     net %v% 'genidx_fastgreedy'  <- generalistIndex(g.net, net %v% 'com_fastgreedy' )
     net %v% 'genidx_edgebetween' <- generalistIndex(g.net, net %v% 'com_edgebetween' )
     net %v% 'genidx_labelprop'   <- generalistIndex(g.net, net %v% 'com_labelprop' )
+    ##
+    # algos <- c(com_multilevel='genidx_multilevel',
+    #           com_infomap='genidx_infomap',
+    #           com_walktrap='genidx_walktrap', 
+    #           com_fastgreedy='genidx_fastgreedy',
+    #           com_edgebetween='genidx_edgebetween',
+    #           com_labelprop='genidx_labelprop')
+    # for (i in 1:length(algos)) {
+    #   algo <- names(algos)[i]
+    #   genidx <- algos[[i]]
+    #   if (algo %in% network::list.vertex.attributes(net)) {
+    #     tmp <- generalistIndex(g.net, net %v% algo )
+    #     tmp[is.na(tmp) | is.null(tmp) | is.nan(tmp)] <- 0
+    #     net %v% genidx <- tmp
+    #   }
+    # }
     # net %v% 'genidx_eigenvector' <- generalistIndex(g.net, net %v% 'com_eigenvector' )
     ##------------------------------------
     ## # 9. Customer Status (coopetition) -- EDGE ATTRIBUTE
