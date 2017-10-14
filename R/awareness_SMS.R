@@ -277,7 +277,7 @@ for (firm_i in firms) {
     nodecov('age') + absdiff('age') +   
     edgecov(mmc)  + # edgecov(ldv) +   edgecov(smt)  +
     memory(type="stability",lag=1) + 
-    nodecov('cent_pow_1_5')  + absdiff('cent_pow_1_5') +
+    nodecov('cent_pow_n1_5')  + absdiff('cent_pow_n1_5') +
     cycle(3) + cycle(4) + cycle(5) + 
     nodecov('genidx_multilevel_narm')  + absdiff('genidx_multilevel_narm')
   
@@ -285,7 +285,7 @@ for (firm_i in firms) {
   fits[[net_group]][[firm_i]] <- btergm(m5, R=R, parallel = "multicore", ncpus = detectCores()); summary(fits[[net_group]][[firm_i]])
   
   ## save serialized object
-  saveRDS(fits, file=sprintf('tergm_fits_new_m5_pow_%s_pd%s_R%s.rds',net_group,nPeriods,R))
+  saveRDS(fits, file=sprintf('tergm_fits_cem_compare_new_m5_pow_%s_pd%s_R%s.rds',net_group,nPeriods,R))
 }
 
 
