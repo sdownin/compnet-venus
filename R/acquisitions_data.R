@@ -3,7 +3,7 @@
 #  Competition Networks and Acquisition Activity
 #
 #############################################################################################
-setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
+setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 
 library(plyr)
 library(reshape2)

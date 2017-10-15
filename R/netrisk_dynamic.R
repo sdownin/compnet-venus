@@ -31,6 +31,7 @@ img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/en
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
+
 par.default <- par()
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 ###########################################################################

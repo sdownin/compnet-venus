@@ -5,19 +5,19 @@
 #  GLMM Regression
 #
 #############################################################################################
-setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
+setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 
-library(lme4)
 library(texreg)
 library(relevent)
 library(informR)
 
-# source(file.path(getwd(),'R','comp_net_functions.R'))
-# source(file.path(getwd(),'R','cb_data_prep.R'))
-# source(file.path(getwd(),'R','acquisitions_data.R'))
+source(file.path(getwd(),'R','comp_net_functions.R'))
+source(file.path(getwd(),'R','cb_data_prep.R'))
+source(file.path(getwd(),'R','acquisitions_data.R'))
 
 data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/"
 img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/acquisitions/img"
+
 par.default <- par()
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 #---------------------------------------------------------------------------

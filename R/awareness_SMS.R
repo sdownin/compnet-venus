@@ -253,12 +253,14 @@ for (i in 1:length(firms.todo)) {
 R <- 200
 nPeriods <- 6
 net_group <- 'cem'
-firms <- which(sapply(firm.nets$cem,function(x)length(x)>=nPeriods))
+# firms <- which(sapply(firm.nets$cem,function(x)length(x)>=nPeriods))
+firms <- c('empathica','satmetrix')
 
 if (!("fits" %in% ls())) fits <- list()
 if (!(net_group %in% names(fits))) fits[[net_group]] <- list()
 
 for (firm_i in firms) {
+  cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
   nets.sub <- firm.nets[[net_group]][[firm_i]]
   nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
   
@@ -285,10 +287,8 @@ for (firm_i in firms) {
   fits[[net_group]][[firm_i]] <- btergm(m5, R=R, parallel = "multicore", ncpus = detectCores()); summary(fits[[net_group]][[firm_i]])
   
   ## save serialized object
-  saveRDS(fits, file=sprintf('tergm_fits_cem_compare_new_m5_pow_%s_pd%s_R%s.rds',net_group,nPeriods,R))
+  saveRDS(fits, file=sprintf('tergm_fits_cem_compare2_qualtrics_new_m5_pow_%s_pd%s_R%s.rds',net_group,nPeriods,R))
 }
-
-
 
 
 

@@ -7,7 +7,7 @@
 #
 #
 ##########################################################################################
-setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet")
+setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 #.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 #
 library(plyr, quietly = T)

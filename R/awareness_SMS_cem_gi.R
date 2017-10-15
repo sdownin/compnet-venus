@@ -341,28 +341,79 @@ m5 <-   nets.sub ~ edges + gwesp(0, fixed=T) +
   nodecov('age') +    absdiff('age') + 
   edgecov(mmc)  + # edgecov(ldv) +   edgecov(smt)  +
   memory(type="stability",lag=1) + 
-  nodecov('cent_pow_1_5') + absdiff('cent_pow_1_5') +
+  nodecov('cent_pow_n1_5') + absdiff('cent_pow_n1_5') +
   cycle(3) + cycle(4) + cycle(5) + 
   nodecov('genidx_multilevel')  + absdiff('genidx_multilevel')
-
+m5wt <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  nodematch('ipo_status', diff=TRUE) +
+  nodematch('state_code', diff=F) +
+  nodecov('age') +    absdiff('age') + 
+  edgecov(mmc)  + # edgecov(ldv) +   edgecov(smt)  +
+  memory(type="stability",lag=1) + 
+  nodecov('cent_pow_n1_5') + absdiff('cent_pow_n1_5') +
+  cycle(3) + cycle(4) + cycle(5) + 
+  nodecov('genidx_walktrap')  + absdiff('genidx_walktrap')
+m5im <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  nodematch('ipo_status', diff=TRUE) +
+  nodematch('state_code', diff=F) +
+  nodecov('age') +    absdiff('age') + 
+  edgecov(mmc)  + # edgecov(ldv) +   edgecov(smt)  +
+  memory(type="stability",lag=1) + 
+  nodecov('cent_pow_n1_5') + absdiff('cent_pow_n1_5') +
+  cycle(3) + cycle(4) + cycle(5) + 
+  nodecov('genidx_infomap')  + absdiff('genidx_infomap')
+m5fg <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  nodematch('ipo_status', diff=TRUE) +
+  nodematch('state_code', diff=F) +
+  nodecov('age') +    absdiff('age') + 
+  edgecov(mmc)  + # edgecov(ldv) +   edgecov(smt)  +
+  memory(type="stability",lag=1) + 
+  nodecov('cent_pow_n1_5') + absdiff('cent_pow_n1_5') +
+  cycle(3) + cycle(4) + cycle(5) + 
+  nodecov('genidx_fastgreedy')  + absdiff('genidx_fastgreedy')
+m5eb <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  nodematch('ipo_status', diff=TRUE) +
+  nodematch('state_code', diff=F) +
+  nodecov('age') +    absdiff('age') + 
+  edgecov(mmc)  + # edgecov(ldv) +   edgecov(smt)  +
+  memory(type="stability",lag=1) + 
+  nodecov('cent_pow_n1_5') + absdiff('cent_pow_n1_5') +
+  cycle(3) + cycle(4) + cycle(5) + 
+  nodecov('genidx_edgebetween')  + absdiff('genidx_edgebetween')
+m5lp <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  nodematch('ipo_status', diff=TRUE) +
+  nodematch('state_code', diff=F) +
+  nodecov('age') +    absdiff('age') + 
+  edgecov(mmc)  + # edgecov(ldv) +   edgecov(smt)  +
+  memory(type="stability",lag=1) + 
+  nodecov('cent_pow_n1_5') + absdiff('cent_pow_n1_5') +
+  cycle(3) + cycle(4) + cycle(5) + 
+  nodecov('genidx_labelprop')  + absdiff('genidx_labelprop')
 
 f0  <- btergm(m0,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f0)
 f1  <- btergm(m1,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f1)
 f1d <- btergm(m1d, R=R, parallel = "multicore", ncpus = detectCores()); summary(f1d)
-
 f1nd<- btergm(m1nd,R=R, parallel = "multicore", ncpus = detectCores()); summary(f1nd)
-
 f2  <- btergm(m2,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f2)
 f2d <- btergm(m2d, R=R, parallel = "multicore", ncpus = detectCores()); summary(f2d)
 f3  <- btergm(m3,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f3)
 f4  <- btergm(m4,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f4)
+
 f5  <- btergm(m5,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f5)
+f5wt  <- btergm(m5wt,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f5wt)
+f5im  <- btergm(m5im,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f5im)
+f5fg  <- btergm(m5fg,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f5fg)
+f5eb  <- btergm(m5eb,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f5eb)
+f5lp  <- btergm(m5lp,  R=R, parallel = "multicore", ncpus = detectCores()); summary(f5lp)
 
 
-fits <- list(f0=f0,f1=f1,f1d=f1d,f2=f2,f2d=f2d,f3=f3,f4=f4,f5=f5)  #f3=f3,f4=f4,f5=f5
-saveRDS(fits, file='sms_tergm_new_gi_cem_clarabridge_fits.rds')
+# fits <- list(f0=f0,f1=f1,f1d=f1d,f1nd=f1nd,f2=f2,f2d=f2d,f3=f3,f4=f4,f5=f5)  #f3=f3,f4=f4,f5=f5
+# saveRDS(fits, file='sms_tergm_new_gi_cem_clarabridge_fits.rds')
 
-screenreg(fits,digits = 3)
+fits5 <- list(f5=f5,f5wt=f5wt,f5im=f5im,f5fg=f5fg,f5eb=f5eb,f5lp=f5lp)
+saveRDS(fits5, file='sms_tergm_new_gi_cem_clarabridge_fits5_algos.rds')
+
+screenreg(fits5,digits = 3)
 
 
 

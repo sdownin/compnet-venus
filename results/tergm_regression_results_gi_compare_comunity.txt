@@ -1,0 +1,82 @@
+label propagation
+
+Formula:   nets.sub ~ edges + gwesp(0, fixed = T) + nodematch("ipo_status", diff = TRUE) + nodematch("state_code", diff = F) + nodecov("age") + absdiff("age") + edgecov(mmc) + memory(type = "stability", lag = 1) + nodecov("cent_pow_n1_5") + absdiff("cent_pow_n1_5") + cycle(3) + cycle(4) + cycle(5) + nodecov("genidx_labelprop") + absdiff("genidx_labelprop") 
+
+Time steps: 5 
+
+Bootstrapping sample size: 200 
+
+Estimates and 95% confidence intervals:
+                            Estimate    2.5%   97.5%
+edges                    -1.22145616 -3.6577 -0.2921 *
+gwesp.fixed.0             0.00171634 -0.1171  0.2247
+nodematch.ipo_status.0   -0.59502386 -1.1997  0.0428
+nodematch.ipo_status.1    0.03891231 -2.0448  0.6283
+nodematch.state_code     -0.31405462 -0.9558 -0.2891 *
+nodecov.age              -0.00485026 -0.0168  0.0368
+absdiff.age              -0.00071641 -0.0278  0.0084
+edgecov.mmc[[i]]         -0.51131968 -1.7290  1.5641
+edgecov.memory[[i]]       5.42177649  4.8511  7.9847 *
+nodecov.cent_pow_n1_5    -0.03825903 -0.0810  0.0579
+absdiff.cent_pow_n1_5     0.20354050  0.1393  0.5830 *
+cycle3                    0.96673763 -0.1502  1.1810
+cycle4                    0.11916153  0.0900  0.1593 *
+cycle5                   -0.02039640 -0.0302  0.0102
+nodecov.genidx_labelprop  1.22733632  0.9529  1.8309 *
+absdiff.genidx_labelprop  0.07568220 -1.2907  0.4647
+
+
+Edge betweenness
+
+Formula:   nets.sub ~ edges + gwesp(0, fixed = T) + nodematch("ipo_status", diff = TRUE) + nodematch("state_code", diff = F) + nodecov("age") + absdiff("age") + edgecov(mmc) + memory(type = "stability", lag = 1) + nodecov("cent_pow_n1_5") + absdiff("cent_pow_n1_5") + cycle(3) + cycle(4) + cycle(5) + nodecov("genidx_edgebetween") + absdiff("genidx_edgebetween") 
+
+Time steps: 5 
+
+Bootstrapping sample size: 200 
+
+Estimates and 95% confidence intervals:
+                             Estimate    2.5%   97.5%
+edges                      -1.2399865 -2.9025 -0.6833 *
+gwesp.fixed.0              -0.0024233 -0.0475  0.1395
+nodematch.ipo_status.0     -0.3873237 -0.8193  0.2671
+nodematch.ipo_status.1      0.1551111 -1.7668  0.7760
+nodematch.state_code       -0.3169856 -0.5747 -0.2443 *
+nodecov.age                -0.0110681 -0.0255  0.0082
+absdiff.age                -0.0053791 -0.0254  0.0066
+edgecov.mmc[[i]]           -0.0953904 -1.5706  1.8076 *
+edgecov.memory[[i]]         5.4803887  4.9920  6.3246 *
+nodecov.cent_pow_n1_5      -0.0305148 -0.0765  0.0418
+absdiff.cent_pow_n1_5       0.2032015  0.1482  0.3411 *
+cycle3                      0.9408896 -0.0725  1.0441
+cycle4                      0.1184181  0.0962  0.1454 * 
+cycle5                     -0.0216389 -0.0285 -0.0043
+nodecov.genidx_edgebetween  3.3840268  2.6617  4.8662 *
+absdiff.genidx_edgebetween  0.0674649 -0.7272  0.9143
+
+
+
+
+Formula:   nets.sub ~ edges + gwesp(0, fixed = T) + nodematch("ipo_status", diff = TRUE) + nodematch("state_code", diff = F) + nodecov("age") + absdiff("age") + edgecov(mmc) + memory(type = "stability", lag = 1) + nodecov("cent_pow_n1_5") + absdiff("cent_pow_n1_5") + cycle(3) + cycle(4) + cycle(5) + nodecov("genidx_multilevel_narm") + absdiff("genidx_multilevel_narm") 
+
+Time steps: 5 
+
+Bootstrapping sample size: 200 
+
+Estimates and 95% confidence intervals:
+                                Estimate    2.5%   97.5%
+edges                          -2.239634 -3.0868 -1.8192
+gwesp.fixed.0                   0.528596  0.4709  0.6906
+nodematch.ipo_status.0          0.137710 -0.8176  0.5405
+nodematch.ipo_status.1          2.034673 -0.6212  2.9467
+nodematch.state_code            0.142492  0.0735  0.5839
+nodecov.age                    -0.014546 -0.0403  0.0158
+absdiff.age                     0.010509 -0.0194  0.0387
+edgecov.mmc[[i]]                0.464110 -0.3810  1.7837
+edgecov.memory[[i]]             5.091389  4.3712  6.1503
+nodecov.cent_pow_n1_5           0.221515  0.0043  0.3495
+absdiff.cent_pow_n1_5           0.039174 -0.1179  0.1571
+cycle3                          0.444827  0.1795  0.5416
+cycle4                          0.234778  0.1956  0.2654
+cycle5                         -0.030453 -0.0341 -0.0241
+nodecov.genidx_multilevel_narm  3.275266  2.6620  4.2187
+absdiff.genidx_multilevel_narm -1.207492 -2.3893 -0.5581
