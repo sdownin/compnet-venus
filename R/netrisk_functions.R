@@ -2599,7 +2599,8 @@ generalistIndex <- function(g, memberships)
 ##
 #
 ##
-setCovariates <- function(net, start, end,
+setCovariates <- function(net, start, end, 
+                          covlist=c('age','mmc','dist','similarity','ipo_status','centrality','generalist'),
                         downweight.env.risk=FALSE,
                         netRiskCommunityAlgo='multilevel.community',
                         acq=NA,rou=NA,br=NA,ipo=NA)
@@ -2609,126 +2610,140 @@ setCovariates <- function(net, start, end,
     ##------------------------------------
     ## # 0. AGE
     ##------------------------------------
-    year <- net %v% 'founded_year'
-    year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
-    age <- end - year
-    age[age < 0] <- 0
-    net %v% 'age' <- age
+    if ('age' %in% covlist) {
+      year <- net %v% 'founded_year'
+      year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
+      age <- end - year
+      age[age < 0] <- 0
+      net %v% 'age' <- age
+    }
     # ##------------------------------------
     # ## # 1. ENV RISK -- VERTEX ATTRIBUTE
     # ##------------------------------------
-    # cat('\ncomputing risk measure...\n')
-    # if (downweight.env.risk) {
-    #   rl <- envRisk(g.net) 
-    #   prefix <- 'env_risk'
-    # } else {
-    #   rl <- netRisk(g.net, community.type = netRiskCommunityAlgo)
-    #   prefix <- 'net_risk'
-    # }
-    # net %v% prefix <- rl$r
-    # net %v% 'npm' <- V(rl$g)$community
+    if ('risk' %in% covlist) {
+      cat('\ncomputing risk measure...\n')
+      if (downweight.env.risk) {
+        rl <- envRisk(g.net)
+        prefix <- 'env_risk'
+      } else {
+        rl <- netRisk(g.net, community.type = netRiskCommunityAlgo)
+        prefix <- 'net_risk'
+      }
+      net %v% prefix <- rl$r
+      net %v% 'npm' <- V(rl$g)$community
+    }
     ##------------------------------------
     ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
     ##------------------------------------
-    cat('computing multi-market contact...\n')
-    mmc <- getMultiMarketContact(br, net%v%'vertex.names', end)
-    net %n% 'mmc' <- as.matrix(mmc)
+    if ('mmc' %in% covlist) {
+      cat('computing multi-market contact...\n')
+      mmc <- getMultiMarketContact(br, net%v%'vertex.names', end)
+      net %n% 'mmc' <- as.matrix(mmc)
+    }
     ##------------------------------------
     ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
     ##------------------------------------
-    cat('computing distances lag contact...\n')
-    D <- as.matrix(igraph::distances(g.net))
-    rownames(D) <- NULL;  colnames(D) <- NULL
-    D[D==0] <- 1e-16
-    net %n% 'dist' <- D
-    #
-    D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
-    D[(is.na(D) | D == -Inf | D == Inf)] <- 0
-    net %n% 'de_alio_entry' <- D
+    if ('dist' %in% covlist) {
+      cat('computing distances lag contact...\n')
+      D <- as.matrix(igraph::distances(g.net))
+      rownames(D) <- NULL;  colnames(D) <- NULL
+      D[D==0] <- 1e-16
+      net %n% 'dist' <- D
+      #
+      D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
+      D[(is.na(D) | D == -Inf | D == Inf)] <- 0
+      net %n% 'de_alio_entry' <- D
+    }
     ##------------------------------------
     ## # 4. IPO STATUS -- VERTEX ATTRIBUTE
     ##------------------------------------
-    cat('computing IPO status contact...\n')
-    iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
-                        & ipo$went_public_year < end), ]
-    net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
+    if ('ipo_status' %in% covlist) {
+      cat('computing IPO status contact...\n')
+      iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
+                          & ipo$went_public_year < end), ]
+      net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
+    }
     ##------------------------------------
     ## # 5. Constraint -- NODE ATTR
     ##------------------------------------
-    cat('computing constraint...\n')
-    cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
-    cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
-    net %v% 'constraint' <- cons
+    if ('constraint' %in% covlist) {
+      cat('computing constraint...\n')
+      cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
+      cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
+      net %v% 'constraint' <- cons
+    }
     ##------------------------------------
     ## # 6. Similarity 
     ##------------------------------------
-    cat('computing inv.log.w.similarity...\n')
-    sim <- igraph::similarity(g.net,vids = V(g.net), 
-                              mode = "all", method = "invlogweighted" )
-    sim[is.nan(sim) | is.na(sim)] <- 0
-    net %n% 'similarity' <- sim
+    if ('similarity' %in% covlist) {
+      cat('computing inv.log.w.similarity...\n')
+      sim <- igraph::similarity(g.net,vids = V(g.net), 
+                                mode = "all", method = "invlogweighted" )
+      sim[is.nan(sim) | is.na(sim)] <- 0
+      net %n% 'similarity' <- sim
+    }
     # ##------------------------------------
     # ## # 7. Centrality (degree, Bonacich power)
     # ##------------------------------------
-    cat('computing centralities...\n')
-    # cat('computing betweenness...\n')
-    # betw <- igraph::betweenness(g.net)
-    # net %v% 'betweenness' <- betw
-    # net %v% 'betweenness_log' <- log(betw + .001) 
-    net %v% 'cent_deg' <- igraph::degree(g.net)
-    net %v% 'cent_eig' <- igraph::eigen_centrality(g.net)$vector
-    ## larger exp (Bonacich "beta") increase sensitivity to effects from distant node
-    pc15  <- tryCatch(tmp15 <- igraph::power_centrality(g.net,exp= 1.5), error = function(e)e)
-    pc1   <- tryCatch(tmp1  <- igraph::power_centrality(g.net,exp= 1.0), error = function(e)e)
-    pc05  <- tryCatch(tmp05 <- igraph::power_centrality(g.net,exp= 0.5), error = function(e)e)
-    pcn05 <- tryCatch(tmpn05<- igraph::power_centrality(g.net,exp=-0.5), error = function(e)e)
-    pcn1  <- tryCatch(tmpn1 <- igraph::power_centrality(g.net,exp=-1.0), error = function(e)e)
-    pcn15 <- tryCatch(tmpn15<- igraph::power_centrality(g.net,exp=-1.5), error = function(e)e)
-    if (!inherits(pc15,  "error")) net %v% 'cent_pow_1_5'  <- pc15
-    if (!inherits(pc1,   "error")) net %v% 'cent_pow_1_0'  <- pc1
-    if (!inherits(pc05,  "error")) net %v% 'cent_pow_0_5'  <- pc05
-    if (!inherits(pcn05, "error")) net %v% 'cent_pow_n0_5' <- pcn05
-    if (!inherits(pcn1,  "error")) net %v% 'cent_pow_n1_0' <- pcn1
-    if (!inherits(pcn15, "error")) net %v% 'cent_pow_n1_5' <- pcn15
+    if ('centrality' %in% covlist) {
+      cat('computing centralities...\n')
+      # cat('computing betweenness...\n')
+      # betw <- igraph::betweenness(g.net)
+      # net %v% 'betweenness' <- betw
+      # net %v% 'betweenness_log' <- log(betw + .001) 
+      net %v% 'cent_deg' <- igraph::degree(g.net)
+      net %v% 'cent_eig' <- igraph::eigen_centrality(g.net)$vector
+      ## larger exp (Bonacich "beta") increase sensitivity to effects from distant node
+      pcn0.5 <- tryCatch(tmpn0.5<- igraph::power_centrality(g.net,exp=-0.5), error = function(e)e)
+      pcn1.5 <- tryCatch(tmpn1.5 <- igraph::power_centrality(g.net,exp=-1.5), error = function(e)e)
+      pcn2   <- tryCatch(tmpn2<- igraph::power_centrality(g.net,exp=-2), error = function(e)e)
+      pcn3   <- tryCatch(tmpn3<- igraph::power_centrality(g.net,exp=-3), error = function(e)e)
+      if (!inherits(pcn0.5, "error")) net %v% 'cent_pow_n0_5' <- pcn0.5
+      if (!inherits(pcn1.5, "error")) net %v% 'cent_pow_n1_5' <- pcn1.5
+      if (!inherits(pcn2,  "error"))  net %v% 'cent_pow_n2_0' <- pcn2
+      if (!inherits(pcn3,  "error"))  net %v% 'cent_pow_n3_0' <- pcn3
+    }
     ##------------------------------------
     ## # 8. Generalist Index: specialist (0, K) generalist, for K clusters
     ##       (Generalist vs Specialist portfolio strategy)
     ##------------------------------------
-    cat('computing Generalist (vs Specialist) Index...')
-    ## Community membership
-    ##igraph::optimal.community()  ## too slow
-    ##igraph::spinglass.community() ## too slow
-    net %v% 'com_multilevel'  <- igraph::multilevel.community(g.net)$membership
-    net %v% 'com_infomap'     <- igraph::infomap.community(g.net)$membership
-    net %v% 'com_walktrap'    <- igraph::walktrap.community(g.net)$membership
-    net %v% 'com_fastgreedy'  <- igraph::fastgreedy.community(g.net)$membership
-    net %v% 'com_edgebetween' <- igraph::edge.betweenness.community(g.net)$membership
-    net %v% 'com_labelprop'   <- igraph::label.propagation.community(g.net)$membership
-    # net %v% 'com_eigenvector' <- igraph::leading.eigenvector.community(g.net)$membership  ## Arpack solver error
-    ## Generalist Index
-    net %v% 'genidx_multilevel'  <- generalistIndex(g.net, net %v% 'com_multilevel' )
-    net %v% 'genidx_infomap'     <- generalistIndex(g.net, net %v% 'com_infomap' )
-    net %v% 'genidx_walktrap'    <- generalistIndex(g.net, net %v% 'com_walktrap' )
-    net %v% 'genidx_fastgreedy'  <- generalistIndex(g.net, net %v% 'com_fastgreedy' )
-    net %v% 'genidx_edgebetween' <- generalistIndex(g.net, net %v% 'com_edgebetween' )
-    net %v% 'genidx_labelprop'   <- generalistIndex(g.net, net %v% 'com_labelprop' )
-    ##
-    # algos <- c(com_multilevel='genidx_multilevel',
-    #           com_infomap='genidx_infomap',
-    #           com_walktrap='genidx_walktrap', 
-    #           com_fastgreedy='genidx_fastgreedy',
-    #           com_edgebetween='genidx_edgebetween',
-    #           com_labelprop='genidx_labelprop')
-    # for (i in 1:length(algos)) {
-    #   algo <- names(algos)[i]
-    #   genidx <- algos[[i]]
-    #   if (algo %in% network::list.vertex.attributes(net)) {
-    #     tmp <- generalistIndex(g.net, net %v% algo )
-    #     tmp[is.na(tmp) | is.null(tmp) | is.nan(tmp)] <- 0
-    #     net %v% genidx <- tmp
-    #   }
-    # }
-    # net %v% 'genidx_eigenvector' <- generalistIndex(g.net, net %v% 'com_eigenvector' )
+    if ('generalist' %in% covlist) {
+      cat('computing Generalist (vs Specialist) Index...')
+      ## Community membership
+      ##igraph::optimal.community()  ## too slow
+      ##igraph::spinglass.community() ## too slow
+      net %v% 'com_multilevel'  <- igraph::multilevel.community(g.net)$membership
+      net %v% 'com_infomap'     <- igraph::infomap.community(g.net)$membership
+      net %v% 'com_walktrap'    <- igraph::walktrap.community(g.net)$membership
+      net %v% 'com_fastgreedy'  <- igraph::fastgreedy.community(g.net)$membership
+      net %v% 'com_edgebetween' <- igraph::edge.betweenness.community(g.net)$membership
+      net %v% 'com_labelprop'   <- igraph::label.propagation.community(g.net)$membership
+      # net %v% 'com_eigenvector' <- igraph::leading.eigenvector.community(g.net)$membership  ## Arpack solver error
+      ## Generalist Index
+      net %v% 'genidx_multilevel'  <- generalistIndex(g.net, net %v% 'com_multilevel' )
+      net %v% 'genidx_infomap'     <- generalistIndex(g.net, net %v% 'com_infomap' )
+      net %v% 'genidx_walktrap'    <- generalistIndex(g.net, net %v% 'com_walktrap' )
+      net %v% 'genidx_fastgreedy'  <- generalistIndex(g.net, net %v% 'com_fastgreedy' )
+      net %v% 'genidx_edgebetween' <- generalistIndex(g.net, net %v% 'com_edgebetween' )
+      net %v% 'genidx_labelprop'   <- generalistIndex(g.net, net %v% 'com_labelprop' )
+      ##
+      # algos <- c(com_multilevel='genidx_multilevel',
+      #           com_infomap='genidx_infomap',
+      #           com_walktrap='genidx_walktrap', 
+      #           com_fastgreedy='genidx_fastgreedy',
+      #           com_edgebetween='genidx_edgebetween',
+      #           com_labelprop='genidx_labelprop')
+      # for (i in 1:length(algos)) {
+      #   algo <- names(algos)[i]
+      #   genidx <- algos[[i]]
+      #   if (algo %in% network::list.vertex.attributes(net)) {
+      #     tmp <- generalistIndex(g.net, net %v% algo )
+      #     tmp[is.na(tmp) | is.null(tmp) | is.nan(tmp)] <- 0
+      #     net %v% genidx <- tmp
+      #   }
+      # }
+      # net %v% 'genidx_eigenvector' <- generalistIndex(g.net, net %v% 'com_eigenvector' )
+    }
     ##------------------------------------
     ## # 9. Customer Status (coopetition) -- EDGE ATTRIBUTE
     ##------------------------------------

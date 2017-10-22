@@ -266,14 +266,21 @@ firms <- c('clarabridge')
 if (!("fits" %in% ls())) fits <- list()
 if (!(net_group %in% names(fits))) fits[[net_group]] <- list()
 
-for (firm_i in firms) {
-  cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
-  nets.sub <- firm.nets[[net_group]][[firm_i]]
-  nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
+files <- dir(path='firm_nets_cem')
+
+for (i in 1:length(files))
+  nets <- readRDS(paste0('firm_nets_cem/',files[i]))
+  name_i <- stringr::str_split(files[i], ".rds")[[1]][1]
   
-  mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
-  smt <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
-  # ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
+  cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
+  
+  mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
+  smt <- lapply(nets, function(net) as.matrix(net %n% 'similarity'))
+  # ldv <- lapply(nets, function(net) as.matrix(net %n% 'DV_lag'))
+  
+  for (t in 2:length(nets)) {
+    
+  }
   
   m4 <-   nets.sub ~ edges + gwesp(0, fixed=T) +
     nodematch('ipo_status', diff=F) +
@@ -344,7 +351,7 @@ for (firm_i in firms) {
   fits[[net_group]][[firm_i]]$m13 <- btergm(m9, R=R, parallel = "multicore", ncpus = detectCores()); summary(fits[[net_group]][[firm_i]]$m13)
   
   ## save serialized object
-  saveRDS(fits, file=sprintf('tergm_fits_cem_compare_new_m6_9_pow3_%s_pd%s_R%s.rds',net_group,nPeriods,R))
+  saveRDS(fits, file=sprintf('tergm_fits_cem_%s_pd%s_R%s.rds', name_i, nPeriods, R))
 }
 
 
