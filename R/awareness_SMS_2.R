@@ -261,16 +261,16 @@ R <- 100
 nPeriods <- 6  ## 5
 net_group <- 'cem'
 # firms <- which(sapply(firm.nets$cem,function(x)length(x)>=nPeriods))
-firms <- c('clarabridge')
+firms <- c('attensity')  # 'clarabridge'
 
 if (!("fits" %in% ls())) fits <- list()
 if (!(net_group %in% names(fits))) fits[[net_group]] <- list()
 
 files <- dir(path='firm_nets_cem')
 
-for (i in 1:length(files))
+for (i in 1:length(files)) {
   nets <- readRDS(paste0('firm_nets_cem/',files[i]))
-  name_i <- stringr::str_split(files[i], ".rds")[[1]][1]
+  firm_i <- stringr::str_split(files[i], ".rds")[[1]][1]
   
   cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
   
@@ -278,11 +278,7 @@ for (i in 1:length(files))
   smt <- lapply(nets, function(net) as.matrix(net %n% 'similarity'))
   # ldv <- lapply(nets, function(net) as.matrix(net %n% 'DV_lag'))
   
-  for (t in 2:length(nets)) {
-    
-  }
-  
-  m4 <-   nets.sub ~ edges + gwesp(0, fixed=T) +
+  m4 <-   nets ~ edges + gwesp(0, fixed=T) +
     nodematch('ipo_status', diff=F) +
     nodematch('state_code', diff=F) +
     nodecov('age') + absdiff('age') +
@@ -292,7 +288,7 @@ for (i in 1:length(files))
     cycle(3) + cycle(4) + cycle(5) +
     nodecov('genidx_multilevel')
   
-  m4l <-   nets.sub ~ edges + gwesp(0, fixed=T) +
+  m4l <-   nets ~ edges + gwesp(0, fixed=T) +
     nodematch('ipo_status', diff=F) +
     nodematch('state_code', diff=F) +
     nodecov('age') + absdiff('age') +
@@ -302,7 +298,7 @@ for (i in 1:length(files))
     cycle(3) + cycle(4) + cycle(5) +
     nodecov('genidx_multilevel_lag')
   
-  # m10 <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  # m10 <-   nets ~ edges + gwesp(0, fixed=T) + 
   #   nodematch('ipo_status', diff=F) +
   #   nodematch('state_code', diff=F) +
   #   nodecov('age') + absdiff('age') +   
@@ -311,7 +307,7 @@ for (i in 1:length(files))
   #   nodecov('cent_pow_n0_5_lag')  + absdiff('cent_pow_n0_5_lag') +
   #   cycle(3) + cycle(4) + cycle(5) + 
   #   nodecov('genidx_multilevel_lag')
-  # m11 <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  # m11 <-   nets ~ edges + gwesp(0, fixed=T) + 
   #   nodematch('ipo_status', diff=F) +
   #   nodematch('state_code', diff=F) +
   #   nodecov('age') + absdiff('age') +   
@@ -320,7 +316,7 @@ for (i in 1:length(files))
   #   nodecov('cent_pow_n1_5_lag')  + absdiff('cent_pow_n1_5_lag') +
   #   cycle(3) + cycle(4) + cycle(5) + 
   #   nodecov('genidx_multilevel_lag')
-  # m12 <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  # m12 <-   nets ~ edges + gwesp(0, fixed=T) + 
   #   nodematch('ipo_status', diff=F) +
   #   nodematch('state_code', diff=F) +
   #   nodecov('age') + absdiff('age') +   
@@ -329,7 +325,7 @@ for (i in 1:length(files))
   #   nodecov('cent_pow_n2_0_lag')  + absdiff('cent_pow_n2_0_lag') +
   #   cycle(3) + cycle(4) + cycle(5) + 
   #   nodecov('genidx_multilevel_lag')
-  # m13 <-   nets.sub ~ edges + gwesp(0, fixed=T) + 
+  # m13 <-   nets ~ edges + gwesp(0, fixed=T) + 
   #   nodematch('ipo_status', diff=F) +
   #   nodematch('state_code', diff=F) +
   #   nodecov('age') + absdiff('age') +   
@@ -343,6 +339,8 @@ for (i in 1:length(files))
   
   fits[[net_group]][[firm_i]]$m4  <- btergm(m4,  R=R, parallel = "multicore", ncpus = detectCores()); summary(fits[[net_group]][[firm_i]]$m4)
   fits[[net_group]][[firm_i]]$m4l <- btergm(m4l, R=R, parallel = "multicore", ncpus = detectCores()); summary(fits[[net_group]][[firm_i]]$m4l)
+  
+  screenreg(fits[[net_group]][[firm_i]], digits = 3)
   
   
   fits[[net_group]][[firm_i]]$m10 <- btergm(m6, R=R, parallel = "multicore", ncpus = detectCores()); summary(fits[[net_group]][[firm_i]]$m10)
