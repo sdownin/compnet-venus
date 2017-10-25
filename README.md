@@ -43,7 +43,7 @@ nets.sub <- nets.sub[(length(nets.sub)-nPeriods+1):(length(nets.sub))]
 
 ## Edge covariates list of matrices [[NxN],[NxN],...]
 mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
-sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+smt <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
 ldv <- lapply(nets.sub, function(net) as.matrix(net %n% 'DV_lag'))
 ```
 
@@ -54,7 +54,7 @@ m0 <- nets.sub ~ edges + gwesp(0, fixed=T) +
   nodematch('state_code', diff=F) +
   nodematch('npm',diff=F) + 
   nodecov('age') +   
-  edgecov(mmc)  + edgecov(ldv) +  edgecov(sim)
+  edgecov(mmc)  + edgecov(ldv) +  edgecov(smt)
 ```
 
 fit TERGMs via bootstrapped MPLE as follows:
