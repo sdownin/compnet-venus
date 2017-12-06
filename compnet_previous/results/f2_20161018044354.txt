@@ -1,0 +1,64 @@
+
+==============================
+Summary of formation model fit 
+==============================
+
+Formula:   ~edges + gwesp(0, fixed = T) + kstar(3:6)
+
+Iterations:  5 out of 20 
+
+Monte Carlo MLE Results:
+              Estimate Std. Error MCMC %
+edges         -6.97166    0.19035      0
+gwesp.fixed.0  0.54019    0.14267      0
+kstar3         0.29239    0.16605      0
+kstar4        -0.23834    0.27111      0
+kstar5         0.12827    0.23791      0
+kstar6        -0.04694    0.10259      0
+               p-value    
+edges          < 1e-04 ***
+gwesp.fixed.0 0.000153 ***
+kstar3        0.078272 .  
+kstar4        0.379326    
+kstar5        0.589780    
+kstar6        0.647234    
+---
+Signif. codes:  
+0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+     Null Deviance: 56541  on 40786  degrees of freedom
+ Residual Deviance:   962  on 40780  degrees of freedom
+ 
+AIC: 974    BIC: 1026    (Smaller is better.) 
+
+================================
+Summary of dissolution model fit
+================================
+
+Formula:   ~edges + gwesp(0, fixed = T) + kstar(3:6)
+
+Iterations:  7 out of 20 
+
+Monte Carlo MLE Results:
+              Estimate Std. Error MCMC %
+edges           0.2158     0.2026      0
+gwesp.fixed.0   0.3352     0.1414      0
+kstar3          0.9114     0.2244      0
+kstar4         -1.4266     0.4078      0
+kstar5          1.2948     0.4245      0
+kstar6         -0.6123     0.2353      0
+               p-value    
+edges         0.287575    
+gwesp.fixed.0 0.018198 *  
+kstar3         < 1e-04 ***
+kstar4        0.000519 ***
+kstar5        0.002434 ** 
+kstar6        0.009591 ** 
+---
+Signif. codes:  
+0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+     Null Deviance: 585.0  on 422  degrees of freedom
+ Residual Deviance: 405.5  on 416  degrees of freedom
+ 
+AIC: 417.5    BIC: 441.7    (Smaller is better.) 

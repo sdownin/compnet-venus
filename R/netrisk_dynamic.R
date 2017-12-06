@@ -1,13 +1,9 @@
 #---------------------------------------------------------------------
-setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
-# .libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
+setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet")
+# .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 library(parallel)
 library(statnet, quietly = T)
 library(network, quietly = T)
-library(ergm, quietly = T)
-library(tergm, quietly = T)
-library(btergm, quietly = T)
-library(hergm, quietly = T)
 library(xergm, quietly = T)  ## includes rem, tnam, GERGM
 library(texreg, quietly = T)
 library(igraph, quietly = T)
@@ -20,12 +16,13 @@ library(scatterplot3d, quietly = T)
 library(lattice, quietly = T)
 library(latticeExtra, quietly = T)
 library(directlabels, quietly = T)
+library(lubridate)
 library(ggplot2, quietly = T)
 library(reshape2)
 library(plyr)
 library(ggplot2)
-data_dir <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase/"
-img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
+data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
+img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 # if( !('net' %in% ls()) )
 #   load('netrisk_dynamic_2.RData')
 ###
@@ -34,6 +31,7 @@ img_dir  <- "C:/Users/sdowning/Google Drive/PhD/Dissertation/competition network
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
+
 par.default <- par()
 lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 ###########################################################################
@@ -101,17 +99,17 @@ lattice::trellis.par.set(strip.background=list(col="lightgrey"))
 #####################################################################################
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
 #####################################################################################
-# g.full <- makeGraph(comp = co_comp, vertdf = co)
-# ## cut out confirmed dates >= 2016
-# g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016 
-#                                                                 | is.na(V(g.full)$founded_year)
-#                                                                 | V(g.full)$founded_year=='' ) ] )
-# g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
-# ## SIMPLIFY
-# g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T, 
-#                            edge.attr.comb = list(weight='sum', 
-#                                                  relation_began_on='min',
-#                                                  relation_ended_on='min'))
+g.full <- makeGraph(comp = co_comp, vertdf = co)
+## cut out confirmed dates >= 2016
+g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016
+                                                                | is.na(V(g.full)$founded_year)
+                                                                | V(g.full)$founded_year=='' ) ] )
+g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
+## SIMPLIFY
+g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
+                           edge.attr.comb = list(weight='sum',
+                                                 relation_began_on='min',
+                                                 relation_ended_on='min'))
 #igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
 
 g.full <- read.graph('g_full.graphml', format='graphml')
@@ -136,17 +134,17 @@ g.full <- read.graph('g_full.graphml', format='graphml')
 #fastgreedy
 #label.propagation
 #edge.betweenness
-gl <- sapply()
+
 #----------------------------------------------------------------
 ##-------------------FIND MARKET of suitable size --------------
 #----------------------------------------------------------------
 firms <- V(g.full)$name
 deg <- igraph::degree(g.full)
 firms.sub <- firms[which(deg > 8 & deg < 13)]
-#View(data.frame(name=firms.sub))
+#View(data.frame(name=firms.sub)) 
 ##
-name_i <- 'crackle'   ## check companies
-k <- 3
+name_i <- 'medallia'   ## check companies
+k <- 2
 (nbs <- neighbors(g.full, v = V(g.full)[which(V(g.full)$name==name_i)]))
 g.ego <- make_ego_graph(g.full, order=k, 
                         nodes = V(g.full)[which(V(g.full)$name==name_i)] )[[1]]
@@ -175,9 +173,64 @@ View(head(co[grep('biotec',
 #                  'mindshare-technologies','markettools')
 
 
+#--------------------------------------------------------------------
+#    Envelopment Risk Firms (without too many connections)
+#--------------------------------------------------------------------
+firms <- V(g.full)$name
+deg <- igraph::degree(g.full)
+min <- 1
+max <- Inf
+firms.sub <- firms[which(deg > min & deg < max)]
+
+rindex <- which(co$status %in% c('closed','acquired') 
+                #& co$company_name_unique %in% firms.sub
+                #& (co$acquired_year >= 2012 | co$closed_year >= 2012)
+                & co$closed_year >= 2010
+                )
+
+cindex <- c('company_name_unique', 'company_name', 'acquired_on','closed_on','homepage_url','short_description','category_list') 
+sub <- co[rindex, cindex]
+cnt <- plyr::count(co_comp[co_comp$company_name_unique %in% sub$company_name_unique
+                           | co_comp$competitor_name_unique %in% sub$company_name_unique, 'company_name_unique'])
+names(cnt) <- c('company_name_unique','competitor_count')
+sub <- merge(sub, cnt, by.x='company_name_unique',all.x=T)
+sub <- sub[order(sub$competitor_count, decreasing=T), ]
+sub <- sub[ !is.na(sub$competitor_count) & sub$competitor_count > 0, ]
+dim(sub)
+View(sub)
+
+filename <- sprintf('envrisk_CLOSED_companies_full_names_r%s.csv', nrow(sub))
+write.table(sub, file = filename, sep = ',', row.names = F, col.names = T, na = " ")
+
+
+##---------------------------------------------------------------------
+#       News stories
+#_---------------------------------------------------------------------
+filename <- 'C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/envelopment/cb_cem/cb_cem_news_3.csv'
+news <- read.table(filename, header = T, sep = ',', na.strings = c('NA','','na'), fill = T, stringsAsFactors = F)
+head(news$url, 30)
+
+# pattern1 <- "^http(?s)[:\\/.]+"
+# pattern2 <- "\\.com.+"
+# text <- "https://gigaom.com/2014/05/27/acquia-scores-50m-in-series-f-funding/"
+
+getDomain <- function(text) {
+  pattern1 <- "http(?s)(w{0,3})[:\\/.]+"
+  pattern2 <- "\\.com.+"
+  x <- gsub(pattern1, '', text, ignore.case=T, perl=T)
+  out <- gsub(pattern2, '', x, ignore.case=T, perl=T)
+  return(out)
+}
+
+
+domains <- unname(sapply(news$url[1:30], getDomain))
+
+cnt <- plyr::count(domains)
+head(cnt)
+
 ##--------------------------------------------------------------
 ##--------------------------------------------------------------
-##--------- CREATE FIRM NETWORK PERIOD LISTS ------------------
+##--------- CREATE FIRM NETWORK PERIOD LISTS  ------------------
 ##--------------------------------------------------------------
 ##--------------------------------------------------------------
 
@@ -356,13 +409,17 @@ fb5clar <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:5) +
                 nodematch('ipo_status', diff=TRUE) 
               ,
               R = 30, parallel = "multicore", ncpus = detectCores())
-fb6clar <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:5) + 
-                   nodefactor('state_code') + nodematch('state_code', diff=F) +
-                   nodecov('age') +   edgecov(mmc)  +
-                   nodecov('net_risk') + nodecov('net_risk_lag') +
-                   nodematch('npm',diff=F) + 
-                   nodematch('ipo_status', diff=TRUE) +
-                   nodecov('constraint') + absdiff('constraint')
+fb6clar <- btergm(nets.sub ~ edges + gwesp(0, fixed=T)  + 
+                    cycle(3:5) + 
+                    nodematch('state_code', diff=F) +
+                    nodecov('age') +   
+                    edgecov(mmc)  +
+                    nodecov('net_risk') + 
+                    nodecov('net_risk_lag') +
+                    nodematch('npm',diff=F) + 
+                    nodematch('ipo_status', diff=TRUE) +
+                    nodecov('constraint') + 
+                    absdiff('constraint')
                  ,
                  R = 5, parallel = "multicore", ncpus = detectCores())
 
@@ -671,15 +728,15 @@ for (i in 1:length(firms.todo)) {
   mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
   sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
   fit <- mtergm(nets.sub ~ edges + gwesp(0, fixed=T)  + cycle(3:6) + 
-                  nodefactor('state_code') + nodematch('state_code', diff=F) +
-                  nodecov('age') +   edgecov(mmc)  +
-                  nodecov('net_risk') + nodecov('net_risk_lag') +
-                  nodematch('npm',diff=F) + 
-                  nodematch('ipo_status', diff=TRUE)  +
-                  nodecov('constraint') + absdiff('constraint') + 
-                  edgecov(sim)  #+
-                # nodecov('betweenness') + absdiff('betweenness')
-                ,  parallel = "multicore", ncpus = detectCores())
+                nodefactor('state_code') + nodematch('state_code', diff=F) +
+                nodecov('age') +   edgecov(mmc)  +
+                nodecov('net_risk') + nodecov('net_risk_lag') +
+                nodematch('npm',diff=F) + 
+                nodematch('ipo_status', diff=TRUE)  +
+                nodecov('constraint') + absdiff('constraint') + 
+                edgecov(sim)  #+
+              # nodecov('betweenness') + absdiff('betweenness')
+              ,  parallel = "multicore", ncpus = detectCores())
   l.fit.m[[net_group]][[firm_i]] <- fit
   file.name <- sprintf('fit_list_mtergm_%syr_%spd_%s-grp.RData', yrpd, tmp.npds,net_group)
   save.image(file.name) # save.image('fit_list_btergm_med_clar_qual_1yr_.RData')
@@ -689,6 +746,26 @@ write.regtable(list(mt6), filename='fit_mtergm_clar')
 
 
 
+##-----------------------------------------------------------
+#            TEST MTERGM MCMLE
+#----------------------------------------------------------
+load('netrisk_dynamic_firm_nets_1yr_v3_misc.RData')
+
+nets.sub <- firm.nets$test$clarabridge
+mmc <- lapply(nets.sub, function(net) as.matrix(net %n% 'mmc'))
+sim <- lapply(nets.sub, function(net) as.matrix(net %n% 'similarity'))
+
+fm.c5 <- mtergm(  nets.sub ~ edges + gwesp(0, fixed=T) + 
+             # nodefactor('state_code') +
+             # nodematch('state_code', diff=F) +
+             nodecov('age') +   # edgecov(mmc)  + # edgecov(ldv) +
+             nodematch('npm',diff=F) + 
+             edgecov(sim)  +
+             #nodematch('ipo_status', diff=TRUE)  +
+             nodecov('net_risk') +
+             nodecov('constraint') + absdiff('constraint') + 
+             cycle(3) + cycle(4) + cycle(5) 
+       ,  parallel = "multicore", ncpus = detectCores())
 
 
 #--------------------------------------------------------------------

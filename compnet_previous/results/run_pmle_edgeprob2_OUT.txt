@@ -1,0 +1,9 @@
+
+
+##------ Tue Dec 20 11:52:25 2016 ------##
+
+running edge prob interpretation on model f4.
+
+
+##------ Tue Dec 20 17:33:24 2016 ------##
+

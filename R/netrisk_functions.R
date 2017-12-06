@@ -6,7 +6,7 @@
 # @article  "Network Risk: Assessing the threat of envelopment"
 #
 ##########################################################################################
-
+library(Matrix)
 
 ##
 #
@@ -19,7 +19,7 @@ filterModels <- function(l)
 ##
 #
 ##
-write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, single.row=T, ...)
+write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, single.row=T, ci.force=F, ...)
 {
   if(is.na(filename))
     filename <- deparse(substitute(fit))
@@ -30,8 +30,8 @@ write.regtable <- function(l, screen=TRUE, html=FALSE, filename=NA, single.row=T
     filename.txt <- sprintf('%s_%s.txt',name,stamp )
     filename.html <- sprintf('%s_%s.html',name,stamp )
   }
-  if(screen) texreg::screenreg(l, file = filename.txt,  single.row = single.row, ci.force = T, ...)
-  if(html) texreg::htmlreg(l, file = filename.html,  single.row = single.row, ci.force = T, ...)
+  if(screen) texreg::screenreg(l, file = filename.txt,  single.row = single.row, ci.force = ci.force, ...)
+  if(html) texreg::htmlreg(l, file = filename.html,  single.row = single.row, ci.force = ci.force, ...)
 }
 
 ##
@@ -381,9 +381,6 @@ getMultiProdEgoNet <- function(g, firms, k=1, include.competitor.egonet=TRUE)
 }
 
 ##
-#
-##
-##
 # Plot Competition Network coloring the Multi-Product firms in red
 ##
 plotCompNetAOM <- function(gs, membership=NA, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
@@ -581,6 +578,327 @@ plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, i
   )
   par(mar=c(4.5,4.5,3.5,1))
 }
+
+
+##
+#
+##
+plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cutoff=.9, is.focal.color=TRUE, 
+                                    label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                    layout.algo=layout.fruchterman.reingold,margins=NA,
+                                    seed=1111,  ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  ##
+  ## HANDLE SAME COLORS FOR COMPETITORS
+  ##
+  ##
+  logprobs <- log(probs)
+  # qts <- quantile(logprobs, seq(0,1,.1))
+  # colors <- rev(heat.colors(length(qts)))
+  # groups <- cut(logprobs, include.lowest = T, breaks = qts, labels=1:(length(qts)-1))
+  # vertcol <- colors[ groups ]
+  # plot(logprobs, col=vertcol,pch=15)
+  # col2 <- rev(heat.colors(2))
+  col2 <- c(rgb(.7,.7,.1,.5), rgb(.8,.05,.05,.95))
+  vertcol <- ifelse(logprobs > quantile(logprobs,cutoff), col2[2], col2[1] )
+
+  vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+  # vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
+  vertex.label <- ifelse( (logprobs > quantile(logprobs,cutoff)) 
+                           | (V(gs)$name==focal.firm), V(gs)$name, '' )
+ 
+  vertcol[which(V(gs)$name==focal.firm)] <- 'steelblue'
+  
+  if(is.na(vertex.scale)) 
+    vertex.scale <- 100 * (1/vcount(gs)^.5)
+  if(is.na(label.scale)) 
+    label.scale <- 13 * (1/vcount(gs)^.5)
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=vertex.scale
+              , vertex.color=vertcol
+              , vertex.label=vertex.label
+              , vertex.label.cex=label.scale
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              # , vertex.label.degree = 120
+              # , vertex.label.dist = .3
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+
+
+##
+#
+##
+plotCompNetColRivals <- function(gs, probs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+                                  label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                  layout.algo=layout.fruchterman.reingold,margins=NA,
+                                  seed=1111,  ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  ##
+  ## HANDLE SAME COLORS FOR COMPETITORS
+  ##
+  ##
+  logprobs <- log(probs)
+  # qts <- quantile(logprobs, seq(0,1,.1))
+  # colors <- rev(heat.colors(length(qts)))
+  # groups <- cut(logprobs, include.lowest = T, breaks = qts, labels=1:(length(qts)-1))
+  # vertcol <- colors[ groups ]
+  # plot(logprobs, col=vertcol,pch=15)
+  # col2 <- rev(heat.colors(2))
+  col2 <- c(rgb(.7,.7,.1,.5), rgb(.8,.05,.05,.95))
+  nbrs.idx <- igraph::neighborhood(gs,nodes = V(gs)[V(gs)$name==focal.firm])[[1]]
+  vertcol <- sapply(1:vcount(gs),function(i)ifelse(i %in% nbrs.idx, col2[2], col2[1] ))
+  
+  vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+  # vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
+  vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
+  
+  vertcol[which(V(gs)$name==focal.firm)] <- 'steelblue'
+  
+  if(is.na(vertex.scale)) 
+    vertex.scale <- 100 * (1/vcount(gs)^.5)
+  if(is.na(label.scale)) 
+    label.scale <- 13 * (1/vcount(gs)^.5)
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=vertex.scale
+              , vertex.color=vertcol
+              , vertex.label=vertex.label
+              , vertex.label.cex=label.scale
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              # , vertex.label.degree = 120
+              # , vertex.label.dist = .3
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
+
+# #-----------------------------------------------------------------------
+#   # Plot Competition Network coloring the Multi-Product firms in red
+#   ##
+#   plotCompNetAOM <- function(gs, membership=NA, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+#                              label.scale=0.3, vertex.scale=2,
+#                              multi.prod=NA, vertex.log.base=exp(1),label.log.base=10, 
+#                              layout.algo=layout.fruchterman.reingold,margins=NA, seed=1111, ...) 
+#   {
+#     if(all(is.na(margins)))
+#       margins <- c(.01,.01,.01,.01)
+#     ##
+#     par(mar=margins)
+#     d <- igraph::degree(gs)
+#     vertshape <- rep('circle',vcount(gs))
+#     vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+#     ##
+#     if (!all(is.na(membership)))
+#       vertcol <- rainbow(length(unique(membership)), alpha=.3)[ membership ]
+#     ##
+#     if (!all(is.na(multi.prod)))
+#       vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), vertcol)
+#     if(!all(is.na(competitors)))
+#       vertcol <- ifelse(V(gs)$name %in% multi.prod, rgb(.8,.2,.2,.8), vertcol)
+#     ##
+#     if(!all(is.na(focal.firm))) {
+#       if(is.focal.color) 
+#         vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
+#       vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
+#     }
+#     ##
+#     set.seed(seed)
+#     plot.igraph(gs
+#                 , layout=layout.algo
+#                 , vertex.size=log(d,base=vertex.log.base)*vertex.scale + 1.1
+#                 , vertex.color=vertcol
+#                 , vertex.label.cex=log(d,base=label.log.base)*label.scale + .005
+#                 , vertex.label.color='black'
+#                 , vertex.label.font = 2
+#                 , vertex.label.family = 'sans'
+#                 , vertex.shape = vertshape
+#                 , ...
+#     )
+#     par(mar=c(4.5,4.5,3.5,1))
+#   }
+# 
+# ##
+# #
+# ##
+# plotCompNetAOMequalSize <- function(gs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+#                                     label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+#                                     layout.algo=layout.fruchterman.reingold,margins=NA,
+#                                     seed=1111,  ...) 
+# {
+#   if(all(is.na(margins)))
+#     margins <- c(.01,.01,.01,.01)
+#   ##
+#   par(mar=margins)
+#   d <- igraph::degree(gs)
+#   vertshape <- rep('circle',vcount(gs))
+#   vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+#   ##
+#   gs <- igraph::induced.subgraph(gs, vids=V(gs)[igraph::degree(gs)>0])   
+#   membership <- igraph::multilevel.community(gs)$membership
+#   V(gs)$mem <- membership
+#   ## HANDLE SAME COLORS FOR COMPETITORS
+#   if(!all(is.na(competitors))) {
+#     mem_i=-Inf
+#     l <- list()
+#     tmp.mem <- membership
+#     for(i in 1:length(competitors)) {
+#       l[[i]] <- list(indices=c(), from.mem=NA,to.mem=NA)
+#       if (V(gs)[V(gs)$name==competitors[i]]$mem != mem_i) {
+#         mem_i <- V(gs)[V(gs)$name==competitors[i]]$mem
+#         l[[i]]$from.mem <- mem_i
+#         l[[i]]$to.mem <- i
+#         l[[i]]$indices <- which(V(gs)$mem==mem_i)
+#         # swp[which(V(gs)$mem==i)] <- mem_i
+#         # tmp.mem[which(V(gs)$mem==mem_i)] <- i        
+#       }
+#     }
+#     tmp.mem <- membership
+#     for (i in 1:length(l)) tmp.mem[l[[i]]$indices] <- l[[i]]$to.mem
+#     V(gs)$mem <- membership <- tmp.mem
+#   }
+#   ##
+#   ##
+#   if (length(rcolors) >= length(unique(membership)))
+#     vertcol <- rcolors[ membership ]
+#   ##
+#   if(!all(is.na(competitors)))
+#     #vertcol <- ifelse(V(gs)$name %in% competitors, rgb(.8,.2,.2,.9), vertcol)
+#     ##
+#     if(!all(is.na(focal.firm))) {
+#       if(is.focal.color) 
+#         vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
+#       vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+#     }
+#   ##
+#   if(is.na(vertex.scale)) 
+#     vertex.scale <- 100 * (1/vcount(gs)^.5)
+#   if(is.na(label.scale)) 
+#     label.scale <- 13 * (1/vcount(gs)^.5)
+#   ##
+#   vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), stringr::str_to_upper(V(gs)$name), '')
+#   ##
+#   set.seed(seed)
+#   plot.igraph(gs
+#               , layout=layout.algo
+#               , vertex.size=vertex.scale
+#               , vertex.color=vertcol
+#               , vertex.label=vertex.label
+#               , vertex.label.cex=label.scale
+#               , vertex.label.color='black'
+#               , vertex.label.font = 2
+#               , vertex.label.family = 'sans'
+#               # , vertex.label.degree = 120
+#               # , vertex.label.dist = .3
+#               , vertex.shape = vertshape
+#               , ...
+#   )
+#   par(mar=c(4.5,4.5,3.5,1))
+# }
+# 
+# ##
+# #
+# ##
+# plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+#                                             label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+#                                             layout.algo=layout.fruchterman.reingold,margins=NA,
+#                                             seed=1111,  ...) 
+# {
+#   if(all(is.na(margins)))
+#     margins <- c(.01,.01,.01,.01)
+#   ##
+#   par(mar=margins)
+#   d <- igraph::degree(gs)
+#   vertshape <- rep('circle',vcount(gs))
+#   vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+#   ##
+#   gs <- igraph::induced.subgraph(gs, vids=V(gs)[igraph::degree(gs)>0])   
+#   membership <- igraph::multilevel.community(gs)$membership
+#   V(gs)$mem <- membership
+#   ## HANDLE SAME COLORS FOR COMPETITORS
+#   if(!all(is.na(competitors))) {
+#     mem_i=-Inf
+#     l <- list()
+#     tmp.mem <- membership
+#     for(i in 1:length(competitors)) {
+#       l[[i]] <- list(indices=c(), from.mem=NA,to.mem=NA)
+#       if (V(gs)[V(gs)$name==competitors[i]]$mem != mem_i) {
+#         mem_i <- V(gs)[V(gs)$name==competitors[i]]$mem
+#         l[[i]]$from.mem <- mem_i
+#         l[[i]]$to.mem <- i
+#         l[[i]]$indices <- which(V(gs)$mem==mem_i)
+#       }
+#     }
+#     tmp.mem <- membership
+#     for (i in 1:length(l)) tmp.mem[l[[i]]$indices] <- l[[i]]$to.mem
+#     V(gs)$mem <- membership <- tmp.mem
+#   }
+#   ##
+#   ##
+#   if (length(rcolors) >= length(unique(membership)))
+#     vertcol <- rcolors[ membership ]
+#   ##
+#   if(!all(is.na(competitors)))
+#     #vertcol <- ifelse(V(gs)$name %in% competitors, rgb(.8,.2,.2,.9), vertcol)
+#     ##
+#     if(!all(is.na(focal.firm))) {
+#       if(is.focal.color) 
+#         vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
+#       vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+#     }
+#   ##
+#   if(is.na(vertex.scale)) 
+#     vertex.scale <- 100 * (1/vcount(gs)^.5)
+#   if(is.na(label.scale)) 
+#     label.scale <- 13 * (1/vcount(gs)^.5)
+#   ##
+#   #vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), stringr::str_to_upper(V(gs)$name), '')
+#   ##
+#   set.seed(seed)
+#   plot.igraph(gs
+#               , layout=layout.algo
+#               , vertex.size=vertex.scale
+#               , vertex.color=vertcol
+#               # , vertex.label=vertex.label
+#               , vertex.label.cex=label.scale
+#               , vertex.label.color='black'
+#               , vertex.label.font = 2
+#               , vertex.label.family = 'sans'
+#               # , vertex.label.degree = 120
+#               # , vertex.label.dist = .3
+#               , vertex.shape = vertshape
+#               , ...
+#   )
+#   par(mar=c(4.5,4.5,3.5,1))
+# }
+# #-----------------------------------------------------------------------
 
 
 ##
@@ -2283,9 +2601,66 @@ makePdNetwork <- function(net, start, end,
 }
 
 ##
+# Computes the Generalist (vs Specialist) Index
+# for an igraph with given cluster memberships
+# values bounded between 0 and K (for K clusters in the memberships)
+#
+# @param [igraph] g   The igraph object
+# @param [int[]] memberships  The vector of integers representing cluster memberships
+# @return [float[]] The generalist index vector [float[]]
+##
+generalistIndex <- function(g, memberships)
+{
+  if (class(g) != 'igraph') stop("g must be an igraph object")
+  clusters <- unique(memberships)
+  K <- length(clusters)
+  adj <- igraph::get.adjacency(g, sparse = F)
+  ## apply over firms in g the generalist index algorithm
+  gen.idx <- apply(adj, MARGIN = 1, FUN = function(x){
+    val <- 0 ## reset value for next node
+    for (k in clusters) {
+      v.in.k <- which(memberships == k)
+      v.in.k <- v.in.k[v.in.k != i]
+      ## filter to members in cluster k (cols) for this row x
+      sub.k.x <- x[v.in.k]
+      ## sum edges from focal node i to members of cluster k
+      cnt.e.k <- sum(sub.k.x)
+      ## total possible edges node i to cluster k
+      max.e.k <- length(sub.k.x)
+      ## increment value by cluster ratio
+      ## define ratio as 0 if empty denominator (max.e.k=0)
+      val <- val + ifelse(max.e.k > 0, (cnt.e.k / max.e.k), 0)
+    }
+    return(val)
+  })
+  return(gen.idx)
+}
+
+# coms <- c('multilevel.community','infomap.community',
+#           'walktrap.community','fastgreedy.community',
+#           'edge.betweenness.community','label.propagation.community',
+#           'leading.eigenvector.community')
+# gi <- list()
+# out <- c()
+# for (i in 1:length(coms)) {
+#   community <- do.call(coms[i], list(g=g))
+#   gidx <- generalistIndex(g, community$membership)
+#   top <- gidx[gidx > quantile(gidx, .99)]
+#   top <- top[order(top, decreasing = T)]
+#   # gi[[com.algo]] <- top[order(top, decreasing = T)]
+#   out <- rbind(out, c(community.algorithm=coms[i],K=length(unique(community$membership)),
+#               firm1=names(top)[1],firm2=names(top)[2],firm3=names(top)[3],
+#               firm4=names(top)[4],firm5=names(top)[5],
+#               gi1=unname(top[1]),gi2=unname(top[2]),gi3=unname(top[3]),
+#               gi4=unname(top[4]),gi5=unname(top[5])
+#               ))
+# }; out <- as.data.frame(out)
+
+##
 #
 ##
-setCovariates <- function(net, start, end,
+setCovariates <- function(net, start, end, 
+                          covlist=c('age','mmc','dist','similarity','ipo_status','centrality','generalist'),
                         downweight.env.risk=FALSE,
                         netRiskCommunityAlgo='multilevel.community',
                         acq=NA,rou=NA,br=NA,ipo=NA)
@@ -2295,74 +2670,150 @@ setCovariates <- function(net, start, end,
     ##------------------------------------
     ## # 0. AGE
     ##------------------------------------
-    year <- net %v% 'founded_year'
-    year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
-    age <- end - year
-    age[age < 0] <- 0
-    net %v% 'age' <- age
-    ##------------------------------------
-    ## # 1. ENV RISK -- VERTEX ATTRIBUTE
-    ##------------------------------------
-    cat('\ncomputing risk measure...\n')
-    if (downweight.env.risk) {
-      rl <- envRisk(g.net) 
-      prefix <- 'env_risk'
-    } else {
-      rl <- netRisk(g.net, community.type = netRiskCommunityAlgo)
-      prefix <- 'net_risk'
+    if ('age' %in% covlist) {
+      year <- net %v% 'founded_year'
+      year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
+      age <- end - year
+      age[age < 0] <- 0
+      net %v% 'age' <- age
     }
-    net %v% prefix <- rl$r
-    net %v% 'npm' <- V(rl$g)$community
+    # ##------------------------------------
+    # ## # 1. ENV RISK -- VERTEX ATTRIBUTE
+    # ##------------------------------------
+    if ('risk' %in% covlist) {
+      cat('\ncomputing risk measure...\n')
+      if (downweight.env.risk) {
+        rl <- envRisk(g.net)
+        prefix <- 'env_risk'
+      } else {
+        rl <- netRisk(g.net, community.type = netRiskCommunityAlgo)
+        prefix <- 'net_risk'
+      }
+      net %v% prefix <- rl$r
+      net %v% 'npm' <- V(rl$g)$community
+    }
     ##------------------------------------
     ## # 2. MMC - Branches   (does NOT include market weight (revenue, customers, etc.), just binary overlap or not)
     ##------------------------------------
-    cat('computing multi-market contact...\n')
-    mmc <- getMultiMarketContact(br, net%v%'vertex.names', end)
-    net %n% 'mmc' <- as.matrix(mmc)
+    if ('mmc' %in% covlist) {
+      cat('computing multi-market contact...\n')
+      mmc <- getMultiMarketContact(br, net%v%'vertex.names', end)
+      net %n% 'mmc' <- as.matrix(mmc)
+    }
     ##------------------------------------
     ## # 3. Dist lag - (competition edges)  ## NETWORK OR EDGE PROPERTY? ??
     ##------------------------------------
-    cat('computing distances lag contact...\n')
-    D <- as.matrix(igraph::distances(g.net))
-    rownames(D) <- NULL;  colnames(D) <- NULL
-    D[D==0] <- 1e-16
-    net %n% 'dist' <- D
-    #
-    D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
-    D[(is.na(D) | D == -Inf | D == Inf)] <- 0
-    net %n% 'de_alio_entry' <- D
+    if ('dist' %in% covlist) {
+      cat('computing distances lag contact...\n')
+      D <- as.matrix(igraph::distances(g.net))
+      rownames(D) <- NULL;  colnames(D) <- NULL
+      D[D==0] <- 1e-16
+      net %n% 'dist' <- D
+      #
+      D[(!is.na(D) & D > -Inf & D < Inf)] <- 1
+      D[(is.na(D) | D == -Inf | D == Inf)] <- 0
+      net %n% 'de_alio_entry' <- D
+    }
     ##------------------------------------
     ## # 4. IPO STATUS -- VERTEX ATTRIBUTE
     ##------------------------------------
-    cat('computing IPO status contact...\n')
-    iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
-                        & ipo$went_public_year < end), ]
-    net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
+    if ('ipo_status' %in% covlist) {
+      cat('computing IPO status contact...\n')
+      iposub <- ipo[which(ipo$company_name_unique %in% (net %v% 'vertex.names')
+                          & ipo$went_public_year < end), ]
+      net %v% 'ipo_status' <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
+    }
     ##------------------------------------
     ## # 5. Constraint -- NODE ATTR
     ##------------------------------------
-    cat('computing constraint...\n')
-    cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
-    cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
-    net %v% 'constraint' <- cons
+    if ('constraint' %in% covlist) {
+      cat('computing constraint...\n')
+      cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
+      cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
+      net %v% 'constraint' <- cons
+    }
     ##------------------------------------
     ## # 6. Similarity 
     ##------------------------------------
-    cat('computing inv.log.w.similarity...\n')
-    sim <- igraph::similarity(g.net,vids = V(g.net), 
-                              mode = "all", method = "invlogweighted" )
-    sim[is.nan(sim) | is.na(sim)] <- 0
-    net %n% 'similarity' <- sim
+    if ('similarity' %in% covlist) {
+      cat('computing inv.log.w.similarity...\n')
+      sim <- igraph::similarity(g.net,vids = V(g.net), 
+                                mode = "all", method = "invlogweighted" )
+      sim[is.nan(sim) | is.na(sim)] <- 0
+      net %n% 'similarity' <- sim
+    }
     # ##------------------------------------
-    # ## # 7. Centrality (betweenness)
+    # ## # 7. Centrality (degree, Bonacich power)
     # ##------------------------------------
-    # cat('computing betweenness...\n')
-    # betw <- igraph::betweenness(g.net)
-    # net %v% 'betweenness' <- betw
-    # net %v% 'betweenness_log' <- log(betw + .001) 
+    if ('centrality' %in% covlist) {
+      cat('computing centralities...\n')
+      # cat('computing betweenness...\n')
+      # betw <- igraph::betweenness(g.net)
+      # net %v% 'betweenness' <- betw
+      # net %v% 'betweenness_log' <- log(betw + .001) 
+      net %v% 'cent_deg' <- igraph::degree(g.net)
+      net %v% 'cent_eig' <- igraph::eigen_centrality(g.net)$vector
+      ## larger exp (Bonacich "beta") increase sensitivity to effects from distant node
+      pcn0.0 <- tryCatch(tmpn0.0<- igraph::power_centrality(g.net,exp= 0), error = function(e)e)
+      pcn0.1 <- tryCatch(tmpn0.1<- igraph::power_centrality(g.net,exp=-0.1), error = function(e)e)
+      pcn0.2 <- tryCatch(tmpn0.2<- igraph::power_centrality(g.net,exp=-0.2), error = function(e)e)
+      pcn0.3 <- tryCatch(tmpn0.3<- igraph::power_centrality(g.net,exp=-0.3), error = function(e)e)
+      pcn0.4 <- tryCatch(tmpn0.4<- igraph::power_centrality(g.net,exp=-0.4), error = function(e)e)
+      pcn0.5 <- tryCatch(tmpn0.5<- igraph::power_centrality(g.net,exp=-0.5), error = function(e)e)
+
+      if (!inherits(pcn0.0, "error")) net %v% 'cent_pow_n0_0' <- pcn0.0
+      if (!inherits(pcn0.1, "error")) net %v% 'cent_pow_n0_1' <- pcn0.1
+      if (!inherits(pcn0.2, "error")) net %v% 'cent_pow_n0_2' <- pcn0.2
+      if (!inherits(pcn0.3, "error")) net %v% 'cent_pow_n0_3' <- pcn0.3
+      if (!inherits(pcn0.4, "error")) net %v% 'cent_pow_n0_4' <- pcn0.4
+      if (!inherits(pcn0.5, "error")) net %v% 'cent_pow_n0_5' <- pcn0.5
+    }
     ##------------------------------------
-    ## # 8. Customer Status (coopetition) -- EDGE ATTRIBUTE
+    ## # 8. Generalist Index: specialist (0, K) generalist, for K clusters
+    ##       (Generalist vs Specialist portfolio strategy)
     ##------------------------------------
+    if ('generalist' %in% covlist) {
+      cat('computing Generalist (vs Specialist) Index...')
+      ## Community membership
+      ##igraph::optimal.community()  ## too slow
+      ##igraph::spinglass.community() ## too slow
+      net %v% 'com_multilevel'  <- igraph::multilevel.community(g.net)$membership
+      net %v% 'com_infomap'     <- igraph::infomap.community(g.net)$membership
+      net %v% 'com_walktrap'    <- igraph::walktrap.community(g.net)$membership
+      net %v% 'com_fastgreedy'  <- igraph::fastgreedy.community(g.net)$membership
+      net %v% 'com_edgebetween' <- igraph::edge.betweenness.community(g.net)$membership
+      net %v% 'com_labelprop'   <- igraph::label.propagation.community(g.net)$membership
+      # net %v% 'com_eigenvector' <- igraph::leading.eigenvector.community(g.net)$membership  ## Arpack solver error
+      ## Generalist Index
+      net %v% 'genidx_multilevel'  <- generalistIndex(g.net, net %v% 'com_multilevel' )
+      net %v% 'genidx_infomap'     <- generalistIndex(g.net, net %v% 'com_infomap' )
+      net %v% 'genidx_walktrap'    <- generalistIndex(g.net, net %v% 'com_walktrap' )
+      net %v% 'genidx_fastgreedy'  <- generalistIndex(g.net, net %v% 'com_fastgreedy' )
+      net %v% 'genidx_edgebetween' <- generalistIndex(g.net, net %v% 'com_edgebetween' )
+      net %v% 'genidx_labelprop'   <- generalistIndex(g.net, net %v% 'com_labelprop' )
+      ##
+      # algos <- c(com_multilevel='genidx_multilevel',
+      #           com_infomap='genidx_infomap',
+      #           com_walktrap='genidx_walktrap', 
+      #           com_fastgreedy='genidx_fastgreedy',
+      #           com_edgebetween='genidx_edgebetween',
+      #           com_labelprop='genidx_labelprop')
+      # for (i in 1:length(algos)) {
+      #   algo <- names(algos)[i]
+      #   genidx <- algos[[i]]
+      #   if (algo %in% network::list.vertex.attributes(net)) {
+      #     tmp <- generalistIndex(g.net, net %v% algo )
+      #     tmp[is.na(tmp) | is.null(tmp) | is.nan(tmp)] <- 0
+      #     net %v% genidx <- tmp
+      #   }
+      # }
+      # net %v% 'genidx_eigenvector' <- generalistIndex(g.net, net %v% 'com_eigenvector' )
+    }
+    ##------------------------------------
+    ## # 9. Customer Status (coopetition) -- EDGE ATTRIBUTE
+    ##------------------------------------
+    
+    cat('...done\n')
   } else {
     cat('zero edges, skipping attributes.\n')
   }
@@ -2383,13 +2834,13 @@ getNetEcount <- function(net, symmetric=TRUE, upper.tri.diag=FALSE)
 }
 
 
-ev <- sapply(firm.nets$misc$clarabridge, function(net) {
-  g=getIgraphFromNet(net)
-  gs=induced.subgraph(g,V(g)[igraph::degree(g)>0])
-  e=ecount(gs)
-  v=vcount(gs)
-  return(c(v=v,e=e,d=e/v)) 
-})
+# ev <- sapply(firm.nets$misc$clarabridge, function(net) {
+#   g=getIgraphFromNet(net)
+#   gs=induced.subgraph(g,V(g)[igraph::degree(g)>0])
+#   e=ecount(gs)
+#   v=vcount(gs)
+#   return(c(v=v,e=e,d=e/v)) 
+# })
 
 # matplot(t(ev),type='o', pch=1:3,lty=1:3)
 

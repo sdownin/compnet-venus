@@ -1,0 +1,26 @@
+
+Termporal Exponential Random Graph Model
+Focal firm: Clarabridge (k = 3); Total firms in network: 475
+Cross-sections: 4 x 2-yr periods (2009-10, 2011-12, 2013-14, 2015-16)
+=========================================================================================
+							Model 1                         Model 2                        
+-----------------------------------------------------------------------------------------
+edges (~network intercept)    -7.154 [ -9.084; -6.618] *     -10.274 [-14.141; -14.141] *
+gwesp(fixed alpha=0)           0.914 [  0.686;  1.178] *       0.120 [ -0.420;  -0.414] *
+Firm age                       0.025 [  0.020;  0.026] *       0.017 [  0.007;   0.007] *
+Interaction: HQ State         -0.186 [ -0.199; -0.145] *      -0.261 [ -0.291;  -0.287] *
+Net Risk                       0.015 [  0.006;  0.114] *       0.024 [  0.088;   0.089] *
+Net Risk: Lag 1                                                0.671 [  1.402;   1.406] *
+Homophily: IPO Status (No)                                    -0.073 [  0.038;   0.041] *
+Homophily: IPO Status (Yes)                                    0.173 [  0.553;   0.556] *
+Homophily: NPM Membership                                      2.440 [  3.554;   3.586] *
+cycle3                                                         0.725 [  0.672;   0.674] *
+cycle4                                                         0.138 [  0.112;   0.112] *
+cycle5                                                        -0.011 [ -0.010;  -0.010] *
+Multi-Market Contact                                           0.724 [  0.817;   0.842] *
+HQ State fixed effects   	   Yes								Yes
+-----------------------------------------------------------------------------------------
+Num. obs.                 144980                          181841                         
+=========================================================================================
+Maximum pseudolikelihood estimation (MPLE) bootstrapped 95% confidence intervals in brackets.
+* 0 outside the confidence interval.

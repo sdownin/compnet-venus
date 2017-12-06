@@ -1,0 +1,44 @@
+
+==============================
+Summary of formation model fit 
+==============================
+
+Formula:   ~edges + gwesp(0, fixed = T) + kstar(3:6)
+
+Iterations:  20 out of 20 
+
+Monte Carlo MLE Results:
+              Estimate Std. Error MCMC % p-value
+edges          -16.647         NA     NA      NA
+gwesp.fixed.0   -4.525         NA     NA      NA
+kstar3          57.324         NA     NA      NA
+kstar4        -175.032         NA     NA      NA
+kstar5         345.568         NA     NA      NA
+kstar6        -268.692         NA     NA      NA
+
+     Null Deviance:   7559  on 5453  degrees of freedom
+ Residual Deviance: 210844  on 5447  degrees of freedom
+ 
+AIC: 210856    BIC: 210896    (Smaller is better.) 
+
+================================
+Summary of dissolution model fit
+================================
+
+Formula:   ~edges + gwesp(0, fixed = T) + kstar(3:6)
+
+Iterations:  20 out of 20 
+
+Monte Carlo MLE Results:
+              Estimate Std. Error MCMC % p-value
+edges          -1.8386         NA     NA      NA
+gwesp.fixed.0   0.6246         NA     NA      NA
+kstar3         47.0988         NA     NA      NA
+kstar4        -63.6868         NA     NA      NA
+kstar5         41.1274         NA     NA      NA
+kstar6        -37.1856         NA     NA      NA
+
+     Null Deviance:   237.1  on 171  degrees of freedom
+ Residual Deviance: 20571.4  on 165  degrees of freedom
+ 
+AIC: 20583    BIC: 20602    (Smaller is better.) 
