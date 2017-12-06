@@ -1,23 +1,17 @@
 cat('\n\n');timestamp();cat('\n')
 library(btergm)
 library(parallel)
-library(snow)
 library(texreg)
 
-data.dir <- '/home/sdowning/data'
-data.file <- 'netrisk_dynamic_firm_nets_1yr_v3_misc.RData'
-out.file <- 'run_pmle_4_hyp_OUT.RData'
-out.txt <- 'run_pmle_4_hyp_OUT.txt'
-load(sprintf('%s/%s',data.dir,data.file))
+data_dir <- 'C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2/firm_nets_cem'
 
-###
-str <- function(x){return(deparse(substitute(x)))}
-###
+
+data_file <- file.path(data_dir,paste0(firm_i,'.rds'))
+nets <- readRDS(data_file)
 
 
 firm_i <- 'qualtrics'
 net_group <- 'cem'
-nets <- readRDS(paste0('firm_nets_cem/',firm_i,'.rds'))
 nPeriods <- 7  ## 5
 net_group <- 'cem'
 
