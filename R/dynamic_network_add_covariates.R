@@ -55,7 +55,13 @@ par.default <- par()
 # firms.todo <- names(firm.nets$cem)
 
 ## run main network period creation loop
-files <- dir(path = 'firm_nets_cem')
+files <- dir(path = 'firm_nets_cem', pattern = "\\.rds$")
+# finished <- c('attensity.rds','clarabridge.rds','converseon.rds','empathica.rds',
+#               'intentex.rds','lexalytics.rds','loop-ai-labs.rds','medallia.rds',
+#               'mopinion.rds','nice-systems.rds', 'qualtrics.rds')
+finished <- c()
+files <- files[ !(files %in% finished) ]
+files <- 'clarabridge.rds'
 
 for (i in 1:length(files)) {
   nets <- readRDS(paste0('firm_nets_cem/',files[i]))
@@ -74,7 +80,7 @@ for (i in 1:length(files)) {
     cat(sprintf('\nsetting covariates for period %s-%s:\n', periods[t-1],periods[t]))
     nets[[t]] <- setCovariates( nets[[t]], 
          periods[t-1], periods[t],
-         c('dist', 'similarity', 'centrality','generalist', 'constraint'),
+         c('centrality'),
          netRiskCommunityAlgo='multilevel.community',
          downweight.env.risk=FALSE #,
          # acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo
@@ -87,7 +93,7 @@ for (i in 1:length(files)) {
     net %n% 'DV_lag' <- netlag[,]
     net %n% 'dist_lag' <- netlag %n% 'dist'
     # net %v% 'net_risk_lag' <- netlag %v% 'net_risk'
-    net %v% 'cent_eig_lag' <- netlag %v% 'cent_deg'
+    net %v% 'cent_eig_lag' <- netlag %v% 'cent_eig'
     net %v% 'cent_deg_lag' <- netlag %v% 'cent_deg'
     net %v% 'cent_pow_n1_5_lag' <- netlag %v% 'cent_pow_n1_5'
     net %v% 'cent_pow_n2_0_lag' <- netlag %v% 'cent_pow_n2_0'
@@ -95,6 +101,8 @@ for (i in 1:length(files)) {
     net %v% 'genidx_multilevel_lag' <- netlag %v% 'genidx_multilevel'
     nets[[t]] <- net
   }
+  ## drop the first period for NA lagged vars
+  nets <- nets[ 2:length(nets) ]
 
   ## CAREFUL TO OVERWRITE
   file.name <- sprintf('firm_nets_cem/%s', files[i])

@@ -1,9 +1,9 @@
-setwd("C:/Users/sdowning/Google Drive/PhD/Dissertation/competition networks/compnet")
+setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 #.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 library(igraph)
 
-if( !('gl1' %in% ls()) )
-  load('netrisk_sms_full_pd_graph.RData')
+# if( !('gl1' %in% ls()) )
+#   load('netrisk_sms_full_pd_graph.RData')
 
 
 

@@ -108,15 +108,15 @@ if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
 name_i <- 'clarabridge'
-## Forrester research competitors
-forr.comp.names <- c('satmetrix','empathica','medallia','verint',
-                     'qualtrics','maritzcx','smg','nice-systems')
-##
-nbhd <- neighborhood(g.full, order=1, nodes=V(g.full)[V(g.full)$name==name_i])[[1]]
-gsub <- induced.subgraph(g.full, vids = nbhd)
-firms.todo <- unique(c(names(nbhd),forr.comp.names))
-firms.todo <- rev(firms.todo[ !(firms.todo %in% names(firm.nets$cem)) ])
-
+# ## Forrester research competitors
+# forr.comp.names <- c('satmetrix','empathica','medallia','verint',
+#                      'qualtrics','maritzcx','smg','nice-systems')
+# ##
+# nbhd <- neighborhood(g.full, order=1, nodes=V(g.full)[V(g.full)$name==name_i])[[1]]
+# gsub <- induced.subgraph(g.full, vids = nbhd)
+# firms.todo <- unique(c(names(nbhd),forr.comp.names))
+# firms.todo <- rev(firms.todo[ !(firms.todo %in% names(firm.nets$cem)) ])
+firms.todo <- c('satmetrix','nice-systems')
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
@@ -154,16 +154,10 @@ for (i in 1:length(firms.todo)) {
   names(nl) <- periods[2:length(periods)]
   ## ---------- add LAGS ----------------
   for (t in 2:length(nl)) {
+    nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
+    nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
     nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
     nl[[t]] %n% 'dist_lag' <- nl[[t-1]] %n% 'dist'
-    ##-------------------------------------------
-    # nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
-    nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
-    nl[[t]] %v% 'genidx_multilevel_lag' <- nl[[t-1]] %v% 'genidx_multilevel'
-    nl[[t]] %v% 'cent_pow_n0_5_lag' <- nl[[t-1]] %v% 'cent_pow_n0_5'
-    nl[[t]] %v% 'cent_pow_n0_1_lag' <- nl[[t-1]] %v% 'cent_pow_n0_1'
-    nl[[t]] %v% 'cent_eig_lag' <- nl[[t-1]] %v% 'cent_eig'
-    nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
     # g.tmp <- getIgraphFromNet(nl[[t]])
     # if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
     #   nl[[t]] %v% 'constraint' <- igraph::constraint(g.tmp)
@@ -179,11 +173,9 @@ for (i in 1:length(firms.todo)) {
   # firm.nl <- list()
   firm.nets[[net_group]][[name_i]] <- nets
 
-  # ## CAREFUL TO OVERWRITE
-  # file.name <- sprintf('tergm_firm_nets_1yr_6pd_v4_%s.rds',net_group)
-  # saveRDS(firm.nets, file=file.name)
   ## CAREFUL TO OVERWRITE
-  saveRDS(nets, file=sprintf('firm_nets_cem/%s.rds', name_i))
+  file.name <- sprintf('tergm_firm_nets_1yr_6pd_v4_%s.rds',net_group)
+  saveRDS(firm.nets, file=file.name)
 
 }
 
@@ -262,14 +254,14 @@ for (i in 1:length(firms.todo)) {
 # }
 
 ############################################################################
-#--------------------- BTERGM BY INDUSTRY ------------------------------
+#--------------------- BTERGM FOCAL FIRM ------------------------------
 ############################################################################
 
-R <- 1000
+R <- 300
 nPeriods <- 6  ## 5
 net_group <- 'cem'
 # firms <- which(sapply(firm.nets$cem,function(x)length(x)>=nPeriods))
-firms <- c('clarabridge')  # 'clarabridge'
+firms <- c('qualtrics')  # 'clarabridge'
 # firms <- unname(sapply(dir(path='firm_nets_cem'), function(x) stringr::str_split(x, "\\.rds$")[[1]][1]))
 
 if (!("fits" %in% ls())) fits <- list()
@@ -293,6 +285,16 @@ for (i in 1:length(firms)) {
   smt <- lapply(nets, function(net) as.matrix(net %n% 'similarity'))
   # ldv <- lapply(nets, function(net) as.matrix(net %n% 'DV_lag'))
   
+  m5 <-   nets ~ edges + gwesp(0, fixed = T) + 
+    nodematch("ipo_status", diff = F) + 
+    nodematch("state_code", diff = F) + 
+    nodecov("age") + absdiff("age") + 
+    edgecov(mmc) +
+    memory(type = "stability", lag = 1) + 
+    nodecov("genidx_multilevel") +
+    nodecov("cent_pow_n0_1") + absdiff("cent_pow_n0_1") + 
+    cycle(3) + cycle(4) + cycle(5) 
+  
   m4 <-   nets ~ edges + gwesp(0, fixed = T) + 
     nodematch("ipo_status", diff = F) + 
     nodematch("state_code", diff = F) + 
@@ -300,7 +302,7 @@ for (i in 1:length(firms)) {
     edgecov(mmc) +
     memory(type = "stability", lag = 1) + 
     nodecov("genidx_multilevel") +
-    nodecov("cent_pow_n1_5") + absdiff("cent_pow_n1_5") + 
+    nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") + 
     cycle(3) + cycle(4) + cycle(5) 
   
   m3 <-   nets ~ edges + gwesp(0, fixed = T) + 
@@ -317,7 +319,7 @@ for (i in 1:length(firms)) {
     nodecov("age") + absdiff("age") + 
     edgecov(mmc) +
     memory(type = "stability", lag = 1) + 
-    nodecov("cent_pow_n1_5") + absdiff("cent_pow_n1_5") 
+    nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") 
   
   m1 <-   nets ~ edges + gwesp(0, fixed = T) + 
     nodematch("ipo_status", diff = F) + 
@@ -334,20 +336,29 @@ for (i in 1:length(firms)) {
     edgecov(mmc) +
     memory(type = "stability", lag = 1) 
   
-  set.seed(1111)
+  set.seed(11111)
+  fits[[net_group]][[firm_i]]$m5 <- btergm(m5, R=R, parallel = "multicore", ncpus = detectCores())
+  saveRDS(fits, file=sprintf('fits_cem_%s/%s_pd%s_R%s.rds', R, firm_i, nPeriods, R))
+  
   fits[[net_group]][[firm_i]]$m4 <- btergm(m4, R=R, parallel = "multicore", ncpus = detectCores())
-  saveRDS(fits, file=sprintf('fits_cem_1000/%s_pd%s_R%s.rds', firm_i, nPeriods, R))
+  saveRDS(fits, file=sprintf('fits_cem_%s/%s_pd%s_R%s.rds', R, firm_i, nPeriods, R))
+  
   fits[[net_group]][[firm_i]]$m3 <- btergm(m3, R=R, parallel = "multicore", ncpus = detectCores())
-  saveRDS(fits, file=sprintf('fits_cem_1000/%s_pd%s_R%s.rds', firm_i, nPeriods, R))
+  saveRDS(fits, file=sprintf('fits_cem_%s/%s_pd%s_R%s.rds', R, firm_i, nPeriods, R))
+  
   fits[[net_group]][[firm_i]]$m2 <- btergm(m2, R=R, parallel = "multicore", ncpus = detectCores())
-  saveRDS(fits, file=sprintf('fits_cem_1000/%s_pd%s_R%s.rds', firm_i, nPeriods, R))
+  saveRDS(fits, file=sprintf('fits_cem_%s/%s_pd%s_R%s.rds', R, firm_i, nPeriods, R))
+  
   fits[[net_group]][[firm_i]]$m1 <- btergm(m1, R=R, parallel = "multicore", ncpus = detectCores())
-  saveRDS(fits, file=sprintf('fits_cem_1000/%s_pd%s_R%s.rds', firm_i, nPeriods, R))
+  saveRDS(fits, file=sprintf('fits_cem_%s/%s_pd%s_R%s.rds', R, firm_i, nPeriods, R))
+  
   fits[[net_group]][[firm_i]]$m0 <- btergm(m0, R=R, parallel = "multicore", ncpus = detectCores())
-  ## save serialized object
   saveRDS(fits, file=sprintf('fits_cem_%s/%s_pd%s.rds', R, firm_i, nPeriods))
   
+  
+  htmlreg(fits[[net_group]][[firm_i]][5:1], digits = 3, file=sprintf('fits_cem_%s/%s_tergm_results_pd%s.html', R, firm_i, nPeriods))
 }
+
 
 ## remove error rows
 rows <- unique(apply(fits[[net_group]][[firm_i]]$m1@boot$t, 2, function(x) grep('fit',x)))
@@ -357,15 +368,15 @@ screenreg(fits$cem$clarabridge[c(1,2,3,4,5)])
 
 
 
-gof <- gof(fits$cem$clarabridge$m4, #target=nets$`2017`[,],
-          nsim=100, ##parallel='multicore', ncpus=detectCores(),
-          statistics = c(dsp, esp, deg, #  kcycle, kstar, 
+gof <- gof(fits$cem$clarabridge$m4, target=nets$`2017`[,],
+          nsim=20, ##parallel='multicore', ncpus=detectCores(),
+          statistics = c(dsp, esp, deg, kcycle, kstar, 
                        geodesic, rocpr, 
-                       walktrap.modularity)) #edgebetweenness.modularity
-saveRDS(gof, file=sprintf('fits_cem_%s/gof_all_%s_pd%s.rds', R, firm_i, nPeriods))
+                       walktrap.modularity,
+                       edgebetweenness.modularity))
+saveRDS(gof, file=sprintf('fits_cem_%s/gof_%s_pd%s.rds', R, firm_i, nPeriods))
 
 dgn <- checkdegeneracy(fits$cem$clarabridge$m4)
-saveRDS(gof, file=sprintf('fits_cem_%s/degeneracy_%s_pd%s.rds', R, firm_i, nPeriods))
 
 
 # m4l2 <-   nets ~ edges + gwesp(0, fixed = T) + 
@@ -448,6 +459,179 @@ saveRDS(gof, file=sprintf('fits_cem_%s/degeneracy_%s_pd%s.rds', R, firm_i, nPeri
 # fits[[net_group]][[firm_i]]$m4t2 <- btergm(m4t2,   R=R, parallel = "multicore", ncpus = detectCores()); summary(fits[[net_group]][[firm_i]]$m4t2)
 # 
 # screenreg(fits[[net_group]][[firm_i]], digits = 3)
+
+
+###########################################################
+##            TIME COVARIATES
+###########################################################
+
+R <- 40
+nPeriods <- 7  ## 5
+net_group <- 'cem'
+
+firms <- c('qualtrics')  # 'clarabridge'
+
+tfit <- list()
+
+
+firm_i <- 'qualtrics'
+nets <- readRDS(paste0('firm_nets_cem/',firm_i,'.rds'))
+# firm_i <- stringr::str_split(files[i], ".rds")[[1]][1]
+
+if (nPeriods < length(nets)) {
+  nets <- nets[(length(nets)-nPeriods+1):length(nets)]
+}
+
+cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
+
+mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
+smt <- lapply(nets, function(net) as.matrix(net %n% 'similarity'))
+cpadn05 <- lapply(nets, function(net) {
+    x <- net %v% 'cent_pow_n0_5'
+    return(as.matrix(outer(x, x, FUN=Vectorize(function(a,b)abs(a-b)))))
+})
+kc4 <- lapply(nets, function(net) {
+    k <- 4
+    krow <- k - 1 #remove 1 bc no kcycles of k=1
+    x <- sna::kcycle.census(dat = net, maxlen = k, mode = 'graph', tabulate.by.vertex = T)
+    z <- x$cycle.count[ krow , 2:ncol(x$cycle.count) ]
+    return(sapply(1:length(z),function(.) z ))  ## first column is aggregated
+})
+kc5 <- lapply(nets, function(net) {
+    k <- 5
+    krow <- k - 1 #remove 1 bc no kcycles of k=1
+    x <- sna::kcycle.census(dat = net, maxlen = k, mode = 'graph', tabulate.by.vertex = T)
+    z <- x$cycle.count[ krow , 2:ncol(x$cycle.count) ]
+    return(sapply(1:length(z),function(.) z ))  ## first column is aggregated
+})
+gix <- lapply(nets, function(net) {
+  z <- net %v% 'genidx_multilevel'
+  return(sapply(1:length(z),function(.) z ))  ## first column is aggregated
+})
+memino <- lapply(seq_along, function(i){
+  return()
+})
+tmp <- nets[[length(nets)]]
+eid <- network::get.edgeIDs(tmp, v = 1:nrow(tmp[,]), na.omit = T)
+tmp <- network::delete.edges(tmp, eid = eid)
+memino <- c(nets[1:(length(nets)-1)])
+memino[[names(nets)[1]]] <- tmp
+# ldv <- lapply(nets, function(net) as.matrix(net %n% 'DV_lag'))
+
+mt0 <-   nets ~ edges + gwesp(0, fixed = T) + 
+  nodematch("ipo_status", diff = F) + 
+  nodematch("state_code", diff = F) + 
+  nodecov("age") + absdiff("age") + 
+  edgecov(mmc) +
+  memory(type = "innovation", lag = 1) +
+  # memory(type = "loss", lag = 1) +
+  memory(type = "autoregression", lag = 1) +
+  nodecov("genidx_multilevel") +
+  nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") #+ 
+  #cycle(3) + cycle(4) + cycle(5)  
+
+mt1 <-   nets ~ edges + gwesp(0, fixed = T) + 
+  nodematch("ipo_status", diff = F) + 
+  nodematch("state_code", diff = F) + 
+  nodecov("age") + absdiff("age") + 
+  edgecov(mmc) +
+  memory(type = "stability", lag = 1) + 
+  nodecov("genidx_multilevel") +
+  nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") + 
+  cycle(3) + cycle(4) + cycle(5)  +
+  timecov(transform=function(t)t) +
+  timecov(cpadn05, transform=function(t)t) + 
+  timecov(kc4, transform=function(t)t) + 
+  timecov(gix, transform=function(t)t) 
+
+## TEST STATIONARY PREDICTORS
+mt2 <-   nets ~ edges + gwesp(0, fixed = T) + 
+  nodematch("ipo_status", diff = F) + 
+  nodematch("state_code", diff = F) + 
+  nodecov("age") + absdiff("age") + 
+  edgecov(mmc) +
+  memory(type = "stability", lag = 1) + 
+  nodecov("genidx_multilevel") +
+  nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") + 
+  cycle(3) + cycle(4) + cycle(5)  +
+  timecov(cpadn05, transform=function(t)1) + 
+  # timecov(kc4, transform=function(t)1) + 
+  timecov(gix, transform=function(t)1) 
+
+set.seed(11111)
+ft0 <- btergm(mt0, R=R, parallel = "multicore", ncpus = detectCores())
+
+ft1 <- btergm(mt1, R=R, parallel = "multicore", ncpus = detectCores())
+
+ft2 <- btergm(mt2, R=R, parallel = "multicore", ncpus = detectCores())
+
+saveRDS(list(ft0,ft1,ft2), file=sprintf('fits_cem_%s/%s_pd%s_R%s_tcov.rds', R, firm_i, nPeriods, R))
+
+
+
+############################################################################
+#--------------------- BTERGM BY INDUSTRY ------------------------------
+############################################################################
+
+R <- 300
+nPeriods <- 6  ## 5
+net_group <- 'cem'
+# firms <- which(sapply(firm.nets$cem,function(x)length(x)>=nPeriods))
+# firms <- c('clarabridge')  # 'clarabridge'
+firms <- unname(sapply(dir(path='firm_nets_cem',pattern = "\\.rds$"), function(x) stringr::str_split(x, "\\.rds$")[[1]][1]))
+firms <- firms[which( !(firms %in% c('clarabridge','intentex')))][c(2,3,4,1,5:13)]
+
+# files <- dir(path='firm_nets_cem', pattern = "\\.rds$")
+
+for (i in 6:length(firms)) {
+  firm_i <- firms[i]
+  nets <- readRDS(paste0('firm_nets_cem/',firm_i,'.rds'))
+  # firm_i <- stringr::str_split(files[i], ".rds")[[1]][1]
+  
+  if (nPeriods < length(nets)) {
+    nets <- nets[(length(nets)-nPeriods+1):length(nets)]
+  }
+  
+  cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
+  
+  mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
+  smt <- lapply(nets, function(net) as.matrix(net %n% 'similarity'))
+  # ldv <- lapply(nets, function(net) as.matrix(net %n% 'DV_lag'))
+  
+  m4 <-   nets ~ edges + gwesp(0, fixed = T) + 
+    nodematch("ipo_status", diff = F) + 
+    nodematch("state_code", diff = F) + 
+    nodecov("age") + absdiff("age") + 
+    edgecov(mmc) +
+    memory(type = "stability", lag = 1) + 
+    nodecov("genidx_multilevel") +
+    nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") + 
+    cycle(3) + cycle(4) + cycle(5) 
+  
+  set.seed(11111)
+  f4 <- btergm(m4, R=R, parallel = "multicore", ncpus = detectCores())
+  saveRDS(f4, file=sprintf('fits_cem_%s/%s_m4_n0_5_pd%s_R%s.rds', R, firm_i, nPeriods, R))
+  
+  # if (class(f4@boot$t[1,1])=='numeric') 
+  #     screenreg(list(f4),digits = 3)
+}
+
+
+
+
+
+files <- dir(path='fits_cem_300',pattern = "m4_n0_5")
+for (i in 1:length(files)) {
+  firm_i <- stringr::str_split(files[i], '_')[[1]][1]
+  l <- list()
+  l[[firm_i]] <- readRDS(paste0('fits_cem_300/',files[i]))
+  cat(sprintf("\n%s\t%s\n",firm_i,nrow(l[[1]]@data$networks[[1]][,])) )
+  htmlreg(l, file=sprintf("%s_300_n05.html",firm_i), digits = 3)
+  l <- NULL
+  gc()
+}
+
+
 
 #------------------------------------------------------
 ############################################################################

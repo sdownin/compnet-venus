@@ -583,7 +583,7 @@ plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, i
 ##
 #
 ##
-plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cutoff=.9, is.focal.color=TRUE, 
                                     label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
                                     layout.algo=layout.fruchterman.reingold,margins=NA,
                                     seed=1111,  ...) 
@@ -605,12 +605,13 @@ plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, is.f
   # groups <- cut(logprobs, include.lowest = T, breaks = qts, labels=1:(length(qts)-1))
   # vertcol <- colors[ groups ]
   # plot(logprobs, col=vertcol,pch=15)
-  col2 <- rev(heat.colors(2))
-  vertcol <- ifelse(logprobs > quantile(logprobs,.95), col2[2], col2[1] )
+  # col2 <- rev(heat.colors(2))
+  col2 <- c(rgb(.7,.7,.1,.5), rgb(.8,.05,.05,.95))
+  vertcol <- ifelse(logprobs > quantile(logprobs,cutoff), col2[2], col2[1] )
 
   vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
   # vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
-  vertex.label <- ifelse( (logprobs > quantile(logprobs,.95)) 
+  vertex.label <- ifelse( (logprobs > quantile(logprobs,cutoff)) 
                            | (V(gs)$name==focal.firm), V(gs)$name, '' )
  
   vertcol[which(V(gs)$name==focal.firm)] <- 'steelblue'
@@ -639,6 +640,65 @@ plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, is.f
 }
 
 
+
+##
+#
+##
+plotCompNetColRivals <- function(gs, probs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
+                                  label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                  layout.algo=layout.fruchterman.reingold,margins=NA,
+                                  seed=1111,  ...) 
+{
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ##
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  ##
+  ## HANDLE SAME COLORS FOR COMPETITORS
+  ##
+  ##
+  logprobs <- log(probs)
+  # qts <- quantile(logprobs, seq(0,1,.1))
+  # colors <- rev(heat.colors(length(qts)))
+  # groups <- cut(logprobs, include.lowest = T, breaks = qts, labels=1:(length(qts)-1))
+  # vertcol <- colors[ groups ]
+  # plot(logprobs, col=vertcol,pch=15)
+  # col2 <- rev(heat.colors(2))
+  col2 <- c(rgb(.7,.7,.1,.5), rgb(.8,.05,.05,.95))
+  nbrs.idx <- igraph::neighborhood(gs,nodes = V(gs)[V(gs)$name==focal.firm])[[1]]
+  vertcol <- sapply(1:vcount(gs),function(i)ifelse(i %in% nbrs.idx, col2[2], col2[1] ))
+  
+  vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+  # vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
+  vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
+  
+  vertcol[which(V(gs)$name==focal.firm)] <- 'steelblue'
+  
+  if(is.na(vertex.scale)) 
+    vertex.scale <- 100 * (1/vcount(gs)^.5)
+  if(is.na(label.scale)) 
+    label.scale <- 13 * (1/vcount(gs)^.5)
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=vertex.scale
+              , vertex.color=vertcol
+              , vertex.label=vertex.label
+              , vertex.label.cex=label.scale
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              # , vertex.label.degree = 120
+              # , vertex.label.dist = .3
+              , vertex.shape = vertshape
+              , ...
+  )
+  par(mar=c(4.5,4.5,3.5,1))
+}
 
 # #-----------------------------------------------------------------------
 #   # Plot Competition Network coloring the Multi-Product firms in red
@@ -2694,14 +2754,19 @@ setCovariates <- function(net, start, end,
       net %v% 'cent_deg' <- igraph::degree(g.net)
       net %v% 'cent_eig' <- igraph::eigen_centrality(g.net)$vector
       ## larger exp (Bonacich "beta") increase sensitivity to effects from distant node
+      pcn0.0 <- tryCatch(tmpn0.0<- igraph::power_centrality(g.net,exp= 0), error = function(e)e)
+      pcn0.1 <- tryCatch(tmpn0.1<- igraph::power_centrality(g.net,exp=-0.1), error = function(e)e)
+      pcn0.2 <- tryCatch(tmpn0.2<- igraph::power_centrality(g.net,exp=-0.2), error = function(e)e)
+      pcn0.3 <- tryCatch(tmpn0.3<- igraph::power_centrality(g.net,exp=-0.3), error = function(e)e)
+      pcn0.4 <- tryCatch(tmpn0.4<- igraph::power_centrality(g.net,exp=-0.4), error = function(e)e)
       pcn0.5 <- tryCatch(tmpn0.5<- igraph::power_centrality(g.net,exp=-0.5), error = function(e)e)
-      pcn1.5 <- tryCatch(tmpn1.5 <- igraph::power_centrality(g.net,exp=-1.5), error = function(e)e)
-      pcn2   <- tryCatch(tmpn2<- igraph::power_centrality(g.net,exp=-2), error = function(e)e)
-      pcn3   <- tryCatch(tmpn3<- igraph::power_centrality(g.net,exp=-3), error = function(e)e)
+
+      if (!inherits(pcn0.0, "error")) net %v% 'cent_pow_n0_0' <- pcn0.0
+      if (!inherits(pcn0.1, "error")) net %v% 'cent_pow_n0_1' <- pcn0.1
+      if (!inherits(pcn0.2, "error")) net %v% 'cent_pow_n0_2' <- pcn0.2
+      if (!inherits(pcn0.3, "error")) net %v% 'cent_pow_n0_3' <- pcn0.3
+      if (!inherits(pcn0.4, "error")) net %v% 'cent_pow_n0_4' <- pcn0.4
       if (!inherits(pcn0.5, "error")) net %v% 'cent_pow_n0_5' <- pcn0.5
-      if (!inherits(pcn1.5, "error")) net %v% 'cent_pow_n1_5' <- pcn1.5
-      if (!inherits(pcn2,  "error"))  net %v% 'cent_pow_n2_0' <- pcn2
-      if (!inherits(pcn3,  "error"))  net %v% 'cent_pow_n3_0' <- pcn3
     }
     ##------------------------------------
     ## # 8. Generalist Index: specialist (0, K) generalist, for K clusters
