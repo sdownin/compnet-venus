@@ -123,7 +123,7 @@ firms.todo <- firms.todo[which(!(firms.todo %in% reject))]
 # firms.todo <- 'qualtrics' 
  
 ## run main network period creation loop
-for (i in 1:length(firms.todo)) {
+for (i in 19:length(firms.todo)) {
   ## -- settings --
   d <- 3
   yrpd <- 1
@@ -189,7 +189,7 @@ for (i in 1:length(firms.todo)) {
   # saveRDS(firm.nets, file=file.name)
   ## CAREFUL TO OVERWRITE
   saveRDS(nets, file=sprintf('firm_nets_cem/%s_d%s.rds', name_i, d))
-
+  gc()
 }
 
 ##--------------------------------------------------------------

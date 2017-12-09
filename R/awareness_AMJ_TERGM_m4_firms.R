@@ -51,15 +51,15 @@ m0 <-   nets ~ edges + gwesp(0, fixed = T) +
 ################################ end models#######################
 
 
-files <- dir(path = data_dir, pattern = ".+_d3\.rds$")
+files <- dir(path = data_dir, pattern = ".+_d3\\.rds$")
 files.firms <- unname(sapply(files, function(firm) strsplit(firm, split = "_")[[1]][1]))
-cat(sprintf("\nalready finished: %s", paste(finished, collapse = "|")))
 
-finished <- dir(path = result_dir, pattern = ".+_tergm_results_pd\d+_d3_R\d+_m4\.")
+finished <- dir(path = result_dir, pattern = ".+_tergm_results_pd\\d+_d3_R\\d+_m4\\.")
 finished.firms <- unname(sapply(finished, function(firm) strsplit(firm, split = "_")[[1]][1]))
+cat(sprintf("\nalready finished (%s): %s", length(finished.firms), paste(finished.firms, collapse = "|")))
 
-todo.firms <- file.firms[which(!(files.firms %in% finished.firms))]
-cat(sprintf("\nremaining: %s", paste(todo.firms, collapse = "|")))
+todo.firms <- files.firms[which(!(files.firms %in% finished.firms))]
+cat(sprintf("\nremaining (%s): %s", length(todo.firms), paste(todo.firms, collapse = "|")))
 
 files <- unname(sapply(todo.firms, function(i)grep(i, x, ignore.case = T)))
 
