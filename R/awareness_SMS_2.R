@@ -141,8 +141,8 @@ for (i in 1:length(firms.todo)) {
   g.k.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], 
                                     order = d, mode = 'all')[[1]]
   net.k.sub <- getNetFromIgraph(g.k.sub)
+  net.k.sub %n% 'ego' <- name_i
   net <- net.k.sub
-  net %n% 'ego' <- name_i
   #----------------Network List-------------------
   nl <- list()
   for (t in 2:length(periods)) {
@@ -180,9 +180,9 @@ for (i in 1:length(firms.todo)) {
   nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
   #-------------------------------------------------
 
-  ## SAVE variable in image
-  # firm.nl <- list()
-  firm.nets[[net_group]][[name_i]] <- nets
+  # ## SAVE variable in image
+  # # firm.nl <- list()
+  # firm.nets[[net_group]][[name_i]] <- nets
 
   # ## CAREFUL TO OVERWRITE
   # file.name <- sprintf('tergm_firm_nets_1yr_6pd_v4_%s.rds',net_group)
@@ -192,8 +192,12 @@ for (i in 1:length(firms.todo)) {
 
 }
 
-##############################################################
-################## SAVE YEAR NETS SEPARATELY #################
+##--------------------------------------------------------------
+##--------------------------------------------------------------
+##--------- CREATE FIRM NETWORK PERIOD LISTS  ------------------
+##------- SAVING FIRM_YEARS SEPARATELY FOR LARGE NETS (1 FIRM)--
+##--------------------------------------------------------------
+##--------------------------------------------------------------
 firms.todo <- 'qualtrics'
 
 ## -- settings --
@@ -203,6 +207,7 @@ startYr <- 2010
 endYr <- 2017
 
 ## --------------
+i <- 1
 name_i <- firms.todo[i]
 cat(sprintf('\n---------%s----------\n',name_i))
 periods <- seq(startYr,endYr,yrpd)
@@ -214,8 +219,8 @@ g.base <- g.full
 g.k.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], 
                                   order = d, mode = 'all')[[1]]
 net.k.sub <- getNetFromIgraph(g.k.sub)
+net.k.sub %n% 'ego' <- name_i
 net <- net.k.sub
-net %n% 'ego' <- name_i
 #----------------Network List-------------------
 for (t in 2:length(periods)) {
   nl <- list()
