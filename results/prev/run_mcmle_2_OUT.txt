@@ -174,3 +174,73 @@ Num. obs.                 1350900
 *** p < 0.001, ** p < 0.01, * p < 0.05
 [1] "finishing screenreg output"
 saving image
+
+
+##------ Fri Jan 13 15:51:50 2017 ------##
+
+using 8 cpus of 8 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+Starting maximum likelihood estimation via MCMLE:
+Iteration 1 of at most 20: 
+The log-likelihood improved by 0.2087 
+Step length converged once. Increasing MCMC sample size.
+Iteration 2 of at most 20: 
+The log-likelihood improved by 0.2038 
+Step length converged twice. Stopping.
+Evaluating log-likelihood at the estimate. Using 20 bridges: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 .
+
+This model was fit using MCMC.  To examine model diagnostics and check for degeneracy, use the mcmc.diagnostics() function.
+finished model fits
+[1] "finishing screenreg"
+
+======================================
+                        f2            
+--------------------------------------
+edges                        -9.49 ***
+                             (0.15)   
+gwesp.fixed.0                -0.02    
+                             (0.05)   
+nodematch.state_code         -0.23 ** 
+                             (0.09)   
+nodecov.age                   0.01 ***
+                             (0.00)   
+edgecov.mmc                  -0.21    
+                             (0.52)   
+edgecov.ldv                  10.96 ***
+                             (0.22)   
+nodematch.npm                 3.39 ***
+                             (0.11)   
+edgecov.sim                   1.63 ***
+                             (0.06)   
+nodematch.ipo_status.0       -0.68 ***
+                             (0.08)   
+nodematch.ipo_status.1       -0.22    
+                             (0.26)   
+nodecov.constraint           -0.48 ***
+                             (0.09)   
+absdiff.constraint            3.36 ***
+                             (0.16)   
+--------------------------------------
+Num. obs.               1350900       
+======================================
+*** p < 0.001, ** p < 0.01, * p < 0.05
+[1] "finishing screenreg output"
+saving image

@@ -73,8 +73,8 @@ m0 <-   nets ~ edges + gwesp(0, fixed = T) +
 ##
 # DEFINE MODEL and MODEL NAME TO COMPUTE
 ## 
-mod <- m0
-m_x <- 'm0'
+mod <- m2
+m_x <- 'm2'
 ##
 # SET RESAMPLES
 ##

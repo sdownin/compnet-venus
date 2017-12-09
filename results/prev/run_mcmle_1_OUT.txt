@@ -1,0 +1,149 @@
+
+
+##------ Thu Jan  5 16:56:44 2017 ------##
+
+using 4 cpus of 4 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+Starting maximum likelihood estimation via MCMLE:
+Iteration 1 of at most 20: 
+The log-likelihood improved by 7.882 
+Iteration 2 of at most 20: 
+The log-likelihood improved by 2.453 
+Iteration 3 of at most 20: 
+The log-likelihood improved by 2.761 
+Iteration 4 of at most 20: 
+The log-likelihood improved by 2.863 
+Iteration 5 of at most 20: 
+The log-likelihood improved by 2.838 
+Iteration 6 of at most 20: 
+The log-likelihood improved by 2.62 
+Iteration 7 of at most 20: 
+The log-likelihood improved by 2.797 
+Iteration 8 of at most 20: 
+The log-likelihood improved by 2.939 
+Iteration 9 of at most 20: 
+The log-likelihood improved by 2.953 
+Iteration 10 of at most 20: 
+The log-likelihood improved by 2.563 
+Iteration 11 of at most 20: 
+The log-likelihood improved by 2.87 
+Iteration 12 of at most 20: 
+The log-likelihood improved by 2.667 
+Iteration 13 of at most 20: 
+The log-likelihood improved by 3.067 
+Iteration 14 of at most 20: 
+The log-likelihood improved by 2.911 
+Iteration 15 of at most 20: 
+
+
+##------ Sat Dec 24 23:20:51 2016 ------##
+
+using 4 cpus of 4 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+Starting maximum likelihood estimation via MCMLE:
+Iteration 1 of at most 20: 
+The log-likelihood improved by 3.565 
+Step length converged once. Increasing MCMC sample size.
+Iteration 2 of at most 20: 
+The log-likelihood improved by 1.66 
+Step length converged twice. Stopping.
+Evaluating log-likelihood at the estimate. Using 20 bridges: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
+
+##------ Mon Dec 19 08:50:48 2016 ------##
+
+using 4 cpus of 4 cores detected.
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+               t=1 t=2 t=3 t=4 t=5 t=6
+nets.sub (row) 475 475 475 475 475 475
+nets.sub (col) 475 475 475 475 475 475
+mmc (row)      475 475 475 475 475 475
+mmc (col)      475 475 475 475 475 475
+ldv (row)      475 475 475 475 475 475
+ldv (col)      475 475 475 475 475 475
+sim (row)      475 475 475 475 475 475
+sim (col)      475 475 475 475 475 475
+
+Starting maximum likelihood estimation via MCMLE:
+Iteration 1 of at most 20: 
+The log-likelihood improved by 3.304 
+Step length converged once. Increasing MCMC sample size.
+Iteration 2 of at most 20: 
+The log-likelihood improved by 1.65 
+Step length converged twice. Stopping.
+Evaluating log-likelihood at the estimate. Using 20 bridges: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 .
+
+This model was fit using MCMC.  To examine model diagnostics and check for degeneracy, use the mcmc.diagnostics() function.
+finished model fits
+[1] "finishing screenreg"
+
+======================================
+                        f1            
+--------------------------------------
+edges                       -11.63 ***
+                             (0.18)   
+gwesp.fixed.0                -0.18 ***
+                             (0.04)   
+nodematch.state_code         -0.23 ** 
+                             (0.09)   
+nodecov.age                   0.02 ***
+                             (0.00)   
+edgecov.mmc                  -0.56    
+                             (0.50)   
+edgecov.ldv                  10.86 ***
+                             (0.23)   
+nodematch.npm                 3.57 ***
+                             (0.11)   
+edgecov.sim                   1.10 ***
+                             (0.05)   
+nodematch.ipo_status.0       -1.10 ***
+                             (0.08)   
+nodematch.ipo_status.1       -0.16    
+                             (0.24)   
+nodecov.net_risk              0.24 ***
+                             (0.01)   
+--------------------------------------
+Num. obs.               1350900       
+======================================
+*** p < 0.001, ** p < 0.01, * p < 0.05
+[1] "finishing screenreg output"
+saving image

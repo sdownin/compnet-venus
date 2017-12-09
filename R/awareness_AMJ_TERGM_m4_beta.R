@@ -26,8 +26,47 @@ cat(sprintf("Using %s cores", detectCores()))
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
 
 ####################### DEFINE MODELS ###################################
+m41  <-   nets ~ edges + gwesp(0, fixed = T) + 
+  nodematch("ipo_status", diff = F) + 
+  nodematch("state_code", diff = F) + 
+  nodecov("age") + absdiff("age") + 
+  edgecov(mmc) +
+  memory(type = "stability", lag = 1) + 
+  nodecov("genidx_multilevel") +
+  nodecov("cent_pow_n0_1") + absdiff("cent_pow_n0_1") + 
+  cycle(3) + cycle(4) + cycle(5) 
 
-m4 <-   nets ~ edges + gwesp(0, fixed = T) + 
+m42  <-   nets ~ edges + gwesp(0, fixed = T) + 
+  nodematch("ipo_status", diff = F) + 
+  nodematch("state_code", diff = F) + 
+  nodecov("age") + absdiff("age") + 
+  edgecov(mmc) +
+  memory(type = "stability", lag = 1) + 
+  nodecov("genidx_multilevel") +
+  nodecov("cent_pow_n0_2") + absdiff("cent_pow_n0_2") + 
+  cycle(3) + cycle(4) + cycle(5) 
+
+m43  <-   nets ~ edges + gwesp(0, fixed = T) + 
+  nodematch("ipo_status", diff = F) + 
+  nodematch("state_code", diff = F) + 
+  nodecov("age") + absdiff("age") + 
+  edgecov(mmc) +
+  memory(type = "stability", lag = 1) + 
+  nodecov("genidx_multilevel") +
+  nodecov("cent_pow_n0_3") + absdiff("cent_pow_n0_3") + 
+  cycle(3) + cycle(4) + cycle(5) 
+
+m44  <-   nets ~ edges + gwesp(0, fixed = T) + 
+  nodematch("ipo_status", diff = F) + 
+  nodematch("state_code", diff = F) + 
+  nodecov("age") + absdiff("age") + 
+  edgecov(mmc) +
+  memory(type = "stability", lag = 1) + 
+  nodecov("genidx_multilevel") +
+  nodecov("cent_pow_n0_4") + absdiff("cent_pow_n0_4") + 
+  cycle(3) + cycle(4) + cycle(5) 
+
+m45 <-   nets ~ edges + gwesp(0, fixed = T) + 
   nodematch("ipo_status", diff = F) + 
   nodematch("state_code", diff = F) + 
   nodecov("age") + absdiff("age") + 
@@ -73,8 +112,8 @@ m0 <-   nets ~ edges + gwesp(0, fixed = T) +
 ##
 # DEFINE MODEL and MODEL NAME TO COMPUTE
 ## 
-mod <- m0
-m_x <- 'm0'
+mod <- m4
+m_x <- 'm4'
 ##
 # SET RESAMPLES
 ##
