@@ -99,29 +99,33 @@ g.full <- read.graph('g_full.graphml', format='graphml')
 # firm.nets.orig <- firm.nets
 
 
-## creat list if not exists
+## creat list if not exists 
 if( !('firm.nets' %in% ls()) ) firm.nets <- list()
 
-## set market group of firms
+## set market group of firms 
 net_group <- 'cem'
 if( !(net_group %in% names(firm.nets)) ) firm.nets[[net_group]] <- list()
 
 ## set firms to create networks
-name_i <- 'clarabridge'
+name_i <- 'qualtrics'
 ## Forrester research competitors
-forr.comp.names <- c('satmetrix','empathica','medallia','verint',
-                     'qualtrics','maritzcx','smg','nice-systems')
-##
-nbhd <- neighborhood(g.full, order=1, nodes=V(g.full)[V(g.full)$name==name_i])[[1]]
-gsub <- induced.subgraph(g.full, vids = nbhd)
+forr.comp.names <- c('satmetrix','empathica','medallia','verint','clarabridge',
+                     'qualtrics','nice-systems','maritzcx','smg', 'nice-systems', 
+                     'confirmit') 
+#
+nbhd <- igraph::neighborhood(g.full, order=1, nodes=V(g.full)[V(g.full)$name==name_i])[[1]]
+gsub <- igraph::induced.subgraph(g.full, vids = nbhd)
 firms.todo <- unique(c(names(nbhd),forr.comp.names))
 firms.todo <- rev(firms.todo[ !(firms.todo %in% names(firm.nets$cem)) ])
-
-
+## rejected for insufficient data:
+reject <- c('maritzcx','smg','sentisis','brand-a-trend-gmbh')
+firms.todo <- firms.todo[which(!(firms.todo %in% reject))]
+# firms.todo <- 'qualtrics' 
+ 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
   ## -- settings --
-  k <- 3
+  d <- 3
   yrpd <- 1
   startYr <- 2007
   endYr <- 2017
@@ -134,7 +138,8 @@ for (i in 1:length(firms.todo)) {
   #
   #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
   g.base <- g.full
-  g.k.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], order = k, mode = 'all')[[1]]
+  g.k.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], 
+                                    order = d, mode = 'all')[[1]]
   net.k.sub <- getNetFromIgraph(g.k.sub)
   net <- net.k.sub
   net %n% 'ego' <- name_i
@@ -158,12 +163,12 @@ for (i in 1:length(firms.todo)) {
     nl[[t]] %n% 'dist_lag' <- nl[[t-1]] %n% 'dist'
     ##-------------------------------------------
     # nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
-    nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
-    nl[[t]] %v% 'genidx_multilevel_lag' <- nl[[t-1]] %v% 'genidx_multilevel'
-    nl[[t]] %v% 'cent_pow_n0_5_lag' <- nl[[t-1]] %v% 'cent_pow_n0_5'
-    nl[[t]] %v% 'cent_pow_n0_1_lag' <- nl[[t-1]] %v% 'cent_pow_n0_1'
-    nl[[t]] %v% 'cent_eig_lag' <- nl[[t-1]] %v% 'cent_eig'
-    nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
+    # nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
+    # nl[[t]] %v% 'genidx_multilevel_lag' <- nl[[t-1]] %v% 'genidx_multilevel'
+    # nl[[t]] %v% 'cent_pow_n0_5_lag' <- nl[[t-1]] %v% 'cent_pow_n0_5'
+    # nl[[t]] %v% 'cent_pow_n0_1_lag' <- nl[[t-1]] %v% 'cent_pow_n0_1'
+    # nl[[t]] %v% 'cent_eig_lag' <- nl[[t-1]] %v% 'cent_eig'
+    # nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
     # g.tmp <- getIgraphFromNet(nl[[t]])
     # if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
     #   nl[[t]] %v% 'constraint' <- igraph::constraint(g.tmp)
@@ -183,9 +188,54 @@ for (i in 1:length(firms.todo)) {
   # file.name <- sprintf('tergm_firm_nets_1yr_6pd_v4_%s.rds',net_group)
   # saveRDS(firm.nets, file=file.name)
   ## CAREFUL TO OVERWRITE
-  saveRDS(nets, file=sprintf('firm_nets_cem/%s.rds', name_i))
+  saveRDS(nets, file=sprintf('firm_nets_cem/%s_d%s.rds', name_i, d))
 
 }
+
+##############################################################
+################## SAVE YEAR NETS SEPARATELY #################
+firms.todo <- 'qualtrics'
+
+## -- settings --
+d <- 4   ## large graph > 1000 nodes, save years separately for one firm
+yrpd <- 1
+startYr <- 2010
+endYr <- 2017
+
+## --------------
+name_i <- firms.todo[i]
+cat(sprintf('\n---------%s----------\n',name_i))
+periods <- seq(startYr,endYr,yrpd)
+company.name <- 'company_name_unique'
+verbose <- TRUE
+#
+#g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
+g.base <- g.full
+g.k.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], 
+                                  order = d, mode = 'all')[[1]]
+net.k.sub <- getNetFromIgraph(g.k.sub)
+net <- net.k.sub
+net %n% 'ego' <- name_i
+#----------------Network List-------------------
+for (t in 2:length(periods)) {
+  nl <- list()
+  pd <- as.character(periods[t])
+  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
+  tmp.net <- makePdNetwork(net.k.sub,
+                           start=periods[t-1], end=periods[t])
+  cat(sprintf("\n nodes : %s \n",nrow(tmp.net[,])))
+  nl[[pd]] <- setCovariates(tmp.net, periods[t-1], periods[t],
+                           netRiskCommunityAlgo='multilevel.community',
+                           downweight.env.risk=FALSE,
+                           acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
+
+  ## CAREFUL TO OVERWRITE
+  saveRDS(nl, file=sprintf('firm_nets_cem/%s_d%s_pd%s.rds', name_i, d, periods[t]))
+  rm(nl)
+  gc()
+}
+################################################################
+################################################################
 
 # load('netrisk_dynamic_firm_nets.RData')
 
