@@ -6,10 +6,10 @@ library(texreg)
 data_dir <- '/home/sdowning/data/firm_nets_cem'
 
 firm_i <- 'qualtrics'
-data_file <- file.path(data_dir,paste0(firm_i,'.rds'))
-nets <- readRDS(data_file)
+d <- 3
 
-net_group <- 'cem'
+data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
+nets <- readRDS(data_file)
 
 nPeriods <- 7  ## 5
 net_group <- 'cem'

@@ -5,26 +5,6 @@ library(texreg)
 
 data_dir <- '/home/sdowning/data/firm_nets_cem'
 
-firm_i <- 'qualtrics'
-d <- 3
-
-data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
-nets <- readRDS(data_file)
-
-nPeriods <- 7  ## 5
-net_group <- 'cem'
-
-if (!("fits" %in% ls())) fits <- list()
-if (!(net_group %in% names(fits))) fits[[net_group]] <- list()
-if (!(firm_i %in% names(fits[[net_group]])) ) fits[[net_group]][[firm_i]] <- list()
-if (nPeriods < length(nets))   nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
-
-cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
-cat(sprintf("Using %s cores", detectCores()))
-
-## make MMC nets list
-mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
-
 ####################### DEFINE MODELS ###################################
 
 m4 <-   nets ~ edges + gwesp(0, fixed = T) + 
@@ -70,27 +50,56 @@ m0 <-   nets ~ edges + gwesp(0, fixed = T) +
 ################################ end models#######################
 
 
+
+files <- dir(path = data_dir, pattern = ".+_d3.rds$")
+
+for (i in 1:length(files)) {
+
+firm_i <- strsplit(files[i] , split = "_")[[1]][1]
+d <- 3
+
+data_file <- file.path(data_dir,files[i])
+nets <- readRDS(data_file)
+
+nPeriods <- 7  ## 5
+net_group <- 'cem'
+
+if (!("fits" %in% ls())) fits <- list()
+if (!(net_group %in% names(fits))) fits[[net_group]] <- list()
+if (!(firm_i %in% names(fits[[net_group]])) ) fits[[net_group]][[firm_i]] <- list()
+if (nPeriods < length(nets))   nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
+
+cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
+cat(sprintf("Using %s cores", detectCores()))
+
+## make MMC nets list
+mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
+
 ##
 # DEFINE MODEL and MODEL NAME TO COMPUTE
 ## 
-mod <- m3
-m_x <- 'm3'
+mod <- m4
+m_x <- 'm4'
 ##
 # SET RESAMPLES
 ##
-R <- 2000
+R <- 1000
 
 
 ## RUN TERGM
-fits[[net_group]][[firm_i]][[m_x]] <- btergm(mod, R=R, parallel = "multicore", ncpus = detectCores())
+fit <- btergm(mod, R=R, parallel = "multicore", ncpus = detectCores())
 
 ## SAVE SERIALIZED
-fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
-saveRDS(fits, file=fits.file)
+fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s.rds', firm_i, nPeriods, d, R, m_x)
+saveRDS(fit, file=fits.file)
 
 ## SAVE FORMATTED REGRESSION TABLE
-html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_R%s_%s.html',  firm_i, nPeriods, R, m_x)
-htmlreg(fits[[net_group]][[firm_i]], digits = 3, file=html.file)
+html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s.html',  firm_i, nPeriods, d, R, m_x)
+htmlreg(fit, digits = 3, file=html.file)
+
+}
+
+
 
 
 cat('finished successfully.')
