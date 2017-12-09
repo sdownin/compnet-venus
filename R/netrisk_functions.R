@@ -2615,11 +2615,14 @@ generalistIndex <- function(g, memberships)
   clusters <- unique(memberships)
   K <- length(clusters)
   adj <- igraph::get.adjacency(g, sparse = F)
-  ## apply over firms in g the generalist index algorithm
-  gen.idx <- apply(adj, MARGIN = 1, FUN = function(x){
+  ## apply GI algorithm to adjacency matrix of graph g
+  gen.idx <- sapply(1:nrow(adj), function(i){
+    x <- adj[i,]
     val <- 0 ## reset value for next node
     for (k in clusters) {
+      ## get index of vertices in k'th cluster
       v.in.k <- which(memberships == k)
+      ## exclude vertex i from computation of it's own generalist index
       v.in.k <- v.in.k[v.in.k != i]
       ## filter to members in cluster k (cols) for this row x
       sub.k.x <- x[v.in.k]
@@ -2635,6 +2638,42 @@ generalistIndex <- function(g, memberships)
   })
   return(gen.idx)
 }
+
+# ##
+# # Computes the Generalist (vs Specialist) Index
+# # for an igraph with given cluster memberships
+# # values bounded between 0 and K (for K clusters in the memberships)
+# #
+# # @param [igraph] g   The igraph object
+# # @param [int[]] memberships  The vector of integers representing cluster memberships
+# # @return [float[]] The generalist index vector [float[]]
+# ##
+# generalistIndex.prev <- function(g, memberships) 
+# {
+#   if (class(g) != 'igraph') stop("g must be an igraph object")
+#   clusters <- unique(memberships)
+#   K <- length(clusters)
+#   adj <- igraph::get.adjacency(g, sparse = F)
+#   ## apply over firms in g the generalist index algorithm
+#   gen.idx <- apply(adj, MARGIN = 1, FUN = function(x){
+#     val <- 0 ## reset value for next node
+#     for (k in clusters) {
+#       v.in.k <- which(memberships == k)
+#       v.in.k <- v.in.k[v.in.k != i]
+#       ## filter to members in cluster k (cols) for this row x
+#       sub.k.x <- x[v.in.k]
+#       ## sum edges from focal node i to members of cluster k
+#       cnt.e.k <- sum(sub.k.x)
+#       ## total possible edges node i to cluster k
+#       max.e.k <- length(sub.k.x)
+#       ## increment value by cluster ratio
+#       ## define ratio as 0 if empty denominator (max.e.k=0)
+#       val <- val + ifelse(max.e.k > 0, (cnt.e.k / max.e.k), 0)
+#     }
+#     return(val)
+#   })
+#   return(gen.idx)
+# }
 
 # coms <- c('multilevel.community','infomap.community',
 #           'walktrap.community','fastgreedy.community',
