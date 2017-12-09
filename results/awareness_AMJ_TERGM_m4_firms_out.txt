@@ -1,0 +1,84 @@
+
+
+##------ Sun Dec 10 12:35:42 2017 ------##
+
+
+------------ estimating TERGM for: abroad101 --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   288 288 288 288 288 288
+nets (col)   288 288 288 288 288 288
+mmc (row)    288 288 288 288 288 288
+mmc (col)    288 288 288 288 288 288
+memory (row) 288 288 288 288 288 288
+memory (col) 288 288 288 288 288 288
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   288 288 288 288 288 288
+nets (col)   288 288 288 288 288 288
+mmc (row)    288 288 288 288 288 288
+mmc (col)    288 288 288 288 288 288
+memory (row) 288 288 288 288 288 288
+memory (col) 288 288 288 288 288 288
+
+------------ estimating TERGM for: checkmarket --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   300 300 300 300 300 300
+nets (col)   300 300 300 300 300 300
+mmc (row)    300 300 300 300 300 300
+mmc (col)    300 300 300 300 300 300
+memory (row) 300 300 300 300 300 300
+memory (col) 300 300 300 300 300 300
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   300 300 300 300 300 300
+nets (col)   300 300 300 300 300 300
+mmc (row)    300 300 300 300 300 300
+mmc (col)    300 300 300 300 300 300
+memory (row) 300 300 300 300 300 300
+memory (col) 300 300 300 300 300 300
+
+------------ estimating TERGM for: clarabridge --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   475 475 475 475 475 475
+nets (col)   475 475 475 475 475 475
+mmc (row)    475 475 475 475 475 475
+mmc (col)    475 475 475 475 475 475
+memory (row) 475 475 475 475 475 475
+memory (col) 475 475 475 475 475 475
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   475 475 475 475 475 475
+nets (col)   475 475 475 475 475 475
+mmc (row)    475 475 475 475 475 475
+mmc (col)    475 475 475 475 475 475
+memory (row) 475 475 475 475 475 475
+memory (col) 475 475 475 475 475 475
+
+------------ estimating TERGM for: cloudcherry --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6
+nets (row)   201 201 201 201 201
+nets (col)   201 201 201 201 201
+mmc (row)    201 201 201 201 201
+mmc (col)    201 201 201 201 201
+memory (row) 201 201 201 201 201
+memory (col) 201 201 201 201 201
+             t=2 t=3 t=4 t=5 t=6
+nets (row)   201 201 201 201 201
+nets (col)   201 201 201 201 201
+mmc (row)    201 201 201 201 201
+mmc (col)    201 201 201 201 201
+memory (row) 201 201 201 201 201
+memory (col) 201 201 201 201 201
+
+------------ estimating TERGM for: confirmit --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   568 568 568 568 568 568
+nets (col)   568 568 568 568 568 568
+mmc (row)    568 568 568 568 568 568
+mmc (col)    568 568 568 568 568 568
+memory (row) 568 568 568 568 568 568
+memory (col) 568 568 568 568 568 568
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   568 568 568 568 568 568
+nets (col)   568 568 568 568 568 568
+mmc (row)    568 568 568 568 568 568
+mmc (col)    568 568 568 568 568 568
+memory (row) 568 568 568 568 568 568
+memory (col) 568 568 568 568 568 568
