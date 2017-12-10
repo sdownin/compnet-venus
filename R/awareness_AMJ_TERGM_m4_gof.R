@@ -7,7 +7,7 @@ library(texreg)
 # base_dir <- 'C:/Users/T430/Google Drive/PhD/Dissertation/competition networks'
 # repo <- 'compnet2'
 # ## remote unix/linux
-base_dir <- '/home/sdowning/'
+base_dir <- '/home/sdowning'
 repo <- 'compnet'
 
 data_dir <- file.path(base_dir, repo, 'firm_nets_cem')
