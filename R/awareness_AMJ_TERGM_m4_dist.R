@@ -39,8 +39,10 @@ readCombinePdNets <- function(firm_i, d, data_dir)
     pd <- pds[t]
     data_file <- file.path(data_dir,sprintf('%s_d%s_pd%s.rds', firm_i, d, pd))
     nets[[pd]] <- readRDS(data_file)
-    cat(sprintf("loaded %s pd net; object size %s", pd, object.size(nets)))
+    cat(sprintf("loaded %s pd net; object size %s\n", pd, object.size(nets)))
+    if (t >= 2) break;
   }
+  return(nets)
 }
 
 ##
@@ -92,6 +94,12 @@ if (!inherits(fit, "error")) {
 # DISTANCE
 ##
 d <- 4
+
+##
+# MODEL
+##
+m_x <- 'm4'
+mod <-  m4
 
 cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ## LOAD DATA
