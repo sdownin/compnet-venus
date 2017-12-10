@@ -10,7 +10,7 @@ library(texreg)
 base_dir <- '/home/sdowning'
 repo <- 'compnet'
 
-data_dir <- file.path(base_dir, repo, 'firm_nets_cem')
+data_dir <- file.path(base_dir, 'data', 'firm_nets_cem')
 results_dir <- file.path(base_dir, repo, 'results')
 
 firm_i <- 'qualtrics'
