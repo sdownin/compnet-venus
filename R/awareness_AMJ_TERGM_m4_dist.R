@@ -54,6 +54,7 @@ m_x <- 'm4'
 mod <-  m4
 
 #############################################################################
+cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ##
 # DISTANCE
 ##
@@ -62,6 +63,8 @@ d <- 2
 ## LOAD DATA
 data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
 nets <- readRDS(data_file)
+if (nPeriods < length(nets)) 
+  nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
 
@@ -85,6 +88,7 @@ if (!inherits(fit, "error")) {
 ###############################################################################
 
 ###############################################################################
+cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ##
 # DISTANCE
 ##
@@ -92,6 +96,8 @@ d <- 4
 
 ## LOAD DATA
 nets <- readCombinePdNets(firm_i, d, data_dir)
+if (nPeriods < length(nets))   
+  nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
 
@@ -102,12 +108,12 @@ fit <- tryCatch(
 )
 if (!inherits(fit, "error")) {
   ## SAVE SERIALIZED
-  fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s_betaNeg0_%s.rds', 
-                       firm_i, nPeriods, d, R, m_x, i)
+  fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s.rds', 
+                       firm_i, nPeriods, d, R, m_x)
   saveRDS(fit, file=fits.file)
   ## SAVE FORMATTED REGRESSION TABLE
-  html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s_betaNeg0_%s.html',  
-                       firm_i, nPeriods, d, R, m_x, i)
+  html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s.html',  
+                       firm_i, nPeriods, d, R, m_x)
   htmlreg(fit, digits = 3, file=html.file)
 } else {
   cat(sprintf("\nfirm %s error msg: %s\n", firm_i, fit))
