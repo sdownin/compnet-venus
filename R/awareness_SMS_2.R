@@ -123,9 +123,9 @@ firms.todo <- firms.todo[which(!(firms.todo %in% reject))]
 # firms.todo <- 'qualtrics' 
  
 ## run main network period creation loop
-for (i in 19:length(firms.todo)) {
+for (i in 1:length(firms.todo)) {
   ## -- settings --
-  d <- 3
+  d <- 2
   yrpd <- 1
   startYr <- 2007
   endYr <- 2017
@@ -201,7 +201,7 @@ for (i in 19:length(firms.todo)) {
 firms.todo <- 'qualtrics'
 
 ## -- settings --
-d <- 4   ## large graph > 1000 nodes, save years separately for one firm
+d <- 2   ## large graph > 1000 nodes, save years separately for one firm
 yrpd <- 1
 startYr <- 2010
 endYr <- 2017
