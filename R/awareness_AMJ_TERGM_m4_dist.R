@@ -40,7 +40,7 @@ readCombinePdNets <- function(firm_i, d, data_dir)
     data_file <- file.path(data_dir,sprintf('%s_d%s_pd%s.rds', firm_i, d, pd))
     nets[[as.character(pd)]] <- readRDS(data_file)
     cat(sprintf("loaded %s pd net; object size %s\n", pd, object.size(nets)))
-    #if (t >= 2) break;
+    # if (t >= 2) break;
   }
   return(nets)
 }
