@@ -54,12 +54,12 @@ m_x <- 'm4'
 mod <-  m4
 
 #############################################################################
-cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ##
 # DISTANCE
 ##
 d <- 2
 
+cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ## LOAD DATA
 data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
 nets <- readRDS(data_file)
@@ -88,12 +88,12 @@ if (!inherits(fit, "error")) {
 ###############################################################################
 
 ###############################################################################
-cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ##
 # DISTANCE
 ##
 d <- 4
 
+cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ## LOAD DATA
 nets <- readCombinePdNets(firm_i, d, data_dir)
 if (nPeriods < length(nets))   
