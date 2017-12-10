@@ -61,7 +61,9 @@ cat(sprintf("\nalready finished (%s): %s", length(finished.firms), paste(finishe
 todo.firms <- files.firms[which(!(files.firms %in% finished.firms))]
 cat(sprintf("\nremaining (%s): %s", length(todo.firms), paste(todo.firms, collapse = "|")))
 
-files <- unname(sapply(todo.firms, function(i)grep(i, x, ignore.case = T)))
+files <- todo.firms[sapply(todo.firms, function(i) {
+  return(!any(grepl(i, finished.firms, ignore.case = T)))
+})]
 
 
 for (i in 1:length(files)) {
