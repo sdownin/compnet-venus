@@ -20,7 +20,7 @@ if (!(firm_i %in% names(fits[[net_group]])) ) fits[[net_group]][[firm_i]] <- lis
 if (nPeriods < length(nets))   nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
 
 cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
-cat(sprintf("Using %s cores", detectCores()))
+cat(sprintf("Using %s cores\n", detectCores()))
 
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
