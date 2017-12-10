@@ -75,12 +75,12 @@ fit <- tryCatch(
 )
 if (!inherits(fit, "error")) {
   ## SAVE SERIALIZED
-  fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s_betaNeg0_%s.rds', 
-                       firm_i, nPeriods, d, R, m_x, i)
+  fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s.rds', 
+                       firm_i, nPeriods, d, R, m_x)
   saveRDS(fit, file=fits.file)
   ## SAVE FORMATTED REGRESSION TABLE
-  html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s_betaNeg0_%s.html',  
-                       firm_i, nPeriods, d, R, m_x, i)
+  html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s.html',  
+                       firm_i, nPeriods, d, R, m_x)
   htmlreg(fit, digits = 3, file=html.file)
 } else {
   cat(sprintf("\nfirm %s error msg: %s\n", firm_i, fit))
