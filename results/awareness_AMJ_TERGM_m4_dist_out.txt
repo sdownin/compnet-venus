@@ -1,0 +1,29 @@
+
+
+##------ Wed Nov 15 11:14:52 2017 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 4 cores
+
+
+##------ Sun Dec 10 20:28:45 2017 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 8 cores
+computing qualtrics networks for distance d = 2:
+             t=2 t=3 t=4 t=5 t=6
+nets (row)   182 182 182 182 182
+nets (col)   182 182 182 182 182
+mmc (row)    182 182 182 182 182
+mmc (col)    182 182 182 182 182
+memory (row) 182 182 182 182 182
+memory (col) 182 182 182 182 182
+             t=2 t=3 t=4 t=5 t=6
+nets (row)   182 182 182 182 182
+nets (col)   182 182 182 182 182
+mmc (row)    182 182 182 182 182
+mmc (col)    182 182 182 182 182
+memory (row) 182 182 182 182 182
+memory (col) 182 182 182 182 182
