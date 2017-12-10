@@ -381,3 +381,454 @@ mmc (row)    1007 1007 1007 1007 1007 1007
 mmc (col)    1007 1007 1007 1007 1007 1007
 memory (row) 1007 1007 1007 1007 1007 1007
 memory (col) 1007 1007 1007 1007 1007 1007
+
+------------ estimating TERGM for: surveyrock --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   278 278 278 278 278 278
+nets (col)   278 278 278 278 278 278
+mmc (row)    278 278 278 278 278 278
+mmc (col)    278 278 278 278 278 278
+memory (row) 278 278 278 278 278 278
+memory (col) 278 278 278 278 278 278
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   278 278 278 278 278 278
+nets (col)   278 278 278 278 278 278
+mmc (row)    278 278 278 278 278 278
+mmc (col)    278 278 278 278 278 278
+memory (row) 278 278 278 278 278 278
+memory (col) 278 278 278 278 278 278
+
+------------ estimating TERGM for: typeform --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   474 474 474 474 474 474
+nets (col)   474 474 474 474 474 474
+mmc (row)    474 474 474 474 474 474
+mmc (col)    474 474 474 474 474 474
+memory (row) 474 474 474 474 474 474
+memory (col) 474 474 474 474 474 474
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   474 474 474 474 474 474
+nets (col)   474 474 474 474 474 474
+mmc (row)    474 474 474 474 474 474
+mmc (col)    474 474 474 474 474 474
+memory (row) 474 474 474 474 474 474
+memory (col) 474 474 474 474 474 474
+
+------------ estimating TERGM for: userate --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   348 348 348 348 348 348
+nets (col)   348 348 348 348 348 348
+mmc (row)    348 348 348 348 348 348
+mmc (col)    348 348 348 348 348 348
+memory (row) 348 348 348 348 348 348
+memory (col) 348 348 348 348 348 348
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   348 348 348 348 348 348
+nets (col)   348 348 348 348 348 348
+mmc (row)    348 348 348 348 348 348
+mmc (col)    348 348 348 348 348 348
+memory (row) 348 348 348 348 348 348
+memory (col) 348 348 348 348 348 348
+
+------------ estimating TERGM for: verint --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   563 563 563 563 563 563
+nets (col)   563 563 563 563 563 563
+mmc (row)    563 563 563 563 563 563
+mmc (col)    563 563 563 563 563 563
+memory (row) 563 563 563 563 563 563
+memory (col) 563 563 563 563 563 563
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   563 563 563 563 563 563
+nets (col)   563 563 563 563 563 563
+mmc (row)    563 563 563 563 563 563
+mmc (col)    563 563 563 563 563 563
+memory (row) 563 563 563 563 563 563
+memory (col) 563 563 563 563 563 563
+finished successfully.
+
+##------ Mon Dec 11 01:38:27 2017 ------##
+
+
+already finished (17): abroad101|checkmarket|clarabridge|cloudcherry|cx-index|first-mile-geo|getfeedback|leaderamp|myfeelback|promoter-io|qualtrics|super-simple-survey|surveygizmo|surveyrock|typeform|userate|verint
+remaining (11): confirmit|empathica|feedback-lite|inqwise|medallia|nice-systems|satmetrix|snap-surveys-ltd|survata|surveymonkey|voice-polls
+------------ estimating TERGM for: confirmit --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   568 568 568 568 568 568
+nets (col)   568 568 568 568 568 568
+mmc (row)    568 568 568 568 568 568
+mmc (col)    568 568 568 568 568 568
+memory (row) 568 568 568 568 568 568
+memory (col) 568 568 568 568 568 568
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   568 568 568 568 568 568
+nets (col)   568 568 568 568 568 568
+mmc (row)    568 568 568 568 568 568
+mmc (col)    568 568 568 568 568 568
+memory (row) 568 568 568 568 568 568
+memory (col) 568 568 568 568 568 568
+
+firm confirmit error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: empathica --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   317 317 317 317 317 317
+nets (col)   317 317 317 317 317 317
+mmc (row)    317 317 317 317 317 317
+mmc (col)    317 317 317 317 317 317
+memory (row) 317 317 317 317 317 317
+memory (col) 317 317 317 317 317 317
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   317 317 317 317 317 317
+nets (col)   317 317 317 317 317 317
+mmc (row)    317 317 317 317 317 317
+mmc (col)    317 317 317 317 317 317
+memory (row) 317 317 317 317 317 317
+memory (col) 317 317 317 317 317 317
+
+------------ estimating TERGM for: feedback-lite --------------
+Using 16 cores              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   1029 1029 1029 1029 1029 1029
+nets (col)   1029 1029 1029 1029 1029 1029
+mmc (row)    1029 1029 1029 1029 1029 1029
+mmc (col)    1029 1029 1029 1029 1029 1029
+memory (row) 1029 1029 1029 1029 1029 1029
+memory (col) 1029 1029 1029 1029 1029 1029
+              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   1029 1029 1029 1029 1029 1029
+nets (col)   1029 1029 1029 1029 1029 1029
+mmc (row)    1029 1029 1029 1029 1029 1029
+mmc (col)    1029 1029 1029 1029 1029 1029
+memory (row) 1029 1029 1029 1029 1029 1029
+memory (col) 1029 1029 1029 1029 1029 1029
+
+firm feedback-lite error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: inqwise --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6
+nets (row)   338 338 338 338 338
+nets (col)   338 338 338 338 338
+mmc (row)    338 338 338 338 338
+mmc (col)    338 338 338 338 338
+memory (row) 338 338 338 338 338
+memory (col) 338 338 338 338 338
+             t=2 t=3 t=4 t=5 t=6
+nets (row)   338 338 338 338 338
+nets (col)   338 338 338 338 338
+mmc (row)    338 338 338 338 338
+mmc (col)    338 338 338 338 338
+memory (row) 338 338 338 338 338
+memory (col) 338 338 338 338 338
+
+firm inqwise error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: medallia --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   509 509 509 509 509 509
+nets (col)   509 509 509 509 509 509
+mmc (row)    509 509 509 509 509 509
+mmc (col)    509 509 509 509 509 509
+memory (row) 509 509 509 509 509 509
+memory (col) 509 509 509 509 509 509
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   509 509 509 509 509 509
+nets (col)   509 509 509 509 509 509
+mmc (row)    509 509 509 509 509 509
+mmc (col)    509 509 509 509 509 509
+memory (row) 509 509 509 509 509 509
+memory (col) 509 509 509 509 509 509
+
+firm medallia error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: nice-systems --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   285 285 285 285 285 285
+nets (col)   285 285 285 285 285 285
+mmc (row)    285 285 285 285 285 285
+mmc (col)    285 285 285 285 285 285
+memory (row) 285 285 285 285 285 285
+memory (col) 285 285 285 285 285 285
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   285 285 285 285 285 285
+nets (col)   285 285 285 285 285 285
+mmc (row)    285 285 285 285 285 285
+mmc (col)    285 285 285 285 285 285
+memory (row) 285 285 285 285 285 285
+memory (col) 285 285 285 285 285 285
+
+firm nice-systems error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: satmetrix --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   367 367 367 367 367 367
+nets (col)   367 367 367 367 367 367
+mmc (row)    367 367 367 367 367 367
+mmc (col)    367 367 367 367 367 367
+memory (row) 367 367 367 367 367 367
+memory (col) 367 367 367 367 367 367
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   367 367 367 367 367 367
+nets (col)   367 367 367 367 367 367
+mmc (row)    367 367 367 367 367 367
+mmc (col)    367 367 367 367 367 367
+memory (row) 367 367 367 367 367 367
+memory (col) 367 367 367 367 367 367
+
+------------ estimating TERGM for: snap-surveys-ltd --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   496 496 496 496 496 496
+nets (col)   496 496 496 496 496 496
+mmc (row)    496 496 496 496 496 496
+mmc (col)    496 496 496 496 496 496
+memory (row) 496 496 496 496 496 496
+memory (col) 496 496 496 496 496 496
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   496 496 496 496 496 496
+nets (col)   496 496 496 496 496 496
+mmc (row)    496 496 496 496 496 496
+mmc (col)    496 496 496 496 496 496
+memory (row) 496 496 496 496 496 496
+memory (col) 496 496 496 496 496 496
+
+firm snap-surveys-ltd error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: survata --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   534 534 534 534 534 534
+nets (col)   534 534 534 534 534 534
+mmc (row)    534 534 534 534 534 534
+mmc (col)    534 534 534 534 534 534
+memory (row) 534 534 534 534 534 534
+memory (col) 534 534 534 534 534 534
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   534 534 534 534 534 534
+nets (col)   534 534 534 534 534 534
+mmc (row)    534 534 534 534 534 534
+mmc (col)    534 534 534 534 534 534
+memory (row) 534 534 534 534 534 534
+memory (col) 534 534 534 534 534 534
+
+firm survata error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: surveymonkey --------------
+Using 16 cores              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   2277 2277 2277 2277 2277 2277
+nets (col)   2277 2277 2277 2277 2277 2277
+mmc (row)    2277 2277 2277 2277 2277 2277
+mmc (col)    2277 2277 2277 2277 2277 2277
+memory (row) 2277 2277 2277 2277 2277 2277
+memory (col) 2277 2277 2277 2277 2277 2277
+              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   2277 2277 2277 2277 2277 2277
+nets (col)   2277 2277 2277 2277 2277 2277
+mmc (row)    2277 2277 2277 2277 2277 2277
+mmc (col)    2277 2277 2277 2277 2277 2277
+memory (row) 2277 2277 2277 2277 2277 2277
+memory (col) 2277 2277 2277 2277 2277 2277
+
+firm surveymonkey error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: voice-polls --------------
+Using 16 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   997 997 997 997 997 997
+nets (col)   997 997 997 997 997 997
+mmc (row)    997 997 997 997 997 997
+mmc (col)    997 997 997 997 997 997
+memory (row) 997 997 997 997 997 997
+memory (col) 997 997 997 997 997 997
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   997 997 997 997 997 997
+nets (col)   997 997 997 997 997 997
+mmc (row)    997 997 997 997 997 997
+mmc (col)    997 997 997 997 997 997
+memory (row) 997 997 997 997 997 997
+memory (col) 997 997 997 997 997 997
+
+firm voice-polls error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+finished successfully.
+
+##------ Mon Dec 11 01:51:10 2017 ------##
+
+
+already finished (19): abroad101|checkmarket|clarabridge|cloudcherry|cx-index|empathica|first-mile-geo|getfeedback|leaderamp|myfeelback|promoter-io|qualtrics|satmetrix|super-simple-survey|surveygizmo|surveyrock|typeform|userate|verint
+remaining (9): confirmit|feedback-lite|inqwise|medallia|nice-systems|snap-surveys-ltd|survata|surveymonkey|voice-polls
+------------ estimating TERGM for: confirmit --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   568 568 568 568 568 568
+nets (col)   568 568 568 568 568 568
+mmc (row)    568 568 568 568 568 568
+mmc (col)    568 568 568 568 568 568
+memory (row) 568 568 568 568 568 568
+memory (col) 568 568 568 568 568 568
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   568 568 568 568 568 568
+nets (col)   568 568 568 568 568 568
+mmc (row)    568 568 568 568 568 568
+mmc (col)    568 568 568 568 568 568
+memory (row) 568 568 568 568 568 568
+memory (col) 568 568 568 568 568 568
+
+firm confirmit error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: feedback-lite --------------
+Using 4 cores              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   1029 1029 1029 1029 1029 1029
+nets (col)   1029 1029 1029 1029 1029 1029
+mmc (row)    1029 1029 1029 1029 1029 1029
+mmc (col)    1029 1029 1029 1029 1029 1029
+memory (row) 1029 1029 1029 1029 1029 1029
+memory (col) 1029 1029 1029 1029 1029 1029
+              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   1029 1029 1029 1029 1029 1029
+nets (col)   1029 1029 1029 1029 1029 1029
+mmc (row)    1029 1029 1029 1029 1029 1029
+mmc (col)    1029 1029 1029 1029 1029 1029
+memory (row) 1029 1029 1029 1029 1029 1029
+memory (col) 1029 1029 1029 1029 1029 1029
+
+firm feedback-lite error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: inqwise --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6
+nets (row)   338 338 338 338 338
+nets (col)   338 338 338 338 338
+mmc (row)    338 338 338 338 338
+mmc (col)    338 338 338 338 338
+memory (row) 338 338 338 338 338
+memory (col) 338 338 338 338 338
+             t=2 t=3 t=4 t=5 t=6
+nets (row)   338 338 338 338 338
+nets (col)   338 338 338 338 338
+mmc (row)    338 338 338 338 338
+mmc (col)    338 338 338 338 338
+memory (row) 338 338 338 338 338
+memory (col) 338 338 338 338 338
+
+firm inqwise error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: medallia --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   509 509 509 509 509 509
+nets (col)   509 509 509 509 509 509
+mmc (row)    509 509 509 509 509 509
+mmc (col)    509 509 509 509 509 509
+memory (row) 509 509 509 509 509 509
+memory (col) 509 509 509 509 509 509
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   509 509 509 509 509 509
+nets (col)   509 509 509 509 509 509
+mmc (row)    509 509 509 509 509 509
+mmc (col)    509 509 509 509 509 509
+memory (row) 509 509 509 509 509 509
+memory (col) 509 509 509 509 509 509
+
+firm medallia error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: nice-systems --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   285 285 285 285 285 285
+nets (col)   285 285 285 285 285 285
+mmc (row)    285 285 285 285 285 285
+mmc (col)    285 285 285 285 285 285
+memory (row) 285 285 285 285 285 285
+memory (col) 285 285 285 285 285 285
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   285 285 285 285 285 285
+nets (col)   285 285 285 285 285 285
+mmc (row)    285 285 285 285 285 285
+mmc (col)    285 285 285 285 285 285
+memory (row) 285 285 285 285 285 285
+memory (col) 285 285 285 285 285 285
+
+firm nice-systems error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: snap-surveys-ltd --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   496 496 496 496 496 496
+nets (col)   496 496 496 496 496 496
+mmc (row)    496 496 496 496 496 496
+mmc (col)    496 496 496 496 496 496
+memory (row) 496 496 496 496 496 496
+memory (col) 496 496 496 496 496 496
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   496 496 496 496 496 496
+nets (col)   496 496 496 496 496 496
+mmc (row)    496 496 496 496 496 496
+mmc (col)    496 496 496 496 496 496
+memory (row) 496 496 496 496 496 496
+memory (col) 496 496 496 496 496 496
+
+firm snap-surveys-ltd error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: survata --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   534 534 534 534 534 534
+nets (col)   534 534 534 534 534 534
+mmc (row)    534 534 534 534 534 534
+mmc (col)    534 534 534 534 534 534
+memory (row) 534 534 534 534 534 534
+memory (col) 534 534 534 534 534 534
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   534 534 534 534 534 534
+nets (col)   534 534 534 534 534 534
+mmc (row)    534 534 534 534 534 534
+mmc (col)    534 534 534 534 534 534
+memory (row) 534 534 534 534 534 534
+memory (col) 534 534 534 534 534 534
+
+firm survata error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: surveymonkey --------------
+Using 4 cores              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   2277 2277 2277 2277 2277 2277
+nets (col)   2277 2277 2277 2277 2277 2277
+mmc (row)    2277 2277 2277 2277 2277 2277
+mmc (col)    2277 2277 2277 2277 2277 2277
+memory (row) 2277 2277 2277 2277 2277 2277
+memory (col) 2277 2277 2277 2277 2277 2277
+              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   2277 2277 2277 2277 2277 2277
+nets (col)   2277 2277 2277 2277 2277 2277
+mmc (row)    2277 2277 2277 2277 2277 2277
+mmc (col)    2277 2277 2277 2277 2277 2277
+memory (row) 2277 2277 2277 2277 2277 2277
+memory (col) 2277 2277 2277 2277 2277 2277
+
+firm surveymonkey error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+
+------------ estimating TERGM for: voice-polls --------------
+Using 4 cores             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   997 997 997 997 997 997
+nets (col)   997 997 997 997 997 997
+mmc (row)    997 997 997 997 997 997
+mmc (col)    997 997 997 997 997 997
+memory (row) 997 997 997 997 997 997
+memory (col) 997 997 997 997 997 997
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   997 997 997 997 997 997
+nets (col)   997 997 997 997 997 997
+mmc (row)    997 997 997 997 997 997
+mmc (col)    997 997 997 997 997 997
+memory (row) 997 997 997 997 997 997
+memory (col) 997 997 997 997 997 997
+
+firm voice-polls error msg: Error: Attribute ' cent_pow_n0_5 ' named in nodecov model term is not a vertex attribute  of the network.
+
+finished successfully.

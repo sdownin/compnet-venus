@@ -38,9 +38,9 @@ readCombinePdNets <- function(firm_i, d, data_dir)
   for (t in 1:length(pds)) {
     pd <- pds[t]
     data_file <- file.path(data_dir,sprintf('%s_d%s_pd%s.rds', firm_i, d, pd))
-    nets[[pd]] <- readRDS(data_file)
+    nets[[as.character(pd)]] <- readRDS(data_file)
     cat(sprintf("loaded %s pd net; object size %s\n", pd, object.size(nets)))
-    if (t >= 2) break;
+    #if (t >= 2) break;
   }
   return(nets)
 }
@@ -55,17 +55,19 @@ R <- 1000
 m_x <- 'm4'
 mod <-  m4
 
-#############################################################################
+###############################################################################
 ##
 # DISTANCE
 ##
-d <- 2
+d <- 4
 
-cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
+
 ## LOAD DATA
-data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
-nets <- readRDS(data_file)
-if (nPeriods < length(nets)) 
+nets <- readCombinePdNets(firm_i, d, data_dir)
+
+cat(sprintf("length of nets: %s\n", length(nets)))
+
+if (nPeriods < length(nets))   
   nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
@@ -89,22 +91,17 @@ if (!inherits(fit, "error")) {
 }
 ###############################################################################
 
-###############################################################################
+#############################################################################
 ##
 # DISTANCE
 ##
-d <- 4
-
-##
-# MODEL
-##
-m_x <- 'm4'
-mod <-  m4
+d <- 2
 
 cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ## LOAD DATA
-nets <- readCombinePdNets(firm_i, d, data_dir)
-if (nPeriods < length(nets))   
+data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
+nets <- readRDS(data_file)
+if (nPeriods < length(nets)) 
   nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
