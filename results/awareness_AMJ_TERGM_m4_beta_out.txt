@@ -103,3 +103,4 @@ mmc (row)    583 583 583 583 583 583
 mmc (col)    583 583 583 583 583 583
 memory (row) 583 583 583 583 583 583
 memory (col) 583 583 583 583 583 583
+finished successfully.

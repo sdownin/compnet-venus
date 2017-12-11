@@ -69,6 +69,7 @@ cat(sprintf("length of nets: %s\n", length(nets)))
 
 if (nPeriods < length(nets))
   nets <- nets[(length(nets)-nPeriods+1):length(nets)]
+
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
 
@@ -101,8 +102,10 @@ cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ## LOAD DATA
 data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
 nets <- readRDS(data_file)
+
 if (nPeriods < length(nets))
   nets <- nets[(length(nets)-nPeriods+1):length(nets)]
+
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
 
