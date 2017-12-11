@@ -154,3 +154,18 @@ loaded 2015 pd net; object size 2232811032
 loaded 2016 pd net; object size 2685871664
 loaded 2017 pd net; object size 3138891712
 length of nets: 7
+
+
+##------ Wed Nov 15 16:38:50 2017 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 4 cores
+loaded 2011 pd net; object size 443606248
+loaded 2012 pd net; object size 887290176
+loaded 2013 pd net; object size 1331110600
+loaded 2014 pd net; object size 1781003384
+loaded 2015 pd net; object size 2232811032
+loaded 2016 pd net; object size 2685871664
+loaded 2017 pd net; object size 3138891712
+length of nets: 7
