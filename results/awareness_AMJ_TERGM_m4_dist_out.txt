@@ -255,3 +255,28 @@ mmc (row)    182 182 182 182 182
 mmc (col)    182 182 182 182 182
 memory (row) 182 182 182 182 182
 memory (col) 182 182 182 182 182
+
+------------ estimating TERGM for: qualtrics --------------
+Using 4 cores
+loaded 2011 pd net; object size 443605992
+loaded 2012 pd net; object size 887289664
+loaded 2013 pd net; object size 1331109832
+loaded 2014 pd net; object size 1781002360
+loaded 2015 pd net; object size 2232809752
+loaded 2016 pd net; object size 2685870128
+loaded 2017 pd net; object size 3138889920
+length of nets: 7
+              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   3645 3645 3645 3645 3645 3645
+nets (col)   3645 3645 3645 3645 3645 3645
+mmc (row)    3645 3645 3645 3645 3645 3645
+mmc (col)    3645 3645 3645 3645 3645 3645
+memory (row) 3645 3645 3645 3645 3645 3645
+memory (col) 3645 3645 3645 3645 3645 3645
+              t=2  t=3  t=4  t=5  t=6  t=7
+nets (row)   3645 3645 3645 3645 3645 3645
+nets (col)   3645 3645 3645 3645 3645 3645
+mmc (row)    3645 3645 3645 3645 3645 3645
+mmc (col)    3645 3645 3645 3645 3645 3645
+memory (row) 3645 3645 3645 3645 3645 3645
+memory (col) 3645 3645 3645 3645 3645 3645
