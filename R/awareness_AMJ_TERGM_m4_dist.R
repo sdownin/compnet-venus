@@ -1,4 +1,3 @@
-cat('\n\n');timestamp();cat('\n')
 library(btergm)
 library(parallel)
 library(texreg)
@@ -14,18 +13,18 @@ cat(sprintf("Using %s cores\n", detectCores()))
 
 
 ####################### DEFINE MODELS ###################################
-m4 <-   nets ~ edges + gwesp(0, fixed = T) + 
-  nodematch("ipo_status", diff = F) + 
-  nodematch("state_code", diff = F) + 
-  nodecov("age") + absdiff("age") + 
+m4 <-   nets ~ edges + gwesp(0, fixed = T) +
+  nodematch("ipo_status", diff = F) +
+  nodematch("state_code", diff = F) +
+  nodecov("age") + absdiff("age") +
   edgecov(mmc) +
-  memory(type = "stability", lag = 1) + 
+  memory(type = "stability", lag = 1) +
   nodecov("genidx_multilevel") +
-  nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") + 
-  cycle(3) + cycle(4) + cycle(5) 
+  nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") +
+  cycle(3) + cycle(4) + cycle(5)
 ################################ end models#######################
 
-readCombinePdNets <- function(firm_i, d, data_dir) 
+readCombinePdNets <- function(firm_i, d, data_dir)
 {
   nets <- list()
   base <-  sprintf("%s_d%s_pd", firm_i, d)
@@ -38,7 +37,8 @@ readCombinePdNets <- function(firm_i, d, data_dir)
   for (t in 1:length(pds)) {
     pd <- pds[t]
     data_file <- file.path(data_dir,sprintf('%s_d%s_pd%s.rds', firm_i, d, pd))
-    nets[[as.character(pd)]] <- readRDS(data_file)
+    tmp  <- readRDS(data_file)
+    nets <- c(nets, tmp)
     cat(sprintf("loaded %s pd net; object size %s\n", pd, object.size(nets)))
     # if (t >= 2) break;
   }
@@ -67,8 +67,9 @@ nets <- readCombinePdNets(firm_i, d, data_dir)
 
 cat(sprintf("length of nets: %s\n", length(nets)))
 
-if (nPeriods < length(nets))   
-  nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
+if (nPeriods < length(nets))
+  nets <- nets[(length(nets)-nPeriods+1):length(nets)]
+
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
 
@@ -79,11 +80,11 @@ fit <- tryCatch(
 )
 if (!inherits(fit, "error")) {
   ## SAVE SERIALIZED
-  fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s.rds', 
+  fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s.rds',
                        firm_i, nPeriods, d, R, m_x)
   saveRDS(fit, file=fits.file)
   ## SAVE FORMATTED REGRESSION TABLE
-  html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s.html',  
+  html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s.html',
                        firm_i, nPeriods, d, R, m_x)
   htmlreg(fit, digits = 3, file=html.file)
 } else {
@@ -101,8 +102,10 @@ cat(sprintf("computing %s networks for distance d = %s:\n", firm_i, d))
 ## LOAD DATA
 data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
 nets <- readRDS(data_file)
-if (nPeriods < length(nets)) 
-  nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
+
+if (nPeriods < length(nets))
+  nets <- nets[(length(nets)-nPeriods+1):length(nets)]
+
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
 
@@ -113,11 +116,11 @@ fit <- tryCatch(
 )
 if (!inherits(fit, "error")) {
   ## SAVE SERIALIZED
-  fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s.rds', 
+  fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s.rds',
                        firm_i, nPeriods, d, R, m_x)
   saveRDS(fit, file=fits.file)
   ## SAVE FORMATTED REGRESSION TABLE
-  html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s.html',  
+  html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s.html',
                        firm_i, nPeriods, d, R, m_x)
   htmlreg(fit, digits = 3, file=html.file)
 } else {
@@ -126,4 +129,3 @@ if (!inherits(fit, "error")) {
 ###############################################################################
 
 cat('finished successfully.')
-
