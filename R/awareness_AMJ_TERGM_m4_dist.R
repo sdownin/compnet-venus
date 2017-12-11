@@ -20,7 +20,7 @@ m4 <-   nets ~ edges + gwesp(0, fixed = T) +
   edgecov(mmc) +
   memory(type = "stability", lag = 1) +
   nodecov("genidx_multilevel") +
-  nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") +
+  nodecov("cent_pow_n0_4") + absdiff("cent_pow_n0_4") +
   cycle(3) + cycle(4) + cycle(5)
 ################################ end models#######################
 
