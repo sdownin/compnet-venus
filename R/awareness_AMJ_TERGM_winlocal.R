@@ -5,6 +5,7 @@ library(texreg)
 
 # data_dir <- '/home/sdowning/data/firm_nets_cem'
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2/firm_nets_cem"
+results_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
 
 firm_i <- 'qualtrics'
 d <- 3
@@ -70,12 +71,8 @@ m0 <-   nets ~ edges + gwesp(0, fixed = T) +
   memory(type = "stability", lag = 1) 
 ################################ end models#######################
 
-getModel <- function(m_x){
-  switch(as.character(m_x),
-         'm0'=m0, 'm1'=m1, 'm2'=m2, 'm3'=m3, 'm4'=m4
-  )
-}
 
+models <- list(m4=m4, m3=m3, m2=m2, m1=m1, m0=m0)
 
 ##
 # SET RESAMPLES
@@ -83,18 +80,76 @@ getModel <- function(m_x){
 R <- 2000
 
 
-for ()
-## RUN TERGM
-fit <- btergm(m0, R=R, parallel = "multicore", ncpus = detectCores())
-
-## SAVE SERIALIZED
-fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
-saveRDS(fits, file=fits.file)
-
-## SAVE FORMATTED REGRESSION TABLE
-html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_R%s_%s.html',  firm_i, nPeriods, R, m_x)
-htmlreg(fits[[net_group]][[firm_i]], digits = 3, file=html.file)
+##
+# MAIN
+##
+for (i in 1:length(models)) {
+  m_x <- names(models)[i]
+  mod <- models[[m_x]]
+  
+  ## RUN TERGM
+  fit <- tryCatch(
+    btergm(mod, R=R, parallel = "multicore", ncpus = detectCores())
+    , error = function(e)e
+  )
+  
+  if (!inherits(fit, "error")) {
+    ## SAVE SERIALIZED
+    fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', 
+                         results_dir, firm_i, nPeriods, d, R, m_x)
+    saveRDS(fit, file=fits.file)
+    
+    ## SAVE FORMATTED REGRESSION TABLE
+    html.file <- sprintf('%s/%s_tergm_results_winlocal_pd%s_d%s_R%s_%s.html',  
+                         results_dir, firm_i, nPeriods, d, R, m_x)
+    htmlreg(fit, digits = 3, file=html.file)
+    
+  } else {
+    cat(sprintf("\nfirm %s error msg: %s\n", firm_i, fit))
+  }
+  
+}
 
 
 cat('finished successfully.')
 
+
+
+##---------------- GOF -------------------------------
+
+nsim <- 50
+R <- 2000
+firm_i <- 'qualtrics'
+pd <- 6
+nPeriods <- 7 ## before deducline lag 1
+nets.gof <- nets[(length(nets)-pd+1):length(nets)]
+
+models <- list(m4=m4, m3=m3, m2=m2, m1=m1, m0=m0)
+
+## completed m4
+# models$m4 <- NULL
+
+for (i in 1:length(models)) {
+  m_x <- names(models)[i]
+  mod <- models[[m_x]]
+  
+  ## SAVE SERIALIZED
+  fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', 
+                       results_dir, firm_i, nPeriods, d, R, m_x)
+  fit <- readRDS(file=fits.file)
+  gc()
+  gof <- tryCatch(
+    btergm::gof(object = fit, nsim=nsim, target=nets.gof, 
+                statistics = c(rocpr)) ##  c(dsp, esp, deg, geodesic, rocpr)
+    , error = function(e)e
+  )
+  if (!inherits(gof, "error")) {
+    gof.file <- sprintf('%s/gof_auc_roc_winlocal_%s_pd%s_d%s_R%s_%s_nsim%s.rds', 
+                        results_dir, firm_i, nPeriods, d, R, m_x, nsim)
+    saveRDS(gof, file=gof.file)
+    print(gof)
+  } else {
+    cat(sprintf("ERROR: %s", gof))
+  }
+    
+}

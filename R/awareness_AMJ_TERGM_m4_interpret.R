@@ -71,7 +71,7 @@ netLatest <- f4@data$networks[[numPds]]
 gLatest <- getIgraphFromNet(netLatest)
 ego.j <- which(netLatest %v% 'vertex.names' == firm_i)
 idx <- 1
-ts <- numPds  ## 1:numPds  ## only last period
+ts <- 1:5  ## 1:numPds  ## only last period
 
 for (j in ego.j) { ## ego firm column j
   for (i in 1:N) { ## alter firm row i
@@ -84,17 +84,67 @@ for (j in ego.j) { ## ego firm column j
         colt <- paste0("t",t)
         df4.pij[i,colt] <- btergm::interpret(f4,target=nets,i=i,j=j,t=t)
         cold <- paste0("d",t)
-        df4.pij[i,cold] <- igraph::distances(getIgraphFromNet(f4@data$networks[[t]]), v = i, to = j)
+        df4.pij[i,cold] <- c(igraph::distances(getIgraphFromNet(f4@data$networks[[t]]), v = i, to = j))[1]
         cat(sprintf("t:%s i = %s --> j = %s",t,i,j),'\n')
       }
     }
   }
   cat(paste0("finished j =",j))
 }; df4.pij[is.na(df4.pij)] <- 0
+df4.pij$d6 <- as.vector(df4.pij$d6)
 
-interp.file.path <- sprintf("%s/tergm_interpret_winlocal_%s_m4_R%s_pd%s_d%s_pij.rds", proj_dir, firm_i, R, pd, d)
+interp.file.path <- sprintf("%s/tergm_interpret_winlocal_all_%s_m4_R%s_pd%s_d%s_pij.rds", proj_dir, firm_i, R, pd, d)
 saveRDS(df4.pij, file=interp.file.path)
 
+##-------------------------- check rivals in top pij ------------------
+vs <- igraph::neighbors(getIgraphFromNet(nets$`2017`), v = 416)
+top <- df4.pij[df4.pij$t6 > quantile(df4.pij$t6, .963), 'firm_i']
+all(top %in% names(vs))
+
+
+
+## plot segmentation of rivals, awareness set, 
+# plot(density(log10(df4.pij$t6), bw = .11))
+# hist(log10(df4.pij$t6), breaks=24)
+
+## hist + density
+par(mfrow=c(1,1))
+hist(log(df4.pij$t6), breaks=23, prob=T, col='gray', main="", xlab="Ln Probability of Tie (i,j)")
+abline(v=log(quantile(df4.pij$t6, c(.785, .9618))), col='black', lty=3)
+lines(density(log(df4.pij$t6), bw = .24), col='darkred', lwd=2)
+
+awr <- df4.pij[df4.pij$t6 < quantile(df4.pij$t6, .963) 
+               & df4.pij$t6 > quantile(df4.pij$t6, .79), 'firm_i']
+
+##--------------------------Box Plot by Distance -----------------------
+df4.pij$lnt6p1 <- log(1 + df4.pij$t6)
+
+df.tmp <- df4.pij[df4.pij$d6 != 0 & df4.pij$d6 != '0', ]
+df.tmp$d6f <- as.factor(df.tmp$d6)
+droplevels(df.tmp$d6f)
+
+ggplot(aes(x=d6f, y=lnt6p1), data=df.tmp) + 
+  geom_jitter(width = 0.3, col=rgb(.01,.01,.01,.25), pch=16) +
+  # geom_boxplot(outlier.colour = "darkred", outlier.shape = 16) + 
+  scale_y_log10() + 
+  ylab("Conditional Probability of Tie (i,j)") +
+  xlab("Competitive Distance (i,j)") + 
+  ggtitle("Competitive Distance and Competition Formation") +
+  theme_bw()
+
+ggplot(aes(x=d6f, y=lnt6p1), data=df.tmp) + 
+  # geom_jitter(width = 0.3, col=rgb(.01,.01,.01,.25), pch=16) +
+  geom_boxplot(outlier.colour = "darkred", outlier.shape = 16, fill='gray') + 
+  scale_y_log10() + 
+  ylab("Conditional Probability of Tie (i,j)") +
+  xlab("Competitive Distance (i,j)") + 
+  ggtitle("Competitive Distance and Competition Formation") +
+  theme_bw()
+
+## LONG DF MULTI_PERIOD PLOT
+
+
+##----------------------------------------------------------------------
 
 ##-------------------- PLOT NETWORK in 2016 ----------------------------
 cutoff <- .93
