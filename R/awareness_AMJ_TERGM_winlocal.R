@@ -114,6 +114,14 @@ for (i in 1:length(models)) {
 cat('finished successfully.')
 
 
+# fits <- list()
+# for (i in 1:4) {
+#   m_x <- paste0('m',i);
+#   fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', results_dir, firm_i, nPeriods, d, R, m_x)
+#   fits[[m_x]] <- readRDS(fits.file)
+# }
+fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', results_dir, firm_i, nPeriods, d, R, 'm4')
+m4<- readRDS(fits.file)
 
 ##---------------- GOF -------------------------------
 
@@ -151,5 +159,24 @@ for (i in 1:length(models)) {
   } else {
     cat(sprintf("ERROR: %s", gof))
   }
-    
+ 
 }
+
+
+##----------------------- CORRELATIONS
+library(psych)
+
+X <- fits$m4@effects
+X <- X[X$nodecov.age < 110 & X$nodecov.age >= 0, ]
+
+(desc <- psych::describe(X))
+write.csv(desc, file = 'qualtrics_m4_describe.csv', row.names = T)
+
+(cr <- cor(X))
+write.csv(cr, file = 'qualtrics_m4_correlations.csv', row.names = T)
+
+
+(ct <- psych::corr.test(X))
+write.csv(ct$p, file = 'qualtrics_m4_corr_test_p.csv', row.names = T)
+
+

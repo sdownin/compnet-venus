@@ -7,6 +7,9 @@
 #
 ##########################################################################################
 library(Matrix)
+library(intergraph)
+library(network)
+library(igraph)
 
 ##
 #
@@ -583,14 +586,16 @@ plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, i
 ##
 #
 ##
+rm(plotCompNetColPredict)
 plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cutoff=.9, is.focal.color=TRUE, 
                                     label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
-                                    layout.algo=layout.fruchterman.reingold,margins=NA,
-                                    seed=1111,  ...) 
+                                    layout.algo=layout.fruchterman.reingold, 
+                                    margins=NA, seed=1111,  ...) 
 {
+  gs <- igraph::induced.subgraph(gs, vids = V(gs)[which(igraph::degree(gs)>0)])
   if(all(is.na(margins)))
     margins <- c(.01,.01,.01,.01)
-  ##
+  ## 
   par(mar=margins)
   d <- igraph::degree(gs)
   vertshape <- rep('circle',vcount(gs))
@@ -598,28 +603,34 @@ plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cuto
   ##
   ## HANDLE SAME COLORS FOR COMPETITORS
   ##
-  ##
   logprobs <- log(probs)
   # qts <- quantile(logprobs, seq(0,1,.1))
   # colors <- rev(heat.colors(length(qts)))
   # groups <- cut(logprobs, include.lowest = T, breaks = qts, labels=1:(length(qts)-1))
   # vertcol <- colors[ groups ]
   # plot(logprobs, col=vertcol,pch=15)
+  ## color
   # col2 <- rev(heat.colors(2))
-  col2 <- c(rgb(.7,.7,.1,.5), rgb(.8,.05,.05,.95))
+  col2 <- c(rgb(.7,.7,.7,.6), 'darkred')  ## (low,  high)
   vertcol <- ifelse(logprobs > quantile(logprobs,cutoff), col2[2], col2[1] )
-
-  vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+  vertcol[which(V(gs)$name==focal.firm)] <- '#1b1e60' ##rgb(.05,.05,.17,0)
+  ## shape
+  high.aware.idx <- which(logprobs > quantile(logprobs,cutoff))
+  vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 
+                      ifelse(V(gs) %in% high.aware.idx, 'circle', 'circle') )
+  ## lable
   # vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
-  vertex.label <- ifelse( (logprobs > quantile(logprobs,cutoff)) 
-                           | (V(gs)$name==focal.firm), V(gs)$name, '' )
- 
-  vertcol[which(V(gs)$name==focal.firm)] <- 'steelblue'
+  # vertex.label <- ifelse( (logprobs > quantile(logprobs,cutoff)) 
+  #                          | (V(gs)$name==focal.firm), V(gs)$name, '' )
+  vertex.label <- ''
   
   if(is.na(vertex.scale)) 
     vertex.scale <- 100 * (1/vcount(gs)^.5)
   if(is.na(label.scale)) 
     label.scale <- 13 * (1/vcount(gs)^.5)
+  
+  V(gs)$vertex.size <- vertex.scale
+  V(gs)$vertex.size[which(V(gs)$name == focal.firm)] <- 1.5 * vertex.scale
   ##
   set.seed(seed)
   plot.igraph(gs
@@ -675,7 +686,7 @@ plotCompNetColRivals <- function(gs, probs, competitors=NA, focal.firm=NA, is.fo
   # vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
   vertex.label <- ifelse(V(gs)$name %in% c(focal.firm,competitors), V(gs)$name, '' )
   
-  vertcol[which(V(gs)$name==focal.firm)] <- 'steelblue'
+  vertcol[which(V(gs)$name==focal.firm)] <- rgb(.05, .05, .17, 0)
   
   if(is.na(vertex.scale)) 
     vertex.scale <- 100 * (1/vcount(gs)^.5)
@@ -2589,6 +2600,90 @@ makePdNetwork <- function(net, start, end,
     tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
     vids <- which( tmp < start )  # V(g)[which(tmp < start)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
+  el <- network::as.edgelist(net)
+  inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
+  inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
+  ##------------- DELTE EDGES --------------------------------------
+  net <- network::delete.edges(net, inactiveEdges)
+  ##
+  return(net)
+}
+
+##
+#  Makes period network (remove edges missing, transfer edges and apply node collapse on acquisitions)
+#  Follows Hernandez 2017  Node collapse
+##
+makePdNetworkTransfer <- function(net, start, end, 
+                          edgeCreatedAttr='relation_began_date',
+                          edgeDeletedAttr='relation_ended_date',
+                          vertFoundedAttr='founded_date',
+                          vertClosedAttr='closed_date',
+                          vertAcquiredAttr='acquired_date',
+                          aquisitions=df(acquirer_name_unique=NA,acquiree_name_unique=NA,acquired_on=NA)
+                          )
+{
+  cat('collecting edges to remove...\n')
+  vertAttrs <- network::list.vertex.attributes(net)
+  edgeAttrs <- network::list.edge.attributes(net)
+  inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
+  ##------------------ COLLECT EDGES TO REMOVE -----------
+  ## Get EDGES CREATED AT ___ to be removed
+  if (edgeCreatedAttr %in% edgeAttrs) {
+    tmp <- network::get.edge.attribute(net, edgeCreatedAttr)
+    eids <- which(tmp > end)
+    inactiveEdges <- c(inactiveEdges, eids)
+  }
+  ##------------------ COLLECT VERTICES TO REMOVE ------- 
+  ##  REMOVE VERTICES founded_on > `end`
+  if(vertFoundedAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertFoundedAttr)
+    vids <- which(tmp > end) #(g)[which(tmp > end)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES closed_on < `start`
+  if(vertClosedAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertClosedAttr)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES acquired_at < `start` ************************** <-- AQUISITION
+  if(vertAcquiredAttr %in% vertAttrs) {
+    # tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
+    # vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    # inactiveVerts <- unique( c(inactiveVerts, vids) )
+    ################################
+    # NOTE: add 'weight' and 'acquisitions' attributes to graph at start
+    ################################ 
+    g <- asIgraph(net)  ## convert in 
+    ## acqs = c(1,4,3,3,1,4,...)
+    ## {acquired} index --> {acquirer} acqs[index]  WHEN BOTH IN NETWORK
+    acqs.sub <- acquisitions[which(acquisitions$acquirer_vid %in% V(g)$orig.vid
+                                   & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
+    acqMapping <- V(g)$orig.vid
+    for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
+      acqr.i <- unique(acqs.sub$acquirer_vid)[i]
+      acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid']
+      acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)]
+      if (length(acqe.vids) > 0) {
+        acqMapping[  which( V(g)$orig.vid %in% acqe.vids ) ] <- acqr.i
+      } 
+    } 
+    
+    acqsMapping = acquisitions
+    vertex.attr.comb = list(
+      weight="sum",
+      acquisitions=function(x)paste(x,collapse="|") 
+    )
+    g.acq <- igraph::contract.vertices(
+      g, 
+      mapping = acqsMapping, 
+      vertex.attr.comb = vertex.attr.comb
+    )
+    g.acq.s <- igraph::simplify(g, remove.multiple = T, remove.loops = T, 
+                                edge.attr.comb =  list())
+    net <- asNetwork(g.acq.s) ## 
   }
   # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
   el <- network::as.edgelist(net)
