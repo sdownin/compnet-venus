@@ -2615,18 +2615,18 @@ makePdNetwork <- function(net, start, end,
 #  Makes period network (remove edges missing, transfer edges and apply node collapse on acquisitions)
 #  Follows Hernandez 2017  Node collapse
 ##
-makePdNetworkTransfer <- function(net, start, end, 
-                          edgeCreatedAttr='relation_began_date',
-                          edgeDeletedAttr='relation_ended_date',
-                          vertFoundedAttr='founded_date',
-                          vertClosedAttr='closed_date',
-                          vertAcquiredAttr='acquired_date',
+makePdNetworkTransfer <- function(g, start, end, 
+                          edgeCreatedAttr='relation_began_on',
+                          edgeDeletedAttr='relation_ended_on',
+                          vertFoundedAttr='founded_on',
+                          vertClosedAttr='closed_on',
+                          vertAcquiredAttr='acquired_on',
                           aquisitions=df(acquirer_name_unique=NA,acquiree_name_unique=NA,acquired_on=NA)
                           )
 {
   cat('collecting edges to remove...\n')
-  vertAttrs <- network::list.vertex.attributes(net)
-  edgeAttrs <- network::list.edge.attributes(net)
+  vertAttrs <- igraph::list.vertex.attributes(g)
+  edgeAttrs <- igraph::list.edge.attributes(g)
   inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
   ##------------------ COLLECT EDGES TO REMOVE -----------
   ## Get EDGES CREATED AT ___ to be removed
@@ -2648,51 +2648,69 @@ makePdNetworkTransfer <- function(net, start, end,
     vids <- which( tmp < start )  # V(g)[which(tmp < start)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
-  ##  REMOVE VERTICES acquired_at < `start` ************************** <-- AQUISITION
-  if(vertAcquiredAttr %in% vertAttrs) {
-    # tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
-    # vids <- which( tmp < start )  # V(g)[which(tmp < start)]
-    # inactiveVerts <- unique( c(inactiveVerts, vids) )
-    ################################
-    # NOTE: add 'weight' and 'acquisitions' attributes to graph at start
-    ################################ 
-    g <- asIgraph(net)  ## convert in 
-    ## acqs = c(1,4,3,3,1,4,...)
-    ## {acquired} index --> {acquirer} acqs[index]  WHEN BOTH IN NETWORK
-    acqs.sub <- acquisitions[which(acquisitions$acquirer_vid %in% V(g)$orig.vid
-                                   & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
-    acqMapping <- V(g)$orig.vid
-    for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
-      acqr.i <- unique(acqs.sub$acquirer_vid)[i]
-      acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid']
-      acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)]
-      if (length(acqe.vids) > 0) {
-        acqMapping[  which( V(g)$orig.vid %in% acqe.vids ) ] <- acqr.i
-      } 
-    } 
-    
-    acqsMapping = acquisitions
-    vertex.attr.comb = list(
-      weight="sum",
-      acquisitions=function(x)paste(x,collapse="|") 
-    )
-    g.acq <- igraph::contract.vertices(
-      g, 
-      mapping = acqsMapping, 
-      vertex.attr.comb = vertex.attr.comb
-    )
-    g.acq.s <- igraph::simplify(g, remove.multiple = T, remove.loops = T, 
-                                edge.attr.comb =  list())
-    net <- asNetwork(g.acq.s) ## 
-  }
   # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
   el <- network::as.edgelist(net)
   inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
   inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
   ##------------- DELTE EDGES --------------------------------------
   net <- network::delete.edges(net, inactiveEdges)
+  
+  ##  REMOVE VERTICES acquired_at < `start` ************************** <-- AQUISITION
+
+  # tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
+  # vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+  # inactiveVerts <- unique( c(inactiveVerts, vids) )
+  ################################
+  # NOTE: add 'weight' and 'acquisitions' attributes to graph at start
+  ################################ 
+  g <- asIgraph(net)  ## convert in 
+  ##--------------------- Acquisitions Mapping --------------------------
+  ## acqs = c(1,4,3,3,1,4,...)
+  ## {acquired} index --> {acquirer} acqs[index]  WHEN BOTH IN NETWORK
+  acqs.sub <- acquisitions[which(acquisitions$acquirer_vid %in% V(g)$orig.vid
+                                 & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
+  acqMapping <- V(g)$orig.vid
+  for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
+    acqr.i <- unique(acqs.sub$acquirer_vid)[i] ##  acquirer vid
+    acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid'] ## acquiree's vids
+    acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)] ## filter acquiree's vids to those in subgraph
+    if (length(acqe.vids) > 0) {
+      acqMapping[  which( V(g)$orig.vid %in% acqe.vids ) ] <- acqr.i  ## assign acquirer's vid to value in acquiree's spots
+    } 
+  } 
+  ## change orig.vid to current subgraph vids (reindexing)
+  acqMappingSub <- sapply(acqMapping, function(x) as.integer(V(g)[which(x==V(g)$orig.vid)]) )
+  ##---------------------------------------------------------------------
+
+  ## build vertex attr comb list
+  vertex.attr.comb <- list(weight=function(x)sum(x),
+                             tmp.name=function(x)x[1],
+                             tmp.orig.vid=function(x)x[1],
+                             absorbed=function(x)paste(x,collapse="|")
+                        ) ## paste(x,collapse="|")
+  attrs <- igraph::list.vertex.attributes(g)
+  skipAttrs <- c('name','weight',names(vertex.attr.comb))
+  for (attr in attrs[which(!(attrs %in% skipAttrs))]) {
+      vertex.attr.comb[[attr]] <- function(x)paste(unique(x),collapse="|")
+  }
+  ## temporary attrs used to concat in mapping
+  V(g)$absorbed <- V(g)$name
+  V(g)$tmp.name <- V(g)$name[acqMappingSub]
+  V(g)$tmp.orig.vid <- V(g)$orig.vid[acqMappingSub]
+  ## apply acquisition mapping contraction
+  g.acq <- igraph::contract.vertices(g, acqMappingSub 
+                                     , vertex.attr.comb = vertex.attr.comb
+                                     )
+  ## remove nodes that were acquired (had no remaining edges : degree=0)
+  g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0))
+  V(g.acq)$name <- V(g.acq)$tmp.name
+  V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
+  ## contract edges
+  g.acq.s <- igraph::simplify(g.acq, remove.multiple = T, remove.loops = T, 
+                              edge.attr.comb =  list(weight="sum"))
+  
   ##
-  return(net)
+  return(g.acq.s)
 }
 
 ##

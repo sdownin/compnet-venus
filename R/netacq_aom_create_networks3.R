@@ -19,10 +19,32 @@ source(file.path(getwd(),'R','netrisk_functions.R'))
 ## DATA
 source(file.path(getwd(),'R','cb_data_prep.R'))
 
+#####################################################################################
+## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
+#####################################################################################
+# g.full <- makeGraph(comp = co_comp, vertdf = co)
+# ## cut out confirmed dates >= 2016
+# g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016
+#                                                                 | is.na(V(g.full)$founded_year)
+#                                                                 | V(g.full)$founded_year=='' ) ] )
+# g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
+# ## SIMPLIFY
+# g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
+#                            edge.attr.comb = list(weight='sum',
+#                                                  relation_began_on='min',
+#                                                  relation_ended_on='min'))
+# ## set default attrs for contractions
+# V(g.full)$orig.vid <- as.integer(V(g.full))
+# V(g.full)$weight <- 1
+# E(g.full)$weight <- 1
+# ## save
+# igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
+######################################################################################
+
+
 ## comptetition network
 ## 37828
 g.full <- read.graph('g_full.graphml', format='graphml')
-V(g.full)$orig.vid <- as.integer(V(g.full))
 
 ## add comp net vertex IDs to acquisitions dataframe
 gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), acquirer_name_unique=V(g.full)$name)
@@ -130,8 +152,10 @@ g.ego.m <- igraph::contract.vertices(g.ego, mem)
 g.ego.m <- igraph::simplify(g.ego.m,remove.multiple = T, remove.loops = T, edge.attr.comb = list(weight="sum"))
 plot(g.ego.m, edge.width=E(g.ego.m)$weight * .9, vertex.label=V(g.ego.m)$mem)
 
+##----------------------------------------------------------------------
+##_---------------------------------------------------------------------
 
-mem <- g.ego
+
 
 #plot activity:
 n=100
@@ -198,6 +222,7 @@ plot(g.ego, vertex.size=deg*4, vertex.label.cex=deg*.3)
 
 ## run main network period creation loop
 firms.todo <- 'ibm'
+i <- 1
 # for (i in 1:length(firms.todo)) {
   ## -- settings --
   d <- 2

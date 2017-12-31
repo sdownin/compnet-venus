@@ -414,8 +414,8 @@ getAcqCountsByPeriod <- function(acq, start, end, to.merge.df,
 ##
 makeGraph <- function(comp,vertdf,name='company_name_unique', 
                       compName='competitor_name_unique', 
-                      relationStartCol='relation_began_year',
-                      relationEndCol='relation_ended_year',
+                      relationStartCol='relation_began_on',
+                      relationEndCol='relation_ended_on',
                       vertAttrs=NA )
 {
   if(is.na(vertAttrs)) {
