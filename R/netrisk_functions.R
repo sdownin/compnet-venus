@@ -2624,31 +2624,44 @@ makePdNetworkTransfer <- function(g, start, end,
                           aquisitions=df(acquirer_name_unique=NA,acquiree_name_unique=NA,acquired_on=NA)
                           )
 {
+  ## start INCLUSIVE : end EXCLUSIVE
+  ## start <= {date} < end
   cat('collecting edges to remove...\n')
   vertAttrs <- igraph::list.vertex.attributes(g)
   edgeAttrs <- igraph::list.edge.attributes(g)
   inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
-  ##------------------ COLLECT EDGES TO REMOVE -----------
-  ## Get EDGES CREATED AT ___ to be removed
+  ##------------------ REMOVE EDGES ----------- 
+  ## REMOVE EDGES CREATED AT  >= end  (exclude end day)  OR UNKNOWN CREATED DATE
   if (edgeCreatedAttr %in% edgeAttrs) {
-    tmp <- network::get.edge.attribute(net, edgeCreatedAttr)
-    eids <- which(tmp > end)
+    tmp <- igraph::get.edge.attribute(g, edgeCreatedAttr) 
+    eids <- which(tmp >= end | tmp == "NA") ## created after OR unknown start
+    inactiveEdges <- c(inactiveEdges, eids) 
+  }  
+  ## REMOVE EDGES ENDED AT < start  AND ENDED AT DATE IS NOT UNKNOWN
+  if (edgeDeletedAttr %in% edgeAttrs) { 
+    tmp <- igraph::get.edge.attribute(g, edgeDeletedAttr)
+    eids <- which(tmp < start & tmp != "NA") ## created before AND not NA (NA means not yet ended)
     inactiveEdges <- c(inactiveEdges, eids)
   }
-  ##------------------ COLLECT VERTICES TO REMOVE ------- 
-  ##  REMOVE VERTICES founded_on > `end`
+  g <- igraph::delete.edges(g, inactiveEdges)
+  ##------------------ REMOVE VERTICES  ------- 
+  ##  REMOVE VERTICES founded_on >= END OR UNKONW FOUNDED ON DATE
   if(vertFoundedAttr %in% vertAttrs) {
-    tmp <- network::get.vertex.attribute(net, vertFoundedAttr)
-    vids <- which(tmp > end) #(g)[which(tmp > end)]
+    tmp <- igraph::get.vertex.attribute(g, vertFoundedAttr)
+    vids <- which(tmp >= end | tmp == "NA") #(g)[which(tmp > end)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
-  ##  REMOVE VERTICES closed_on < `start`
+  ##  REMOVE VERTICES closed_on < START AND CLOSED DATE IS NOT UNKOWN
   if(vertClosedAttr %in% vertAttrs) {
-    tmp <- network::get.vertex.attribute(net, vertClosedAttr)
-    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    tmp <- igraph::get.vertex.attribute(g, vertClosedAttr)
+    vids <- which(tmp < start & tmp != "NA")  # V(g)[which(tmp < start)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
-  # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
+  ## GET active VERTICES
+  activeVerts <- which( !(V(g) %in% inactiveVerts) )
+  ## SUBGRAPH OF ONLY ACTIVE VERTICES
+  g <- igraph::induced.subgraph(g, activeVerts)
+  # ##---------- INDUCE SUBGRAPH FOR ONLY NOT MISSING VERTICES -------
   el <- network::as.edgelist(net)
   inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
   inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))

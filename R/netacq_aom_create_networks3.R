@@ -96,7 +96,7 @@ head(cnt, 20)
 
 ## Check Acquisitions distribution by network distance included
 df.ego <- data.frame()
-name_i <- 'ibm'
+name_i <- 'google'
 for (d in 1:6) {
   g.ego <- igraph::make_ego_graph(graph = g.full, 
                                   nodes = V(g.full)[V(g.full)$name==name_i], 
@@ -112,8 +112,8 @@ for (d in 1:6) {
   ##
   df.tmp <- data.frame(d=d,v=vcount(g.ego),e=ecount(g.ego),
                        acq.src=nrow(acq.src),acq.src.trg=nrow(acq.src.trg),
-                       r.in.out=round(nrow(acq.src.trg)/(nrow(acq.src)+nrow(acq.src.trg)),
-                                      3))
+                       r.in.out=round(nrow(acq.src.trg)/(nrow(acq.src)+nrow(acq.src.trg)),3),
+                       first.comp=min(E(g.ego)$relation_began_on))
   df.ego <- rbind(df.ego, df.tmp)
 }; df.ego 
 
@@ -121,10 +121,14 @@ for (d in 1:6) {
 ## Make Ego Net to use
 ##_---------------------------------------------------------------------
 d <- 1
-name_i <- 'ibm'
+name_i <- 'yahoo'
 g.ego <- igraph::make_ego_graph(graph = g.full, 
                                 nodes = V(g.full)[V(g.full)$name==name_i], 
                                 order = d, mode = 'all')[[1]]
+print(c(v=vcount(g.ego),e=ecount(g.ego)))
+# print(c(range=range(E(g.ego)$relation_began_on)))
+## comp relations
+plyr::count(sapply(E(g.ego)$relation_began_on,function(x)year(ymd(x))))
 # g.ego <- induced.subgraph(g.ego, V(g.ego)[igraph::degree(g.ego)>1])
 mem <- igraph::multilevel.community(g.ego)$membership
 mem.cnt <- plyr::count(mem)
