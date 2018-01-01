@@ -195,21 +195,21 @@ burt4summary <- function(g.list, plotting=TRUE)
 getEgoGraphList <- function(graph.list, name, order=3, safe=TRUE)
 {
   if(!safe) 
-      return(sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name],mode = 'all'), simplify = T))    
-
+    return(sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name],mode = 'all'), simplify = T))    
+  
   out.list <- sapply(graph.list, function(g)igraph::make_ego_graph(g, order, V(g)[V(g)$name==name],mode = 'all'), simplify = T)
   for (i in 1:length(out.list)) {
-      g_i <- out.list[[i]]
-      if (length(g_i)==0)
-        out.list[[i]] <- NA
-      else if( class(g_i)=='igraph' )
-        out.list[[i]] <- g_i
-      else if ( class(g_i[[1]])=='igraph'  )
-        out.list[[i]] <- g_i[[1]]
-      else if ( class(g_i[[1]][[1]])=='igraph'  )
-        out.list[[i]] <- g_i[[1]][[1]]
-      else
-        out.list[[i]] <- NA
+    g_i <- out.list[[i]]
+    if (length(g_i)==0)
+      out.list[[i]] <- NA
+    else if( class(g_i)=='igraph' )
+      out.list[[i]] <- g_i
+    else if ( class(g_i[[1]])=='igraph'  )
+      out.list[[i]] <- g_i[[1]]
+    else if ( class(g_i[[1]][[1]])=='igraph'  )
+      out.list[[i]] <- g_i[[1]][[1]]
+    else
+      out.list[[i]] <- NA
   }
   return(out.list)
 }
@@ -332,8 +332,8 @@ getNetFromIgraph <- function(ig, add.vertex.name=FALSE, matrix.type='adjacency',
   net %v% 'id' <- seq_len(net$gal$n)
   
   if (vertex.pid.string %in% network::list.vertex.attributes(net))
-      net <- set.network.attribute(net, 'vertex.pid', vertex.pid.string)
-
+    net <- set.network.attribute(net, 'vertex.pid', vertex.pid.string)
+  
   ##---------------------------
   if (ecount(ig) != length(net$mel))
     stop(sprintf('igraph edges (%d) not equal to network edges (%d)', ecount(ig), length(net$mel)))
@@ -376,7 +376,7 @@ getMultiProdEgoNet <- function(g, firms, k=1, include.competitor.egonet=TRUE)
   v.subset <- V(g)[V(g)$name %in% firms]
   ## k-th order ego net of each company in set of {multi-product firms, direct competitors}
   if (include.competitor.egonet)
-      v.subset <- unique(c(v.subset, igraph::neighbors(g, v = v.subset, mode ='all')))
+    v.subset <- unique(c(v.subset, igraph::neighbors(g, v = v.subset, mode ='all')))
   ego.list <- igraph::ego(g, order=k, nodes=v.subset, mode='all', mindist = 0)
   nodes <- c(unlist(ego.list))
   output <- list(names=unique(names(nodes)), vids=unique(nodes))
@@ -432,9 +432,9 @@ plotCompNetAOM <- function(gs, membership=NA, competitors=NA, focal.firm=NA, is.
 #
 ##
 plotCompNetAOMequalSize <- function(gs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
-                           label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
-                           layout.algo=layout.fruchterman.reingold,margins=NA,
-                           seed=1111,  ...) 
+                                    label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                    layout.algo=layout.fruchterman.reingold,margins=NA,
+                                    seed=1111,  ...) 
 {
   if(all(is.na(margins)))
     margins <- c(.01,.01,.01,.01)
@@ -463,9 +463,9 @@ plotCompNetAOMequalSize <- function(gs, competitors=NA, focal.firm=NA, is.focal.
         # tmp.mem[which(V(gs)$mem==mem_i)] <- i        
       }
     }
-   tmp.mem <- membership
-   for (i in 1:length(l)) tmp.mem[l[[i]]$indices] <- l[[i]]$to.mem
-   V(gs)$mem <- membership <- tmp.mem
+    tmp.mem <- membership
+    for (i in 1:length(l)) tmp.mem[l[[i]]$indices] <- l[[i]]$to.mem
+    V(gs)$mem <- membership <- tmp.mem
   }
   ##
   ##
@@ -474,12 +474,12 @@ plotCompNetAOMequalSize <- function(gs, competitors=NA, focal.firm=NA, is.focal.
   ##
   if(!all(is.na(competitors)))
     #vertcol <- ifelse(V(gs)$name %in% competitors, rgb(.8,.2,.2,.9), vertcol)
-  ##
-  if(!all(is.na(focal.firm))) {
-    if(is.focal.color) 
-      vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
-    vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
-  }
+    ##
+    if(!all(is.na(focal.firm))) {
+      if(is.focal.color) 
+        vertcol <- ifelse(V(gs)$name %in% focal.firm, 'gray', vertcol )
+      vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 'circle' )
+    }
   ##
   if(is.na(vertex.scale)) 
     vertex.scale <- 100 * (1/vcount(gs)^.5)
@@ -510,9 +510,9 @@ plotCompNetAOMequalSize <- function(gs, competitors=NA, focal.firm=NA, is.focal.
 #
 ##
 plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
-                                    label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
-                                    layout.algo=layout.fruchterman.reingold,margins=NA,
-                                    seed=1111,  ...) 
+                                            label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                            layout.algo=layout.fruchterman.reingold,margins=NA,
+                                            seed=1111,  ...) 
 {
   if(all(is.na(margins)))
     margins <- c(.01,.01,.01,.01)
@@ -588,9 +588,9 @@ plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, i
 ##
 rm(plotCompNetColPredict)
 plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cutoff=.9, is.focal.color=TRUE, 
-                                    label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
-                                    layout.algo=layout.fruchterman.reingold, 
-                                    margins=NA, seed=1111,  ...) 
+                                  label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                  layout.algo=layout.fruchterman.reingold, 
+                                  margins=NA, seed=1111,  ...) 
 {
   gs <- igraph::induced.subgraph(gs, vids = V(gs)[which(igraph::degree(gs)>0)])
   if(all(is.na(margins)))
@@ -656,9 +656,9 @@ plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cuto
 #
 ##
 plotCompNetColRivals <- function(gs, probs, competitors=NA, focal.firm=NA, is.focal.color=TRUE, 
-                                  label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
-                                  layout.algo=layout.fruchterman.reingold,margins=NA,
-                                  seed=1111,  ...) 
+                                 label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
+                                 layout.algo=layout.fruchterman.reingold,margins=NA,
+                                 seed=1111,  ...) 
 {
   if(all(is.na(margins)))
     margins <- c(.01,.01,.01,.01)
@@ -918,7 +918,7 @@ plotCompNetColRivals <- function(gs, probs, competitors=NA, focal.firm=NA, is.fo
 plotCompNet <- function(gs, layout.algo, membership=NA, focal.firm=NA, focal.color=TRUE, multi.prod=NA, vertex.log.base=exp(1),label.log.base=10,margins=NA, seed=1111,...) 
 {
   if(all(is.na(margins)))
-      margins <- c(.1,.1,.1,.1)
+    margins <- c(.1,.1,.1,.1)
   ##
   par(mar=margins)
   d <- igraph::degree(gs)
@@ -935,7 +935,7 @@ plotCompNet <- function(gs, layout.algo, membership=NA, focal.firm=NA, focal.col
   ##
   if(!all(is.na(focal.firm))) {
     if(focal.color) 
-        vertcol <- ifelse(V(gs)$name %in% focal.firm, rgb(.15,.15,.7,.8), vertcol )
+      vertcol <- ifelse(V(gs)$name %in% focal.firm, rgb(.15,.15,.7,.8), vertcol )
     vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
   }
   ##
@@ -1008,10 +1008,10 @@ plotCompNetOneColor <- function(gs, vertex.color=NA, focal.firm=NA, focal.color=
   vertcol <-  rgb(.3,.3,.6,.4)
   if(!all(is.na(vertex.color)))
     vertcol <- vertex.color
-
+  
   if(!all(is.na(focal.firm))) {
     if(focal.color) 
-    vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
+      vertshape <- ifelse(V(gs)$name %in% focal.firm, 'square', 'circle' )
   }
   ##
   set.seed(1111)
@@ -1113,10 +1113,10 @@ getNetSizeChange <- function(l, showPlot=TRUE)
 # using attributes from an igraph object
 ##
 setPdActivity <- function(net, g, start, end, 
-                           pdAttr='founded_at',acquiredPdAttr='acquired_at',
-                           edgeCreatedAttr='relation_created_at',
-                           edgeClosedAttr='competitor_closed_on',
-                           edgeAcquiredAttr='acquired_at')
+                          pdAttr='founded_at',acquiredPdAttr='acquired_at',
+                          edgeCreatedAttr='relation_created_at',
+                          edgeClosedAttr='competitor_closed_on',
+                          edgeAcquiredAttr='acquired_at')
 {
   cat('collecting edges to filter...\n')
   vertexAttrs <- names(igraph::vertex.attributes(g))
@@ -1174,7 +1174,7 @@ setPdActivity <- function(net, g, start, end,
   ## set active edges
   net <- networkDynamic::activate.edges(x = net, onset = start, terminus = end, e = as.vector(activeEdges) )
   # net <- networkDynamic::activate.vertices(x = net, onset = start, terminus = end, v = as.vector(activeVerts) )
-
+  
   ## REturn dynamic network
   return(net)
 }
@@ -1212,19 +1212,19 @@ initNetworkDynamic <- function(net, start, end, create.TEAs=FALSE) {
 # using attributes from an igraph object
 ##
 updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
-                                              nd=NA,  # [[networkDynamic]]
-                                              start=NA, end=NA, 
-                                              lagStart=NA, lagEnd=NA,
-                                              vertActiveAttrs=c('category_list','city','country_code','state_code','region'),
-                                              edgeActiveAttrs=c('relation_began_on','relation_ended_on','weight'),
-                                              vertFoundedAttr='founded_year',
-                                              vertClosedAttr='closed_year',
-                                              vertAcquiredAttr='acquired_year',
-                                              edgeCreatedAttr='relation_began_on',
-                                              edgeRemovedAttr='relation_ended_on',
-                                              dynamic.only=TRUE,
-                                              deactivateVertices=FALSE,
-                                              acq=NA,rou=NA,br=NA,ipo=NA)
+                                                nd=NA,  # [[networkDynamic]]
+                                                start=NA, end=NA, 
+                                                lagStart=NA, lagEnd=NA,
+                                                vertActiveAttrs=c('category_list','city','country_code','state_code','region'),
+                                                edgeActiveAttrs=c('relation_began_on','relation_ended_on','weight'),
+                                                vertFoundedAttr='founded_year',
+                                                vertClosedAttr='closed_year',
+                                                vertAcquiredAttr='acquired_year',
+                                                edgeCreatedAttr='relation_began_on',
+                                                edgeRemovedAttr='relation_ended_on',
+                                                dynamic.only=TRUE,
+                                                deactivateVertices=FALSE,
+                                                acq=NA,rou=NA,br=NA,ipo=NA)
 {
   cat('collecting edges to remove...\n')
   vertAttrs <- network::list.vertex.attributes(net)
@@ -1264,7 +1264,7 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   # ## ---------------GET UNIQUE ACTIVE VERTICES ----------------
   activeVerts <- unique(  which(!(net %v% 'id' %in% inactiveVerts))  )
   if (deactivateVertices) {
-      nd <- networkDynamic::deactivate.vertices(x = nd, onset = start, terminus = end, v = inactiveVerts )
+    nd <- networkDynamic::deactivate.vertices(x = nd, onset = start, terminus = end, v = inactiveVerts )
   }
   nd <- networkDynamic::activate.vertices(x = nd, onset = start, terminus = end, v = activeVerts)
   # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
@@ -1331,7 +1331,7 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
   # 3. IPO STATUS -- VERTEX ATTRIBUTE
   prefix <- 'ipo_status'; cat('\ncomputing IPO status contact...\n')
   iposub <- ipo[which(ipo$company_name_unique %in% (net.t %v% 'vertex.names')
-                   & ipo$went_public_year < end), ]
+                      & ipo$went_public_year < end), ]
   val <- ifelse((net %v% 'vertex.names') %in% iposub$company_name_unique, 1, 0)
   pred[[prefix]] <- val
   activate.vertex.attribute(nd, prefix, val, v=seq_len(net.t$gal$n), onset=start, terminus = end, dynamic.only = dynamic.only)
@@ -1345,13 +1345,13 @@ updateNetworkDynamicPdActivateEdges <- function(net, # [[network]]
 # using attributes from an igraph object
 ##
 makeIgraphPdSubgraphKeepNA <- function(g, start, end, 
-                          vertFoundedAttr='founded_on',
-                          vertClosedAttr='closed_on',
-                          vertAcquiredAttr='acquired_on',
-                          edgeCreatedAttr='relation_began_on',
-                          edgeRemovedAttr='relation_ended_on',
-                          removeIsolates=TRUE,
-                          acq=NA,rou=NA,br=NA)
+                                       vertFoundedAttr='founded_on',
+                                       vertClosedAttr='closed_on',
+                                       vertAcquiredAttr='acquired_on',
+                                       edgeCreatedAttr='relation_began_on',
+                                       edgeRemovedAttr='relation_ended_on',
+                                       removeIsolates=TRUE,
+                                       acq=NA,rou=NA,br=NA)
 {
   tryCatch(cat(sprintf('\nmaking period %s-%s:\n', start,end)))
   vertAttrs <- names(igraph::vertex.attributes(g))
@@ -1840,13 +1840,13 @@ getPdActiveEdges <- function(net, g, start, end,
   ## initiate all active edges and verts
   # net <- networkDynamic::activate.edges(x = net, onset = start, terminus = end, e = seq_len(length(net$mel)) )
   # net <- networkDynamic::activate.vertices(x = net,onset = start,terminus = end, v = seq_len(length(net$gal$n)) )
-
+  
   ## set inactive edges
   net <- networkDynamic::deactivate.edges(x = net, onset = start, terminus = end, e = inactiveEdges)
   ## deactivate verts causes time range -Inf to Inf ??????????????
   
   # net <- networkDynamic::deactivate.vertices(x = net, onset = start, terminus = end, v = inactiveVerts)
-
+  
   ## REturn dynamic network
   return(net)
 }
@@ -1967,29 +1967,29 @@ distWeightReach <- function(g,
 distWeightReachPerNode <- function(g, mode='all')
 {
   D <- c()
-
+  
   # for one node
-
-    #find vertex subcomponent
-    vec <- subcomponent(graph = g,v = V(g)[k],mode = mode)
-    vec <- vec[order(vec)]
-    
-    d <- numeric(length(vec)-1)
-    #for each other vertex l in subcomponent of vertex k
-    for (l in 1:(length(vec))) {
-      # excluding when k=l (which would make -Inf length)
-      if (k!=vec[l]) {
-        # vertex path of geodesic from k to l
-        dp <-  unlist(get.shortest.paths(graph = g, from = k, to = vec[l],
-                                         mode=mode, weights=weights,
-                                         output="vpath")$vpath) #directed graph
-        # inverse of length of geodesic from k to l
-        #  -1 to subtract the origin vertex
-        d[l] <- 1 / ( length(dp)-1 )
-      }
-    } ## end other vertex l loop
-    D[k] <- sum(d)
-
+  
+  #find vertex subcomponent
+  vec <- subcomponent(graph = g,v = V(g)[k],mode = mode)
+  vec <- vec[order(vec)]
+  
+  d <- numeric(length(vec)-1)
+  #for each other vertex l in subcomponent of vertex k
+  for (l in 1:(length(vec))) {
+    # excluding when k=l (which would make -Inf length)
+    if (k!=vec[l]) {
+      # vertex path of geodesic from k to l
+      dp <-  unlist(get.shortest.paths(graph = g, from = k, to = vec[l],
+                                       mode=mode, weights=weights,
+                                       output="vpath")$vpath) #directed graph
+      # inverse of length of geodesic from k to l
+      #  -1 to subtract the origin vertex
+      d[l] <- 1 / ( length(dp)-1 )
+    }
+  } ## end other vertex l loop
+  D[k] <- sum(d)
+  
   R <- sum(D) / vcount(g)
   cat(sprintf('nodes %d edges %d reach: %.3f\n',vcount(g),ecount(g),R))
   return(R)
@@ -2379,7 +2379,7 @@ netRisk <- function(g,  community.type='multilevel.community',
         if ( i != j ) {
           el <- get.edgelist(g.sub, names=F)
           el.sub <- el[which( (el[,1] %in% V(npms[[i]]) & el[,2] %in% V(npms[[j]]))
-                          | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
+                              | (el[,1] %in% V(npms[[j]]) & el[,2] %in% V(npms[[i]])) ) ,  ]
           crossden_ij <- length(c(el.sub)) / (vcs[i] * vcs[j])
           cmd[i,j] <<- ifelse(length(crossden_ij)>0, crossden_ij, 0)  ## *BREAKS SCOPE*
         } else if ( i == j ) {
@@ -2612,25 +2612,26 @@ makePdNetwork <- function(net, start, end,
 }
 
 ##
-#  Makes period network (remove edges missing, transfer edges and apply node collapse on acquisitions)
-#  Follows Hernandez 2017  Node collapse
+# Makes period graph 
+# - remove missing edges and nodes
+# - transfers edges and apply node collapse on acquisitions
+# @see Hernandez & Menon 2017  Network Revolution
 ##
-makePdNetworkTransfer <- function(g, start, end, 
-                          edgeCreatedAttr='relation_began_on',
-                          edgeDeletedAttr='relation_ended_on',
-                          vertFoundedAttr='founded_on',
-                          vertClosedAttr='closed_on',
-                          vertAcquiredAttr='acquired_on',
-                          aquisitions=df(acquirer_name_unique=NA,acquiree_name_unique=NA,acquired_on=NA)
-                          )
+makePdGraph <- function(g, start, end,
+                        edgeCreatedAttr='relation_began_on',
+                        edgeDeletedAttr='relation_ended_on',
+                        vertFoundedAttr='founded_on',
+                        vertClosedAttr='closed_on',
+                        vertAcquiredAttr='acquired_on')
 {
+  if (class(g) != 'igraph') stop("g must be an igraph object")
   ## start INCLUSIVE : end EXCLUSIVE
   ## start <= {date} < end
-  cat('collecting edges to remove...\n')
   vertAttrs <- igraph::list.vertex.attributes(g)
   edgeAttrs <- igraph::list.edge.attributes(g)
   inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
   ##------------------ REMOVE EDGES ----------- 
+  cat('collecting edges to remove...')
   ## REMOVE EDGES CREATED AT  >= end  (exclude end day)  OR UNKNOWN CREATED DATE
   if (edgeCreatedAttr %in% edgeAttrs) {
     tmp <- igraph::get.edge.attribute(g, edgeCreatedAttr) 
@@ -2645,84 +2646,84 @@ makePdNetworkTransfer <- function(g, start, end,
   }
   g <- igraph::delete.edges(g, inactiveEdges)
   ##------------------ REMOVE VERTICES  ------- 
+  cat('done.\ncollecting vertices to remove...')
   ##  REMOVE VERTICES founded_on >= END OR UNKONW FOUNDED ON DATE
   if(vertFoundedAttr %in% vertAttrs) {
     tmp <- igraph::get.vertex.attribute(g, vertFoundedAttr)
-    vids <- which(tmp >= end | tmp == "NA") #(g)[which(tmp > end)]
+    vids <- which(tmp >= end | tmp == "NA") 
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ##  REMOVE VERTICES closed_on < START AND CLOSED DATE IS NOT UNKOWN
   if(vertClosedAttr %in% vertAttrs) {
     tmp <- igraph::get.vertex.attribute(g, vertClosedAttr)
-    vids <- which(tmp < start & tmp != "NA")  # V(g)[which(tmp < start)]
+    vids <- which(tmp < start & tmp != "NA")  
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ## GET active VERTICES
   activeVerts <- which( !(V(g) %in% inactiveVerts) )
   ## SUBGRAPH OF ONLY ACTIVE VERTICES
   g <- igraph::induced.subgraph(g, activeVerts)
-  # ##---------- INDUCE SUBGRAPH FOR ONLY NOT MISSING VERTICES -------
-  el <- network::as.edgelist(net)
-  inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
-  inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
-  ##------------- DELTE EDGES --------------------------------------
-  net <- network::delete.edges(net, inactiveEdges)
-  
-  ##  REMOVE VERTICES acquired_at < `start` ************************** <-- AQUISITION
+  ## remove isolates
+  g <- igraph::induced.subgraph(g,vids = which(igraph::degree(g)>0))
+  cat('done.\n')
+  return(g)
+}
 
-  # tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
-  # vids <- which( tmp < start )  # V(g)[which(tmp < start)]
-  # inactiveVerts <- unique( c(inactiveVerts, vids) )
-  ################################
-  # NOTE: add 'weight' and 'acquisitions' attributes to graph at start
-  ################################ 
-  g <- asIgraph(net)  ## convert in 
+##
+# Update Graph collapsing nodes by acquisitions mapping
+# NOTE: add 'weight' and 'acquisitions' attributes to graph before start
+#
+##
+nodeCollapseGraph <- function(g, acquisitions)
+{
+  if (class(g) != 'igraph') stop("g must be an igraph object")
+  if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
   ##--------------------- Acquisitions Mapping --------------------------
   ## acqs = c(1,4,3,3,1,4,...)
   ## {acquired} index --> {acquirer} acqs[index]  WHEN BOTH IN NETWORK
   acqs.sub <- acquisitions[which(acquisitions$acquirer_vid %in% V(g)$orig.vid
                                  & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
-  acqMapping <- V(g)$orig.vid
-  for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
-    acqr.i <- unique(acqs.sub$acquirer_vid)[i] ##  acquirer vid
-    acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid'] ## acquiree's vids
-    acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)] ## filter acquiree's vids to those in subgraph
-    if (length(acqe.vids) > 0) {
-      acqMapping[  which( V(g)$orig.vid %in% acqe.vids ) ] <- acqr.i  ## assign acquirer's vid to value in acquiree's spots
+  cat(sprintf('processing acquisitions: %s ...', nrow(acqs.sub)))
+  if (nrow(acqs.sub) > 0) {
+    acqMapping <- V(g)$orig.vid
+    for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
+      acqr.i <- unique(acqs.sub$acquirer_vid)[i] ##  acquirer vid
+      acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid'] ## acquiree's vids
+      acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)] ## filter acquiree's vids to those in subgraph
+      if (length(acqe.vids) > 0) {
+        acqMapping[  which( V(g)$orig.vid %in% acqe.vids ) ] <- acqr.i  ## assign acquirer's vid to value in acquiree's spots
+      } 
     } 
-  } 
-  ## change orig.vid to current subgraph vids (reindexing)
-  acqMappingSub <- sapply(acqMapping, function(x) as.integer(V(g)[which(x==V(g)$orig.vid)]) )
-  ##---------------------------------------------------------------------
-
-  ## build vertex attr comb list
-  vertex.attr.comb <- list(weight=function(x)sum(x),
+    ## change orig.vid to current subgraph vids (reindexing)
+    acqMappingSub <- sapply(acqMapping, function(x) as.integer(V(g)[which(x==V(g)$orig.vid)]) )
+    ##-------------- CONFIG GRAPH ATTRIBUTES COMBINATIONS ---------------------
+    ## build vertex attr comb list
+    vertex.attr.comb <- list(weight=function(x)sum(x),
                              tmp.name=function(x)x[1],
                              tmp.orig.vid=function(x)x[1],
-                             absorbed=function(x)paste(x,collapse="|")
-                        ) ## paste(x,collapse="|")
-  attrs <- igraph::list.vertex.attributes(g)
-  skipAttrs <- c('name','weight',names(vertex.attr.comb))
-  for (attr in attrs[which(!(attrs %in% skipAttrs))]) {
+                             absorbed=function(x)paste(x,collapse="|") ) ## paste(x,collapse="|")
+    attrs <- igraph::list.vertex.attributes(g)
+    skipAttrs <- c('name','weight',names(vertex.attr.comb))
+    for (attr in attrs[which(!(attrs %in% skipAttrs))]) {
       vertex.attr.comb[[attr]] <- function(x)paste(unique(x),collapse="|")
+    }
+    ## temporary attrs used to concat in mapping
+    V(g)$absorbed <- V(g)$name
+    V(g)$tmp.name <- V(g)$name[acqMappingSub]
+    V(g)$tmp.orig.vid <- V(g)$orig.vid[acqMappingSub]
+    ##---------------------- COLLAPSE NODES ---------------------------------
+    g.acq <- igraph::contract.vertices(g, acqMappingSub, vertex.attr.comb=vertex.attr.comb)
+    ## remove nodes that were acquired (had no remaining edges : degree=0)
+    g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0))
+    V(g.acq)$name <- V(g.acq)$tmp.name
+    V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
+    ## contract edges
+    edge.attr.comb = list(weight="sum",relation_began_on="min",relation_ended_on="min")
+    g.acq.s <- igraph::simplify(g.acq, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
+  } else {
+    g.acq.s <- g
   }
-  ## temporary attrs used to concat in mapping
-  V(g)$absorbed <- V(g)$name
-  V(g)$tmp.name <- V(g)$name[acqMappingSub]
-  V(g)$tmp.orig.vid <- V(g)$orig.vid[acqMappingSub]
-  ## apply acquisition mapping contraction
-  g.acq <- igraph::contract.vertices(g, acqMappingSub 
-                                     , vertex.attr.comb = vertex.attr.comb
-                                     )
-  ## remove nodes that were acquired (had no remaining edges : degree=0)
-  g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0))
-  V(g.acq)$name <- V(g.acq)$tmp.name
-  V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
-  ## contract edges
-  g.acq.s <- igraph::simplify(g.acq, remove.multiple = T, remove.loops = T, 
-                              edge.attr.comb =  list(weight="sum"))
-  
-  ##
+  cat('done.\n')
   return(g.acq.s)
 }
 
@@ -2826,9 +2827,9 @@ generalistIndex <- function(g, memberships)
 ##
 setCovariates <- function(net, start, end, 
                           covlist=c('age','mmc','dist','similarity','ipo_status','centrality','generalist'),
-                        downweight.env.risk=FALSE,
-                        netRiskCommunityAlgo='multilevel.community',
-                        acq=NA,rou=NA,br=NA,ipo=NA)
+                          downweight.env.risk=FALSE,
+                          netRiskCommunityAlgo='multilevel.community',
+                          acq=NA,rou=NA,br=NA,ipo=NA)
 { 
   if( network::network.edgecount(net) > 0 ) {
     g.net <- getIgraphFromNet(net)
@@ -2925,7 +2926,7 @@ setCovariates <- function(net, start, end,
       pcn0.3 <- tryCatch(tmpn0.3<- igraph::power_centrality(g.net,exp=-0.3), error = function(e)e)
       pcn0.4 <- tryCatch(tmpn0.4<- igraph::power_centrality(g.net,exp=-0.4), error = function(e)e)
       pcn0.5 <- tryCatch(tmpn0.5<- igraph::power_centrality(g.net,exp=-0.5), error = function(e)e)
-
+      
       if (!inherits(pcn0.0, "error")) net %v% 'cent_pow_n0_0' <- pcn0.0
       if (!inherits(pcn0.1, "error")) net %v% 'cent_pow_n0_1' <- pcn0.1
       if (!inherits(pcn0.2, "error")) net %v% 'cent_pow_n0_2' <- pcn0.2

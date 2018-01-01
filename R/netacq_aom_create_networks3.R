@@ -120,7 +120,7 @@ for (d in 1:6) {
 ##----------------------------------------------------------------------
 ## Make Ego Net to use
 ##_---------------------------------------------------------------------
-d <- 1
+d <- 2
 name_i <- 'yahoo'
 g.ego <- igraph::make_ego_graph(graph = g.full, 
                                 nodes = V(g.full)[V(g.full)$name==name_i], 
@@ -170,54 +170,88 @@ plot(x,y,pch=16); abline(h=y)
 
 
 
-# Top Acquirers:         x  freq
-# 5343              Google  204
-# 2656               Cisco  197
-# 8070           Microsoft  186
-# 6040                 IBM  170
-# 13985             Yahoo!  120
-# 9234  Oracle Corporation  113
-# 5779     Hewlett-Packard   99
-# 941                Apple   82
-# 6449               Intel   82
-# 9435     Parker Hannifin   74
-# 4093                 EMC   73
-# 890                  AOL   68
-# 712               Amazon   66
-# 48                    3M   65
-# 4528            Facebook   64
-# 11968           Symantec   60
-# 3923                eBay   59
-# 1338               Avnet   54
-# 12908            Twitter   48
-# 1596  Berkshire Hathaway   46
-
-## Competition Network (d=2) Size:
-# apple      1101 2187
-# google     2100 4598
-# IBM         828 1710 
-# Microsoft  1873 3925
-# cisco       220  406
-# oracle     1248 2456
-
-## FIND FOCAL FIRM 
-name_i <- 'cisco'
-d <- 2
-
-g.ego <- igraph::make_ego_graph(graph = g.full, 
-                                nodes = V(g.full)[V(g.full)$name==name_i], 
-                                order = d, mode = 'all')[[1]]
-g.ego
-
-par(mar=c(.1,.1,.1,.1))
-deg=log(1+igraph::degree(g.ego))
-plot(g.ego, vertex.size=deg*4, vertex.label.cex=deg*.3)
+# # Top Acquirers:         x  freq
+# # 5343              Google  204
+# # 2656               Cisco  197
+# # 8070           Microsoft  186
+# # 6040                 IBM  170
+# # 13985             Yahoo!  120
+# # 9234  Oracle Corporation  113
+# # 5779     Hewlett-Packard   99
+# # 941                Apple   82
+# # 6449               Intel   82
+# # 9435     Parker Hannifin   74
+# # 4093                 EMC   73
+# # 890                  AOL   68
+# # 712               Amazon   66
+# # 48                    3M   65
+# # 4528            Facebook   64
+# # 11968           Symantec   60
+# # 3923                eBay   59
+# # 1338               Avnet   54
+# # 12908            Twitter   48
+# # 1596  Berkshire Hathaway   46
+# 
+# ## Competition Network (d=2) Size:
+# # apple      1101 2187
+# # google     2100 4598
+# # IBM         828 1710 
+# # Microsoft  1873 3925
+# # cisco       220  406
+# # oracle     1248 2456
+# 
+# ## FIND FOCAL FIRM 
+# name_i <- 'cisco'
+# d <- 2
+# 
+# g.ego <- igraph::make_ego_graph(graph = g.full, 
+#                                 nodes = V(g.full)[V(g.full)$name==name_i], 
+#                                 order = d, mode = 'all')[[1]]
+# g.ego
+# 
+# par(mar=c(.1,.1,.1,.1))
+# deg=log(1+igraph::degree(g.ego))
+# plot(g.ego, vertex.size=deg*4, vertex.label.cex=deg*.3)
 
 ##--------------------------------------------------------------
 ##--------------------------------------------------------------
 ##--------- CREATE FIRM NETWORK PERIOD LISTS  ------------------
 ##--------------------------------------------------------------
 ##--------------------------------------------------------------
+
+
+name_i <- 'yahoo'
+d <- 2
+times <- sapply(2011:2016, function(x)paste0(x,'-01-01'))
+
+g.ego <- igraph::make_ego_graph(graph = g.full, 
+                                nodes = V(g.full)[V(g.full)$name==name_i], 
+                                order = d, mode = 'all')[[1]]
+for (i in 2:length(times)) {
+  start <- times[i-1]
+  end <- times[i]
+  ## make period graph
+  g.ego.pd <-   makePdGraph(g.ego, start, end)
+  ## filter acquisitions made by firms in this period graph
+  acq.src <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.ego.pd)$name), ]
+  ## filter acquisitions made during this period
+  acq.src.pd <- acq.src[which(acq.src$acquired_on >= start & acq.src$acquired_on < end) , ]
+  df.pd <- data.frame()
+  for (j in 1:nrow(acqs.src.pd)) {
+    g.ego.pd.j <- nodeCollapseGraph(g.ego.pd, acq.src.pd)
+    df.tmp <- data.frame()
+    df.pd <- rbind(df.pd, df.tmp)
+  }
+}
+
+
+
+
+
+
+
+
+
 
 # ## cache original
 # firm.nets.orig <- firm.nets
