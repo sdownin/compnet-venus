@@ -41,6 +41,8 @@ source(file.path(getwd(),'R','cb_data_prep.R'))
 # igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
 ######################################################################################
 
+## SORT CO_ACQ BY acquisition date
+co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 ## comptetition network
 ## 37828
@@ -220,105 +222,94 @@ plot(x,y,pch=16); abline(h=y)
 ##--------------------------------------------------------------
 
 
-name_i <- 'google'
+name_i <- 'ibm'
 d <- 2
-times <- sapply(2013:2016, function(x)paste0(x,'-01-01'))
+times <- sapply(2014:2017, function(x)paste0(x,'-01-01'))
 
 g.ego <- igraph::make_ego_graph(graph = g.full, 
                                 nodes = V(g.full)[V(g.full)$name==name_i], 
                                 order = d, mode = 'all')[[1]]
+sapply(2:length(times), function(i){gi=makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
+
 ## YEAR PERIODS: DEFINE NICHE CLUSTERS
+l.mmc <- list()
+df.mmc <- data.frame()
+df.rem <- data.frame()
+lidx <- 0
+timeval <- timeval.last <- 0
+
 for (i in 2:length(times)) {
   start <- times[i-1]
   end <- times[i]
   ## make period graph
-  g.ego.pd <-   makePdGraph(g.ego, start, end)
+  g.pd <- makePdGraph(g.ego, start, end, isolates.remove=TRUE)
+  g.pd.orig <- g.pd
   ## period NC
-  V(g.ego.pd)$nc <- igraph::multilevel.community(g.ego.pd)$membership
+  V(g.pd)$nc <- as.integer(igraph::multilevel.community(g.pd)$membership)
   ## filter acquisitions made by firms in this period graph
-  acq.src <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.ego.pd)$name), ]
+  acq.src <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.pd)$name), ]
   ## filter acquisitions made during this period
   acq.src.pd <- acq.src[which(acq.src$acquired_on >= start & acq.src$acquired_on < end) , ]
-  ## INITIAL FM MMC
-  V(g.ego.pd)$fm.mmc <- fmMmc(g.ego.pd.j, 'nc')
-  df.pd <- data.frame(fm.mmc=V(g.ego.pd)$fm.mmc, 
-                      nc=V(g.ego.pd)$nc)
+  acq.src.pd <- acq.src.pd[order(acq.src.pd$acquired_on, decreasing = F), ]
+  
   ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
-  for (j in 1:nrow(acqs.src.pd)) {
-    g.ego.pd.j <- nodeCollapseGraph(g.ego.pd, acq.src.pd[j,])
-    V(g.ego.pd.j)$fm.mmc <- fmMmc(g.ego.pd.j, V(g.ego.pd.j)$nc)
-    df.tmp <- data.frame(fm.mmc=V(g.ego.pd.j)$fm.mmc, 
-                         nc=V(g.ego.pd.j)$nc)
-    df.pd <- rbind(df.pd, df.tmp)
+  for (j in 1:nrow(acq.src.pd)) {
+    cat(sprintf('\n\nstart %s end %s : acquisition %s\n\n',start,end,j))
+    lidx <- lidx + 1
+    ## Update MMC after acquisition
+    l.mmc[[lidx]] <- getFmMmc(g.pd, as.integer(V(g.pd)$nc))
+    ## SUM FM MMC over markets  ??????
+    V(g.pd)$fm.mmc.sum <- rowSums(l.mmc[[lidx]])
+    V(g.pd)$num.mkts <- apply(l.mmc[[lidx]],MARGIN=1,FUN=function(x){
+      return(length(x[x>0]))
+    })
+    ## save current data in dataframe
+    df.pd <- data.frame(fm.mmc.sum=V(g.pd)$fm.mmc.sum, 
+                        num.mkts=V(g.pd)$num.mkts,
+                        nc=V(g.pd)$nc)
+    df.mmc <- rbind(df.mmc, df.pd)
+    ## GET REM DATAFRAME VARS
+    xi.orig.vid <- acq.src.pd$acquirer_vid[j]
+    xj.orig.vid <- acq.src.pd$acquiree_vid[j]
+    xi <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.pd$acquirer_name_unique[j]])
+    xi.nc <- as.integer(V(g.pd)$nc[xi])
+    xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
+    xi.num.mkts <-  V(g.pd)$num.mkts[xi]
+    xi.deg <- igraph::degree(g.pd)[xi]
+    xi.pow <- igraph::power_centrality(g.pd, exponent = -0.5)[xi]
+    xj <- as.integer(V(g.pd)[V(g.pd)$orig.vid==xj.orig.vid])
+    xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd)$nc[xj] )
+    xj.mmc.sum <- ifelse(length(xj)==0,NA,  V(g.pd)$fm.mmc.sum[xj] )
+    xj.num.mkts <- ifelse(length(xj)==0,NA,  V(g.pd)$num.mkts[xj] )
+    xj.deg <- ifelse(length(xj)==0,NA,  igraph::degree(g.pd)[xj] )
+    xj.pow <- ifelse(length(xj)==0,NA,  igraph::power_centrality(g.pd, exponent = -0.5)[xj] )
+    src <- ifelse(length(acq.src.pd$acquirer_name_unique[j])>0, 
+                  acq.src.pd$acquirer_name_unique[j], NA)
+    trg <- ifelse(length(acq.src.pd$acquiree_name_unique[j])>0, 
+                  acq.src.pd$acquiree_name_unique[j], NA)
+    datestr <- acq.src.pd$acquired_on[j]
+    timeval <- as.integer(ymd(datestr))
+    timeval <- ifelse(timeval == timeval.last, timeval + 0.01, timeval)
+    timeval.last <- timeval
+    # MAKE REM DATAFRAME
+    df.rem.pd <- data.frame(t=timeval, src=src, trg=trg, 
+                            time=datestr, idx=lidx,
+                            i.orig.vid=xi.orig.vid,
+                            j.orig.vid=xj.orig.vid,
+                            i=xi, 
+                            i.nc=xi.nc, i.mmc.sum=xi.mmc.sum, i.num.mkts=xi.num.mkts, 
+                            i.deg=xi.deg,i.pow=xi.pow,
+                            j=ifelse(length(xj)==0,NA,xj), 
+                            j.nc=xj.nc, j.mmc.sum=xj.mmc.sum, j.num.mkts=xj.num.mkts, 
+                            j.deg=xj.deg, j.pow=xj.pow
+    )
+    df.rem <- rbind(df.rem, df.rem.pd)
+    ## NODE COLLAPSE update network
+    g.pd <- nodeCollapseGraph(g.pd, acq.src.pd[j,])
   }
-}
-
-fmMmc <- function(g, membership)
-{
   
 }
 
-markets <- unique(membership)
-markets <- markets[order(markets)]
-adj <- igraph::as_adjacency_matrix(g, sparse = F)
-
-#### 1. 
-## Create [Firm x Market] incidence matrix
-## markets of each firm (which markets they are in based on NC membership of their rivals)
-df.ms <- ldply(1:nrow(adj), function(i){
-  i.nbr <- unname(which( adj[i, ] == 1 ))  ## rivals (neighbors in the network) ## i.nbr <- as.integer(igraph::neighbors(g, V(g)[i]))  
-  i.ms <- unique(membership[i.nbr])  ## markets of firm i (the markets of the rivals of firm i)
-  i.ms.row <- rep(0, length(markets)) ## dummy row for [Firm x Market] matrix
-  i.ms.row[ i.ms ] <- 1 ## assign [Firm x Market] matrix row value to 1
-  names(i.ms.row) <- sapply(1:length(markets),function(x)paste0('m',x))
-  return(i.ms.row)
-})
-## convert df to matrix
-m.ms <- as.matrix(df.ms)
-
-#### 2. 
-## Create [Firm x Firm] MMC matrix (each M[i,j] = count of markets in contact)
-m.mmc <- m.ms %*% t(m.ms)
-## set diagonals to 0 (firms don't compete with themselves)
-diag(m.mmc) <- 0
-
-#### 3. 
-## Get MMC competitors list {j} for each firm i (the competitors with which they have MMC)
-js <- lapply(1:nrow(m.mmc), FUN = function(i)which(m.mmc[i, ] > 1))
-
-#### 4. 
-## numerator computation:  Sum_m{Sum_j{D_imt * D_jmt}}
-numerator <- ldply(1:nrow(df.ms), function(i){
-  tmp <- rep(0, ncol(df.ms))
-  ## firm i market indices
-  i.ms <- which(df.ms[i,] > 0)
-  ## comps j in markets m that i is in 
-  js.i.ms <- df.ms[ js[[i]] , i.ms ]
-  if (length(js.i.ms) > 0) {
-    ## the MMC counts of compj in each market that j is in & i is in
-    js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
-    js.i.ms.sum <- colSums(js.i.ms.cnt) 
-    ## assign the MMC iteraction sums in i's markets with js who are MMC comps
-    tmp[ i.ms ] <- js.i.ms.sum
-  }
-  return(tmp)
-})
-
-numerator <- ldply(1:nrow(df.ms), function(i){
-  tmp <- rep(0, ncol(df.ms))
-  ## firm i market indices
-  i.ms <- which(df.ms[i,] > 0)
-  ## comps j in markets m that i is in 
-  js.i.ms <- df.ms[ js[[i]] , i.ms ]
-  if (length(js.i.ms) > 0) {
-    ## the MMC counts of compj in each market that j is in & i is in
-    js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
-    js.i.ms.sum <- colSums(js.i.ms.cnt) 
-    ## assign the MMC iteraction sums in i's markets with js who are MMC comps
-    tmp[ i.ms ] <- js.i.ms.sum
-  }
-  return(tmp)
-})
 
 ##
 ##
@@ -329,89 +320,6 @@ numerator <- ldply(1:nrow(df.ms), function(i){
 
 
 
-
-
-
-#### 4. 
-## NUMERATOR
-## 
-numerator <- sapply(1:nrow(m.mmc), FUN=function(i){
-  i.sum.j.m <- sum(m.mmc[ i , js[[i]] ]) # firm j in market m subset (where j is a MMC firm for i)
-  return(i.sum.j.m)
-})
-# numerator.i <- ldply(1:nrow(df.ms), function(i){
-#   ## rows are firms j that have MMC to firm i
-#   ## cols are markets i is in
-#   jm.sub <- df.ms[ js[[i]] , which(df.ms[i, ] == 1) ] # firm j in market m subset (where j is a MMC firm for i)
-#   return(sum(jm.sub))
-# })
-
-#### 4. 
-## N_MMC[t] term: 
-## number of firms j that contact i in market m that are multimarket contacts
-denominator <- ldply(1:nrow(df.ms), function(i){
-  ## sum over markets (cols)
-  tmp <- df.ms[ js[[i]] , which(df.ms[i, ] == 1) ]
-  return(ifelse(nrow(tmp)==0, 0, rowSums(tmp)))
-})
-## sum over markets m (columns) to compute denominator
-sum_m_D_imt.N_mmc <- rowSums(D_imt.N_mmc)
-
-#### 5.
-## sum MM interactions (numerator of equation)
-sum.ijm <- ldply(1:nrow(df.ms), function(i){
-  f.m.mmc <- df.ms[ c(i, js[[i]]), ]
-  f.m.mmc.s <-  colSums(f.m.mmc)
-  
-})
-
-
-## [Firm x Market] MMC
-fm.mmc <- ldply(1:nrow(adj), function(i){
-  return(sapply(1:ncol(adj), function(j){
-    if ( i == j | !(j %in% js[[i]]) ) {
-      return(0); ## if j not MM competitor (or is i), then zero
-    } else {
-      
-    }
-  }))
-})
-
-
-## competitors j of firm i who have multimarket contact
-
-
-
-
-## list of competitors
-i.m.comp <- lapply(1:length(markets), function(m) {
-  m.co <- which(membership == markets[m])      ## firms in market m
-  i.nbr.m <- i.nbr[ which(i.nbr %in% m.co) ]   ## rivals who are in market m
-  return(i.nbr.m)
-})
-
-
-# n <- vcount(g)
-# markets <- unique(membership)
-# # adj <- igraph::as_adjacency_matrix(g, sparse = F)
-# for (j in 1:(n-1)) {
-#   for (i in (j+1):n) {  ## lower triangle, columnwise (loop over rows per column)
-#     if (i != j) {
-#       ## rivals (neighbors in the network)
-#       i.nbr <- as.integer(igraph::neighbors(g, V(g)[i]))
-#       j.nbr <- as.integer(igraph::neighbors(g, V(g)[j]))
-#       # i.ncs <- which(membership == V(g)$nc[i])
-#       # j.ncs <- which(membership == V(g)$nc[j])
-#       for (m in 1:length(markets)) {
-#         ## m'th market member firms
-#         m.co <- which(membership == markets[m])
-#         ## rivals in market m
-#         i.nbr.m <- i.nbr[ which(i.nbr %in% m.co) ]
-#         j.nbr.m <- j.nbr[ which(j.nbr %in% m.co) ]
-#       }
-#     }
-#   }
-# }
 
 
 
@@ -433,73 +341,73 @@ i.m.comp <- lapply(1:length(markets), function(m) {
 firms.todo <- 'ibm'
 i <- 1
 # for (i in 1:length(firms.todo)) {
-  ## -- settings --
-  d <- 2
-  yrpd <- 1
-  startYr <- 2007
-  endYr <- 2017
-  ## --------------
-  name_i <- firms.todo[i]
-  cat(sprintf('\n---------%s----------\n',name_i))
-  periods <- seq(startYr,endYr,yrpd)
-  company.name <- 'company_name_unique'
-  verbose <- TRUE
-  #
-  #g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
-  g.base <- g.full
-  g.k.sub <- igraph::make_ego_graph(graph = g.base, 
-                                    nodes = V(g.full)[V(g.full)$name==name_i], 
-                                    order = d, mode = 'all')[[1]]
-  net.k.sub <- asNetwork(g.k.sub)
-  net.k.sub %n% 'ego' <- name_i
-  net <- net.k.sub
-  #----------------Network List-------------------
-  nl <- list()
-  for (t in 2:length(periods)) {
-    cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
-    tmp.net <- makePdNetworkTransfer(net.k.sub,
-                                    start=periods[t-1], end=periods[t])
-    nl[[t]] <- setCovariates(tmp.net, periods[t-1], periods[t],
-                             netRiskCommunityAlgo='multilevel.community',
-                             downweight.env.risk=FALSE,
-                             acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
-  }
-  nl.bak <- nl
-  nl <- nl[which(sapply(nl, length)>0)]
-  names(nl) <- periods[2:length(periods)]
-  ## ---------- add LAGS ----------------
-  for (t in 2:length(nl)) {
-    nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
-    nl[[t]] %n% 'dist_lag' <- nl[[t-1]] %n% 'dist'
-    ##-------------------------------------------
-    # nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
-    # nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
-    # nl[[t]] %v% 'genidx_multilevel_lag' <- nl[[t-1]] %v% 'genidx_multilevel'
-    # nl[[t]] %v% 'cent_pow_n0_5_lag' <- nl[[t-1]] %v% 'cent_pow_n0_5'
-    # nl[[t]] %v% 'cent_pow_n0_1_lag' <- nl[[t-1]] %v% 'cent_pow_n0_1'
-    # nl[[t]] %v% 'cent_eig_lag' <- nl[[t-1]] %v% 'cent_eig'
-    # nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
-    # g.tmp <- getIgraphFromNet(nl[[t]])
-    # if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
-    #   nl[[t]] %v% 'constraint' <- igraph::constraint(g.tmp)
-    # }
-  }
-  ##--------------- GET TERGM NETS LIST -----------
-  ## only nets with edges > 0
-  nets.all <- nl[2:length(nl)]
-  nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
-  #-------------------------------------------------
-  
-  # ## SAVE variable in image
-  # # firm.nl <- list()
-  # firm.nets[[net_group]][[name_i]] <- nets
-  
-  # ## CAREFUL TO OVERWRITE
-  # file.name <- sprintf('tergm_firm_nets_1yr_6pd_v4_%s.rds',net_group)
-  # saveRDS(firm.nets, file=file.name)
-  ## CAREFUL TO OVERWRITE
-  saveRDS(nets, file=sprintf('firm_nets_cem/%s_d%s.rds', name_i, d))
-  gc()
+## -- settings --
+d <- 2
+yrpd <- 1
+startYr <- 2007
+endYr <- 2017
+## --------------
+name_i <- firms.todo[i]
+cat(sprintf('\n---------%s----------\n',name_i))
+periods <- seq(startYr,endYr,yrpd)
+company.name <- 'company_name_unique'
+verbose <- TRUE
+#
+#g.base <- igraph::make_ego_graph(g.full,order=k,nodes=V(g.full)[V(g.full)$name=='surveymonkey'])[[1]]
+g.base <- g.full
+g.k.sub <- igraph::make_ego_graph(graph = g.base, 
+                                  nodes = V(g.full)[V(g.full)$name==name_i], 
+                                  order = d, mode = 'all')[[1]]
+net.k.sub <- asNetwork(g.k.sub)
+net.k.sub %n% 'ego' <- name_i
+net <- net.k.sub
+#----------------Network List-------------------
+nl <- list()
+for (t in 2:length(periods)) {
+  cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
+  tmp.net <- makePdNetworkTransfer(net.k.sub,
+                                   start=periods[t-1], end=periods[t])
+  nl[[t]] <- setCovariates(tmp.net, periods[t-1], periods[t],
+                           netRiskCommunityAlgo='multilevel.community',
+                           downweight.env.risk=FALSE,
+                           acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
+}
+nl.bak <- nl
+nl <- nl[which(sapply(nl, length)>0)]
+names(nl) <- periods[2:length(periods)]
+## ---------- add LAGS ----------------
+for (t in 2:length(nl)) {
+  nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
+  nl[[t]] %n% 'dist_lag' <- nl[[t-1]] %n% 'dist'
+  ##-------------------------------------------
+  # nl[[t]] %v% 'net_risk_lag' <- nl[[t-1]] %v% 'net_risk'
+  # nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
+  # nl[[t]] %v% 'genidx_multilevel_lag' <- nl[[t-1]] %v% 'genidx_multilevel'
+  # nl[[t]] %v% 'cent_pow_n0_5_lag' <- nl[[t-1]] %v% 'cent_pow_n0_5'
+  # nl[[t]] %v% 'cent_pow_n0_1_lag' <- nl[[t-1]] %v% 'cent_pow_n0_1'
+  # nl[[t]] %v% 'cent_eig_lag' <- nl[[t-1]] %v% 'cent_eig'
+  # nl[[t]] %v% 'cent_deg_lag' <- nl[[t-1]] %v% 'cent_deg'
+  # g.tmp <- getIgraphFromNet(nl[[t]])
+  # if (vcount(g.tmp)>0 & ecount(g.tmp)>0) {
+  #   nl[[t]] %v% 'constraint' <- igraph::constraint(g.tmp)
+  # }
+}
+##--------------- GET TERGM NETS LIST -----------
+## only nets with edges > 0
+nets.all <- nl[2:length(nl)]
+nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
+#-------------------------------------------------
+
+# ## SAVE variable in image
+# # firm.nl <- list()
+# firm.nets[[net_group]][[name_i]] <- nets
+
+# ## CAREFUL TO OVERWRITE
+# file.name <- sprintf('tergm_firm_nets_1yr_6pd_v4_%s.rds',net_group)
+# saveRDS(firm.nets, file=file.name)
+## CAREFUL TO OVERWRITE
+saveRDS(nets, file=sprintf('firm_nets_cem/%s_d%s.rds', name_i, d))
+gc()
 }
 
 

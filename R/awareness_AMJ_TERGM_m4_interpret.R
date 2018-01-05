@@ -167,7 +167,7 @@ for (x in 1:6) {
   dfl <- rbind(dfl, tmp)
 }
 dfl$d0 <- dfl$d
-dfl$d <- sapply(dfl$d,function(x)ifelse(as.character(x) %in% c('1','2','3','4'), x, '5-8,Inf'))
+dfl$d <- sapply(dfl$d,function(x)ifelse(as.character(x) %in% c('1','2','3','4'), x, '5+'))
 dfl <- na.omit(dfl)
 dfl$year <- as.factor(dfl$year)
 dfl$d <- as.factor(dfl$d)
@@ -177,12 +177,15 @@ dfl2 <-
   dfl[dfl$d != 0 & dfl$d !='0', ] %>%
   group_by(d) %>%
   mutate(outlier = log10(p) > median(log10(p)) + IQR(log10(p)) * 2, 
+         low.otl = log10(p) < median(log10(p)) - IQR(log10(p)) * 2,
          aware = p > quantile(p, .785),
          period= ifelse(year %in% c('2014','2015','2016'),'2014-16','2011-13'),
-         Period= ifelse(year %in% c('2015','2016'),'2015-16',ifelse(year %in% c('2013','2014'),'2013-14','2011-12'))) %>%
+         Period= ifelse(year %in% c('2015','2016'),'2015-16',
+                        ifelse(year %in% c('2013','2014'),'2013-14','2011-12'))) %>%
   ungroup
 dfl2$period <- factor(dfl2$period, levels = c("2014-16", "2011-13"))
 dfl2$aware.all <- sapply(dfl2$p, function(x) x > 0.00596)
+
 
 dfl2 <- dfl2[ dfl2$year != "2016" | dfl2$d != Inf, ]
 
@@ -190,35 +193,52 @@ dfl2 <- dfl2[ dfl2$year != "2016" | dfl2$d != Inf, ]
 dfl3 <- dfl2[dfl2$year %in% c('2011','2012','2013','2014','2015','2016'), ]
 dfl3 <- dfl3[ dfl3$d != Inf | dfl3$year != '2016' ,]
 ggplot(dfl3) + aes(x = d, y = p) +
-  geom_boxplot(fill='gray', outlier.shape = NA) +
-  geom_point(pch=16, col=rgb(0.105, 0.247, 0.074), alpha=.9, lwd=2, position = 'jitter',
-             data=function(x)dplyr::filter_(x, ~ outlier)) +
+  geom_point(pch=16, col=rgb(0.105, 0.247, 0.074), 
+             data=function(x)dplyr::filter_(x, ~ outlier),
+             alpha=.9, lwd=2, position = 'jitter') +
   scale_fill_manual(values=c("#999999", "#ffffff", 'steelblue')) +
   scale_y_log10() + 
-  ylab("Conditional Probability of Tie (i,j)") +
-  xlab("Competitive Distance (i,j)") + 
+  ylab("Conditional Probability of Competitive Encounter") +
+  xlab("Competitive Distance") + 
   # ggtitle("Competitive Distance and Competition Formation (2011-2016)") +
   theme_bw()
-ggsave('qualtrics_microinter_pij_by_distances_outliers_1_opaque.png', 
+ggsave('qualtrics_microinter_pij_by_distances_outliers_2_opaque.png', 
        width = 5.5, height=5.5, units = 'in', dpi=200)
 
 ## NEW PLOT AWARENESS SET
 dfl3 <- dfl2[dfl2$year %in% c('2011','2012','2013','2014','2015','2016'), ]
 dfl3 <- dfl3[ dfl3$d != Inf | dfl3$year != '2016' ,]
 ggplot(dfl3) + aes(x = d, y = p) +
-  # geom_point(pch=1, col='black', alpha=.8, lwd=2, position = 'jitter',
-  #            data=function(x)dplyr::filter_(x, ~ (!aware.all))) +
   geom_point(pch=16, col='darkred', alpha=.8, lwd=2, position = 'jitter',
              data=function(x)dplyr::filter_(x, ~ (aware.all ))) +
-  geom_boxplot(fill=rgb(.5,.5,.5,.8), outlier.shape = NA) +
   scale_fill_manual(values=c("#999999", "#ffffff", 'steelblue')) +
-  scale_y_log10() + 
-  ylab("Conditional Probability of Tie (i,j)") +
+  scale_y_log10(c(0.099,1.001)) + 
+  ylab("Conditional Probability of Competitive Encounter") +
   xlab("Competitive Distance (i,j)") + 
   # ggtitle("Competitive Distance and Competition Formation (2011-2016)") +
   theme_bw()
 ggsave('qualtrics_microinter_pij_by_distances_outliers_2_opaque_5-8Inf.png', 
        width = 5.5, height=5.5, units = 'in', dpi=200)
+
+
+## NEW PLOT AWARENESS SET
+dfl3 <- dfl2[dfl2$year %in% c('2011','2012','2013','2014','2015','2016'), ]
+dfl3 <- dfl3[ dfl3$d != Inf | dfl3$year != '2016' ,]
+set.seed(269957)
+ggplot(dfl3) + aes(x = d, y = log(p)) +
+  # geom_point(pch=16, col='darkred', alpha=.8, lwd=2, position = 'jitter',
+  #            data=function(x)dplyr::filter_(x, ~ (aware.all ))) +
+  geom_jitter(width = 0.3, height = 0, pch=16, col='red', alpha=.8, lwd=2,
+              data=function(x)dplyr::filter_(x, ~ (aware.all & !low.otl))) +
+  scale_fill_manual(values=c("#999999", "#ffffff", 'steelblue')) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Competitive Distance") + 
+  ylim(-5.2,1.5) +
+  # coord_trans(y="log10") +
+  theme_bw() 
+ggsave('qualtrics_microinter_pij_by_distances_outliers_3_logprob_5plus.png', 
+       width = 5.5, height=5.5, units = 'in', dpi=200)
+
 # 
 # ## SUBSET group by  YEAR
 # dfl3 <- dfl2[dfl2$year %in% c('2013','2014','2015','2016'), ]
@@ -296,42 +316,49 @@ dev.off()
 
 ##-------------------- PLOT NETWORK in 2016 ----------------------------
 cutoff <- .8
+# quant <- 0.00596
 
 nbr.idx <- as.numeric(igraph::neighbors(gLatest, v=ego.j)) 
 nbr.name <- names(igraph::neighbors(gLatest, v=ego.j)) 
 # awares <- which(df4.pij$t6 > quantile(df4.pij$t6, cutoff, na.rm = T)  &  !(df4.pij$i %in% nbr.idx) ) 
-awares <- which(df4.pij$t6 > quantile(df4.pij$t6, cutoff, na.rm = T)) 
+awares <- which(df4.pij$t6 > quant) 
 #awares <- which( df4.pij$i %in% nbr.idx ) 
 df4.pij$t6[which(df4.pij$t6 <= 1e-6 )] <- 1e-3 
 
 
-## plot 1 x 2 probabilities and network
-png('tergm_pij_cem_qualtrics_winlocal_2016_scatter_graph_rivals.png', height=5, width = 10, units = 'in', res = 250)
-    plot(density(log(df4.pij$t6))); par(xpd=F) ;abline(v=-5.1 )
-    cat(sprintf("n > q: %s", length(df4.pij$t6[df4.pij$t6 > quantile(df4.pij$t6, .8)])))
-    ##  
-    png('qualtrics_microinterp_ln_prob_index_two_color_narrow.png', height=6.5, width=3.5, units='in', res = 200)
-      par(mfrow=c(1,1), mar=c(4.2,4.2,1,1))
-      plot(log(df4.pij$t6), 
-           ylab='Ln Probability of Tie (i,j)', xlab='Firm Index',
-           col=sapply(1:N,function(x)ifelse(x %in% awares, 'darkred', rgb(.3,.3,.3,1))), 
-           pch=sapply(1:N,function(x)ifelse(x %in% awares, 16, 1))
-           # pch=16 #sapply(1:N,function(x)ifelse(x %in% awares, 16, 1)),
-           # log='y'
-           )
-    dev.off()
-    # col2 <- c(rgb(.7,.7,.7,.6), 'darkred')  ## (low,  high)
-    # text(awares, log(df4.pij$t6[awares]), pos = 3,
-    #      labels = V(gLatest)$name[awares],
-    #      col='darkred', cex=.7)
-    ##
-    png('qualtrics_microinterp_ln_prob_two_color_NETWORK.png', height=8.5, width=8.5, units='in', res = 200)
-      par(mar=c(.1,.1,.1,.1), mfrow=c(1,1))
-      plotCompNetColPredict(gLatest, df4.pij$t6, focal.firm = 'qualtrics', cutoff=cutoff, layout.algo = layout.fruchterman.reingold )
-    dev.off()
-    # plotCompNetColPredict(gLatest, df4.pij$t6, focal.firm = 'qualtrics', cutoff=cutoff, layout.algo = layout.kamada.kawai )
-    #plotCompNetColRivals(gLatest, df4.pij$t6, focal.firm = 'clarabridge' )
+png('qualtrics_microinterp_ln_prob_two_color_lightred_NETWORK.png', height=8.5, width=8.5, units='in', res = 200)
+  par(mar=c(.1,.1,.1,.1), mfrow=c(1,1))
+  plotCompNetColPredict(gLatest, df4.pij$t6, focal.firm = 'qualtrics', cutoff=cutoff, layout.algo = layout.fruchterman.reingold )
 dev.off()
+
+
+# ## plot 1 x 2 probabilities and network
+# png('tergm_pij_cem_qualtrics_winlocal_2016_scatter_graph_rivals_lightred.png', height=5, width = 10, units = 'in', res = 250)
+#     plot(density(log(df4.pij$t6))); par(xpd=F) ;abline(v=-5.1 )
+#     cat(sprintf("n > q: %s", length(df4.pij$t6[df4.pij$t6 > quantile(df4.pij$t6, .8)])))
+#     ##  
+#     png('qualtrics_microinterp_ln_prob_index_two_color_narrow.png', height=6.5, width=3.5, units='in', res = 200)
+#       par(mfrow=c(1,1), mar=c(4.2,4.2,1,1))
+#       plot(log(df4.pij$t6), 
+#            ylab='Ln Probability of Tie (i,j)', xlab='Firm Index',
+#            col=sapply(1:N,function(x)ifelse(x %in% awares, 'darkred', rgb(.3,.3,.3,1))), 
+#            pch=sapply(1:N,function(x)ifelse(x %in% awares, 16, 1))
+#            # pch=16 #sapply(1:N,function(x)ifelse(x %in% awares, 16, 1)),
+#            # log='y'
+#            )
+#     dev.off()
+#     # col2 <- c(rgb(.7,.7,.7,.6), 'darkred')  ## (low,  high)
+#     # text(awares, log(df4.pij$t6[awares]), pos = 3,
+#     #      labels = V(gLatest)$name[awares],
+#     #      col='darkred', cex=.7)
+#     ##
+#     png('qualtrics_microinterp_ln_prob_two_color_lightred_NETWORK.png', height=8.5, width=8.5, units='in', res = 200)
+#       par(mar=c(.1,.1,.1,.1), mfrow=c(1,1))
+#       plotCompNetColPredict(gLatest, df4.pij$t6, focal.firm = 'qualtrics', cutoff=cutoff, layout.algo = layout.fruchterman.reingold )
+#     dev.off()
+#     # plotCompNetColPredict(gLatest, df4.pij$t6, focal.firm = 'qualtrics', cutoff=cutoff, layout.algo = layout.kamada.kawai )
+#     #plotCompNetColRivals(gLatest, df4.pij$t6, focal.firm = 'clarabridge' )
+# dev.off()
 
 ## Side histograph of probabilities 
 png('tergm_pij_cem_qualtrics_winlocal_2016_hist.png', height=3.5, width = 6, units = 'in', res = 250)

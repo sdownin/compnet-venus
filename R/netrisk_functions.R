@@ -599,7 +599,7 @@ plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cuto
   par(mar=margins)
   d <- igraph::degree(gs)
   vertshape <- rep('circle',vcount(gs))
-  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  vertcol <-  'white'#rgb(.9,.9,.9,.4)
   ##
   ## HANDLE SAME COLORS FOR COMPETITORS
   ##
@@ -611,9 +611,9 @@ plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cuto
   # plot(logprobs, col=vertcol,pch=15)
   ## color
   # col2 <- rev(heat.colors(2))
-  col2 <- c(rgb(.7,.7,.7,.6), 'darkred')  ## (low,  high)
+  col2 <- c(NA, 'red')  ## (low,  high)
   vertcol <- ifelse(logprobs > quantile(logprobs,cutoff), col2[2], col2[1] )
-  vertcol[which(V(gs)$name==focal.firm)] <- '#1b1e60' ##rgb(.05,.05,.17,0)
+  vertcol[which(V(gs)$name==focal.firm)] <- 'blue' ##rgb(.05,.05,.17,0)
   ## shape
   high.aware.idx <- which(logprobs > quantile(logprobs,cutoff))
   vertshape <- ifelse(V(gs)$name %in% c(focal.firm,competitors), 'square', 
@@ -666,7 +666,7 @@ plotCompNetColRivals <- function(gs, probs, competitors=NA, focal.firm=NA, is.fo
   par(mar=margins)
   d <- igraph::degree(gs)
   vertshape <- rep('circle',vcount(gs))
-  vertcol <-  'gray'#rgb(.9,.9,.9,.4)
+  vertcol <-  'white' #rgb(.9,.9,.9,.4)
   ##
   ## HANDLE SAME COLORS FOR COMPETITORS
   ##
@@ -2618,6 +2618,7 @@ makePdNetwork <- function(net, start, end,
 # @see Hernandez & Menon 2017  Network Revolution
 ##
 makePdGraph <- function(g, start, end,
+                        isolates.remove = FALSE,
                         edgeCreatedAttr='relation_began_on',
                         edgeDeletedAttr='relation_ended_on',
                         vertFoundedAttr='founded_on',
@@ -2635,12 +2636,14 @@ makePdGraph <- function(g, start, end,
   ## REMOVE EDGES CREATED AT  >= end  (exclude end day)  OR UNKNOWN CREATED DATE
   if (edgeCreatedAttr %in% edgeAttrs) {
     tmp <- igraph::get.edge.attribute(g, edgeCreatedAttr) 
-    eids <- which(tmp >= end | tmp == "NA") ## created after OR unknown start
+    # eids <- which(tmp >= end | tmp == "NA") ## created after OR unknown start
+    eids <- which(tmp >= end & tmp != "NA") ## created after OR unknown start
     inactiveEdges <- c(inactiveEdges, eids) 
   }  
   ## REMOVE EDGES ENDED AT < start  AND ENDED AT DATE IS NOT UNKNOWN
   if (edgeDeletedAttr %in% edgeAttrs) { 
     tmp <- igraph::get.edge.attribute(g, edgeDeletedAttr)
+    # eids <- which(tmp < start & tmp != "NA") ## created before AND not NA (NA means not yet ended)
     eids <- which(tmp < start & tmp != "NA") ## created before AND not NA (NA means not yet ended)
     inactiveEdges <- c(inactiveEdges, eids)
   }
@@ -2650,7 +2653,8 @@ makePdGraph <- function(g, start, end,
   ##  REMOVE VERTICES founded_on >= END OR UNKONW FOUNDED ON DATE
   if(vertFoundedAttr %in% vertAttrs) {
     tmp <- igraph::get.vertex.attribute(g, vertFoundedAttr)
-    vids <- which(tmp >= end | tmp == "NA") 
+    # vids <- which(tmp >= end | tmp == "NA") 
+    vids <- which(tmp >= end & tmp != "NA") 
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ##  REMOVE VERTICES closed_on < START AND CLOSED DATE IS NOT UNKOWN
@@ -2664,7 +2668,8 @@ makePdGraph <- function(g, start, end,
   ## SUBGRAPH OF ONLY ACTIVE VERTICES
   g <- igraph::induced.subgraph(g, activeVerts)
   ## remove isolates
-  g <- igraph::induced.subgraph(g,vids = which(igraph::degree(g)>0))
+  if (isolates.remove)
+      g <- igraph::induced.subgraph(g,vids = which(igraph::degree(g)>0))
   cat('done.\n')
   return(g)
 }
@@ -2726,6 +2731,107 @@ nodeCollapseGraph <- function(g, acquisitions)
   cat('done.\n')
   return(g.acq.s)
 }
+
+##
+# Computes the firm-to-market MMC for firms in 
+# competition network 'g' with niche clusters defined in 'memberships'
+#
+# @param {igraph} g                 The competition network igraph object
+# @param {array int[]} membership   The niche cluster memberships
+#
+# @return {data.frame float[N x M]} The FM-MMC values in [0,1] for N firms,  M markets
+##
+getFmMmc <- function(g, membership)
+{
+  cat('computing firm-to-maret MMC...\n')
+  markets <- unique(membership)
+  markets <- markets[order(markets)]
+  adj <- igraph::as_adjacency_matrix(g, sparse = F)
+  cat('create firm-market incidence matrix...')
+  #### 1. 
+  ## Create [Firm x Market] incidence matrix
+  ## markets of each firm (which markets they are in based on NC membership of their rivals)
+  df.ms <- ldply(1:nrow(adj), function(i){
+    i.nbr <- unname(which( adj[i, ] == 1 ))  ## rivals (neighbors in the network) ## i.nbr <- as.integer(igraph::neighbors(g, V(g)[i]))  
+    i.ms <- unique(membership[i.nbr])  ## markets of firm i (the markets of the rivals of firm i)
+    i.ms.row <- rep(0, length(markets)) ## dummy row for [Firm x Market] matrix
+    i.ms.row[ i.ms ] <- 1 ## assign [Firm x Market] matrix row value to 1
+    names(i.ms.row) <- sapply(1:length(markets),function(x)paste0('m',x))
+    return(i.ms.row)
+  })
+  ## convert df to matrix
+  m.ms <- as.matrix(df.ms)
+  cat('done.\n')
+  
+  cat('create firm-firm MMC sum matrix...')
+  #### 2. 
+  ## Create [Firm x Firm] MMC matrix (each M[i,j] = count of markets in contact)
+  m.mmc <- m.ms %*% t(m.ms)
+  ## set diagonals to 0 (firms don't compete with themselves)
+  diag(m.mmc) <- 0
+  cat('done.\n')
+  
+  cat('collecting MMC firms j...')
+  #### 3. 
+  ## Get MMC competitors list {j} for each firm i (the competitors with which they have MMC)
+  js <- lapply(1:nrow(m.mmc), FUN = function(i)which(m.mmc[i, ] > 1))
+  cat('done.\n')
+  
+  cat('computing FM-MMC numerator...')
+  #### 4. 
+  ## numerator computation:  Sum_m{Sum_j{D_imt * D_jmt}}
+  numerator <- ldply(1:nrow(df.ms), function(i){
+    tmp <- rep(0, ncol(df.ms))
+    ## firm i market indices
+    i.ms <- which(df.ms[i,] > 0)
+    ## comps j in markets m that i is in 
+    js.i.ms <- df.ms[ js[[i]] , i.ms ]
+    if (length(js.i.ms) > 0) {
+      ## the MMC counts of compj in each market that j is in & i is in
+      js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
+      js.i.ms.sum <- colSums(js.i.ms.cnt) 
+      ## assign the MMC iteraction sums in i's markets with js who are MMC comps
+      tmp[ i.ms ] <- js.i.ms.sum
+    }
+    return(tmp)
+  })
+  cat('done.\n')
+  
+  cat('computing FM-MMC denominator...')
+  #### 5. 
+  ## denominator computation:  Sum_m{D_imt * N_mmc_t}
+  denominator <- ldply(1:nrow(df.ms), function(i){
+    tmp <- rep(0, ncol(df.ms))
+    ## firm i market indices
+    i.ms <- which(df.ms[i,] > 0)
+    D_imt <- length(i.ms)
+    ## comps j in markets m that i is in 
+    js.i.ms <- df.ms[ js[[i]] , i.ms ]
+    if (length(js.i.ms) > 0) {
+      ## the MMC counts of compj in each market m that j is in & i is in
+      js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
+      N.mmc.m <- apply(js.i.ms.cnt, MARGIN = 2, FUN = function(x){
+        return( length(x[x > 0]) * D_imt )
+      })
+      ## assign the MMC iteraction sums in i's markets with js who are MMC comps
+      tmp[ i.ms ] <- N.mmc.m
+    }
+    return(tmp)
+  })
+  cat('done.\n')
+  
+  cat('computing elementwise FM-MMC...')
+  #### 6. 
+  ## compute FM-MMC elementwise by component dfs
+  fm.mmc <- numerator / denominator
+  m.fm.mmc <- as.matrix(fm.mmc)
+  ## replace  NA/NaN from dividing by 0
+  m.fm.mmc[(is.na(m.fm.mmc) | is.nan(m.fm.mmc))] <- 0
+  cat('done.\n')
+  ## return dataframe
+  return(as.data.frame(m.fm.mmc))
+}
+
 
 ##
 # Computes the Generalist (vs Specialist) Index
