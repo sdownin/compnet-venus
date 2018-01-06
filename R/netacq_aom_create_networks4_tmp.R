@@ -11,8 +11,6 @@ library(lattice, quietly = T)
 library(latticeExtra, quietly = T)
 library(ggplot2, quietly = T)
 library(reshape2)
-library(relevent)
-library(informR)
 
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
 ## FUNCTIONS
@@ -338,31 +336,23 @@ ar.cov <- array(dim=c(m,p,n))
     ## NODE COLLAPSE update network
     g.pd <- nodeCollapseGraph(g.pd, acq.src.pd[j,])
     
-    if (lidx %% 30 == 0) {
+    if (lidx %% 10 == 0) {
       saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = "acquisitions_rem_covs.rds")
       saveRDS(l, file = "acquisitions_cov_list.rds")
-      saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = "acquisitions_verts_df.rds")
-      
     }
   }
   
-  saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = "acquisitions_rem_covs.rds")
-  saveRDS(l, file = "acquisitions_cov_list.rds")
   saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = "acquisitions_verts_df.rds")
 
-  
-  
 #-----------------------------------------------------------------------
-l1 <- readRDS("acquisitions_verts_df.rds")
-l2 <- readRDS("acquisitions_rem_covs.rds")
-l3 <- readRDS("acquisitions_cov_list.rds")
-df.verts <- l1$df.verts
-acq.src.allpd <- l1$acq.src.allpd
-df.rem <- l2$df.rem
-ar.cov <- l2$ar.cov
-df.verts.pd.cov <- l3[[1]]$cov
-#----------------------- RELATIONAL EVENT MODEL ------------------------
-
+  l1 <- readRDS("acquisitions_verts_df.rds")
+  l2 <- readRDS("acquisitions_rem_covs.rds")
+  l3 <- readRDS("acquisitions_cov_list.rds")
+  df.verts <- l1$df.verts
+  acq.src.allpd <- l1$acq.src.allpd
+  df.rem <- l2$df.rem
+  ar.cov <- l2$ar.cov
+  df.verts.pd.cov <- l3[[1]]$cov
 #----------------------- RELATIONAL EVENT MODEL ------------------------
 
 # rem.dyad(edgelist, n, effects = NULL, ordinal = TRUE, acl = NULL,
@@ -424,7 +414,7 @@ rawevents1 <- cbind(ev.types, as.character(df.rem$i.nc))
 evls1 <- gen.evl(rawevents1)
 alpha.ints1 <- gen.intercepts(evls1, basecat = 'diverge-global') ## 2= local
 
-alpha.fit1 <- rem(eventlist = evls1, statslist = alpha.ints1, 
+alpha.fit1 <- rem.dyad(edgelist = , 
                  estimator = "BPM", prior.param = list(mu = 0, sigma = 100 , nu = 4))
 summary(alpha.fit1)
 
@@ -439,69 +429,63 @@ beta.sforms <- gen.sformlist(evls, a1)
 #   t.f = sapply(df.rem$trg, function(x)df.verts$id[which(x==df.verts$name)]),
 #   stringsAsFactors = F
 # )
-# el <- data.frame(
-#   t = df.rem$t,
-#   s.f = sapply(acq.src.allpd$acquirer_name_unique, function(x)df.verts$id[which(x==df.verts$name)]),
-#   t.f = sapply(acq.src.allpd$acquiree_name_unique, function(x)df.verts$id[which(x==df.verts$name)]),
-#   stringsAsFactors = F
-# )
+acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on), ]
+ts <- sapply(acq.src.allpd$acquired_on, function(x)as.numeric(ymd(x)))
+el <- data.frame(
+  t = 1:nrow(acq.src.allpd),
+  s.f = sapply(acq.src.allpd$acquirer_name_unique, function(x)df.verts$id[which(x==df.verts$name)]),
+  t.f = sapply(acq.src.allpd$acquiree_name_unique, function(x)df.verts$id[which(x==df.verts$name)]),
+  stringsAsFactors = F
+)
+effects <- c('FESnd', 'CovSnd')
+ar.cov.na0 <- ar.cov[, 2, ]
+ar.cov.na0[is.na(ar.cov.na0)] <- 0
+covar <- list(CovSnd=ar.cov)
+fit.rem <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = FALSE, covar = covar)
+
+#---------------------------------------------------------------------------
+
+
 # acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on), ]
 # ts <- sapply(acq.src.allpd$acquired_on, function(x)as.numeric(ymd(x)))
-el <- data.frame(
-  t = df.rem$t,
-  s.f = sapply(as.character(df.rem$src), function(x)df.verts$id[which(x==df.verts$name)]),
-  t.f = sapply(as.character(df.rem$trg), function(x)df.verts$id[which(x==df.verts$name)]),
-  stringsAsFactors = F
-)
-effects <- c('NODSnd', 'CovSnd', 'PSAB-XA','PSAB-XY','PSAB-AY')
-ar.cov.na0 <- ar.cov
-ar.cov.na0[is.na(ar.cov.na0)] <- 0
-covar <- list(CovSnd=ar.cov.na0)
-fit.rem.bpm.1 <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = T, 
-                    covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
-summary(fit.rem.bpm.1)
-saveRDS(list(fit.rem.bpm.1=fit.rem.bpm.1), file = "acquisitions_fit_rem_245.rds")
 
-screenreg(list(fit.rem.bpm.1), digits=3, 
-          custom.coef.names = c('Acquisition Experience', 'FM-MMC','FM-MMC Squared',
-                                'Num. Markets','Degree Centrality','Power Centrality'))
-
-
-#---------------------------------------------------------------------------------------------
-
-el <- data.frame(
-  t = df.rem$t,
-  s.f = sapply(as.character(df.rem$src), function(x)df.verts$id[which(x==df.verts$name)]),
-  t.f = sapply(as.character(df.rem$trg), function(x)df.verts$id[which(x==df.verts$name)]),
-  stringsAsFactors = F
-)
-
-effects <- c('NODSnd', 'CovSnd', 'CovRec', 'PSA0-X0','PSAB-A0')
+nlim <- 100
 ##
+df.rem.pd <- df.rem[1:nlim,]
+acq.src.allpd.tmp <- acq.src.allpd[1:nlim,]
+df.verts.tmp <- df.verts[which(df.verts$name %in% 
+                                 c(acq.src.allpd.tmp$acquirer_name_unique, acq.src.allpd.tmp$acquiree_name_unique)), ]
+df.verts.tmp$id <- 1:nrow(df.verts.tmp)
+##
+el <- data.frame(
+  t = df.rem.pd$t,
+  s.f = sapply(acq.src.allpd.tmp$acquirer_name_unique, function(x)df.verts.tmp$id[which(x==df.verts.tmp$name)]),
+  t.f = sapply(acq.src.allpd.tmp$acquiree_name_unique, function(x)df.verts.tmp$id[which(x==df.verts.tmp$name)]),
+  stringsAsFactors = F
+)
+##
+effects <- c('NODSnd','CovSnd','CovRec')
+##
+tmp.idx <- which(df.verts.pd.cov$name %in% df.verts.tmp$name)
+ar.cov.na0 <- ar.cov[1:nlim, 1:5, tmp.idx ]
+ar.cov.na0[is.na(ar.cov.na0)] <- 0
+##
+ar.cov.rec <- array(dim=c(nrow(df.verts.tmp),nrow(df.verts.tmp),2))
 tmp.nc <- data.frame(name=df.rem$src,nc=df.rem$i.nc)
 tmp.nc <- unique(rbind(tmp.nc, data.frame(name=df.rem$trg,nc=df.rem$j.nc)))
-df.nc <- merge(df.verts, tmp.nc, by='name', all.x = T, all.y=F)
+df.nc <- merge(df.verts.tmp, tmp.nc, by='name', all.x = T, all.y=F)
 df.nc[is.na(df.nc)] <- 9999
-m.nc <- as.matrix(dist(df.nc$nc, method = 'manhattan',diag = T, upper = T))
+m.nc <- dist(df.nc, method = 'manhattan',diag = T, upper = T)
 m.nc[m.nc > 0] <- -99 ## mark diff nc
 m.nc[m.nc == 0] <- 1  ## set same nc to 1
 m.nc[m.nc < 0] <- 0   ## set diff nc to 0
+ar.cov.rec[,,1] <- as.matrix(m.nc)
+m.ego <- 
+## 
 CovRec <- m.nc
-##
-ar.cov.na0 <- ar.cov
-ar.cov.na0[is.na(ar.cov.na0)] <- 0
-##
 covar <- list(CovSnd=ar.cov.na0, CovRec=CovRec)
-fit.rem.bpm.2 <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
-                    covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
-summary(fit.rem.bpm.2)
-saveRDS(list(fit.rem.bpm.1=fit.rem.bpm.1,fit.rem.bpm.2=fit.rem.bpm.2), file = "acquisitions_fit_rem_rec_ps_245.rds")
-#---------------------------------------------------------------------------
-
-fit.rem <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = T, 
-                    covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
-
-
+fit.rem.bpm.2 <- rem.dyad(edgelist = el, n = nrow(df.verts.tmp), effects = effects, ordinal = T, 
+                          covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
 
 
 

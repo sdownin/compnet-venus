@@ -586,7 +586,7 @@ plotCompNetAOMequalSizeRefLabel <- function(gs, competitors=NA, focal.firm=NA, i
 ##
 #
 ##
-rm(plotCompNetColPredict)
+# rm(plotCompNetColPredict)
 plotCompNetColPredict <- function(gs, probs, competitors=NA, focal.firm=NA, cutoff=.9, is.focal.color=TRUE, 
                                   label.scale=NA, vertex.scale=NA, rcolors=c('gray'),
                                   layout.algo=layout.fruchterman.reingold, 
