@@ -224,8 +224,8 @@ plot(x,y,pch=16); abline(h=y)
 ##--------------------------------------------------------------
 
 
-name_i <- 'ibm'
-d <- 2
+name_i <- 'dell'
+d <- 3
 times <- sapply(2014:2017, function(x)paste0(x,'-01-01'))
 
 g.ego <- igraph::make_ego_graph(graph = g.full,
@@ -243,11 +243,17 @@ timeval <- timeval.last <- 0
 ## all event vertices
 acq.src <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.ego)$name), ]
 acq.src.allpd <- acq.src[which(acq.src$acquired_on >= times[1] & acq.src$acquired_on < times[length(times)]) , ]
-acq.verts <- unique(c(as.character(acq.src.allpd$acquirer_name_unique), 
-                                      as.character(acq.src.allpd$acquiree_name_unique)))
+## check number of acquisitions to counts
+acq.src.trg.allpd <- acq.src.allpd[which(acq.src.allpd$acquirer_name_unique %in% V(g.ego)$name 
+                                       & acq.src.allpd$acquiree_name_unique %in% V(g.ego)$name), ]
+dim(acq.src.trg.allpd)
+## get all verts in the period (first either acquired or acquirer)
+acq.verts <- unique(c(as.character(acq.src.trg.allpd$acquirer_name_unique), 
+                      as.character(acq.src.trg.allpd$acquiree_name_unique)))
 df.verts <- data.frame(id=1:length(acq.verts), name=acq.verts, stringsAsFactors = F)
-p <- 13 ## i.mmc, i.mmc^2, num.mkts, deg, power
-m <- nrow(acq.src.allpd)
+##
+p <- 15 ## i.mmc, i.mmc^2, num.mkts, deg, power
+m <- nrow(acq.src.trg.allpd)
 n <- nrow(df.verts)
 ar.cov <- array(dim=c(m,p,n))
     
@@ -267,118 +273,130 @@ ar.cov <- array(dim=c(m,p,n))
   acq.src.pd <- acq.src.pd[order(acq.src.pd$acquired_on, decreasing = F), ]
   
   ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
-  for (j in 1:nrow(acq.src.pd)) {
+  for (j in 1:nrow(acq.src.allpd)) {
     cat(sprintf('\n\nstart %s end %s : acquisition %s\n\n',start,end,j))
-    lidx <- lidx + 1
-    l[[lidx]] <- list()
-    ## Update MMC after acquisition
-    l[[lidx]]$mmc <- getFmMmc(g.pd, as.integer(V(g.pd)$nc))
-
-    ## SUM FM MMC over markets  ??????
-    V(g.pd)$fm.mmc.sum <- rowSums(l[[lidx]]$mmc)
-    V(g.pd)$num.mkts <- apply(l[[lidx]]$mmc,MARGIN=1,FUN=function(x){
-      return(length(x[x>0]))
-    })
-    ## save current data in dataframe
-    df.pd <- data.frame(fm.mmc.sum=V(g.pd)$fm.mmc.sum, 
-                        num.mkts=V(g.pd)$num.mkts,
-                        nc=V(g.pd)$nc)
-    df.mmc <- rbind(df.mmc, df.pd)
-    ## GET REM DATAFRAME VARS
-    xi.orig.vid <- acq.src.pd$acquirer_vid[j]
-    xj.orig.vid <- acq.src.pd$acquiree_vid[j]
-    xi <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.pd$acquirer_name_unique[j]])
-    xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.pd$acquirer_name_unique[j]])
-    xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
-    xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
-    xi.num.mkts <-  V(g.pd)$num.mkts[xi]
-    xi.deg <- igraph::degree(g.pd)[xi]
-    xi.pow <- igraph::power_centrality(g.pd, exponent = -0.5)[xi]
-    ##
-    xj <- as.integer(V(g.pd)[V(g.pd)$orig.vid==xj.orig.vid])
-    xj.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid])
-    xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
-    xj.mmc.sum <- ifelse(length(xj)==0,NA,  V(g.pd)$fm.mmc.sum[xj] )
-    xj.num.mkts <- ifelse(length(xj)==0,NA,  V(g.pd)$num.mkts[xj] )
-    xj.deg <- ifelse(length(xj)==0,NA,  igraph::degree(g.pd)[xj] )
-    xj.pow <- ifelse(length(xj)==0,NA,  igraph::power_centrality(g.pd, exponent = -0.5)[xj] )
-    src <- ifelse(length(acq.src.pd$acquirer_name_unique[j])>0, 
-                  acq.src.pd$acquirer_name_unique[j], NA)
-    trg <- ifelse(length(acq.src.pd$acquiree_name_unique[j])>0, 
-                  acq.src.pd$acquiree_name_unique[j], NA)
-    datestr <- acq.src.pd$acquired_on[j]
-    timeval.last <- timeval
-    timeval <- as.integer(ymd(datestr))
-    timeval <- ifelse(timeval%in%df.rem$t, timeval.last + 0.01, timeval)
-    # MAKE REM DATAFRAME
-    df.rem.pd <- data.frame(t=timeval, src=src, trg=trg, 
-                            time=datestr, idx=lidx,
-                            i.orig.vid=xi.orig.vid,
-                            j.orig.vid=xj.orig.vid,
-                            i=xi, 
-                            i.nc=xi.nc, i.mmc.sum=xi.mmc.sum, i.num.mkts=xi.num.mkts, 
-                            i.deg=xi.deg,i.pow=xi.pow,
-                            j=ifelse(length(xj)==0,NA,xj), 
-                            j.nc=xj.nc, j.mmc.sum=xj.mmc.sum, j.num.mkts=xj.num.mkts, 
-                            j.deg=xj.deg, j.pow=xj.pow
-    )
-    df.rem <- rbind(df.rem, df.rem.pd)
-    ## SAVE COVARIATE ARRAY [m,p,n] for m times, p covars, n actors
-    df.pd.cov <- data.frame(name=V(g.pd)$name, 
-                            mmc.sum=as.numeric(V(g.pd)$fm.mmc.sum), 
-                            mmc.sum.sq=as.numeric(V(g.pd)$fm.mmc.sum)^2,
-                            num.mkts=as.numeric(V(g.pd)$num.mkts),
-                            deg=igraph::degree(g.pd),
-                            pow.n5=igraph::power_centrality(g.pd, exponent = -0.5),
-                            pow.n3=igraph::power_centrality(g.pd, exponent = -0.3),
-                            pow.n1=igraph::power_centrality(g.pd, exponent = -0.1),
-                            pow.1=igraph::power_centrality(g.pd, exponent = 0.1),
-                            pow.3=igraph::power_centrality(g.pd, exponent = 0.3),
-                            pow.5=igraph::power_centrality(g.pd, exponent = 0.5),
-                            betweenness=igraph::betweenness(g.pd),
-                            constraint=igraph::constraint(g.pd)  )
-    eig <- igraph::eigen_centrality(g.pd)
-    if (length(eig$vector)>0)
-        df.pd.cov$eig  <- eig$vector
-    df.verts.pd.cov <- merge(df.verts, df.pd.cov, by = 'name', all.x = T)
-    df.verts.pd.cov <- df.verts.pd.cov[order(df.verts.pd.cov$id),]
-    l[[lidx]]$cov <- df.verts.pd.cov
-    ar.cov[lidx, 1, ] <- df.verts.pd.cov$mmc.sum
-    ar.cov[lidx, 2, ] <- df.verts.pd.cov$mmc.sum.sq
-    ar.cov[lidx, 3, ] <- df.verts.pd.cov$num.mkts
-    ar.cov[lidx, 4, ] <- df.verts.pd.cov$deg
-    ar.cov[lidx, 5, ] <- df.verts.pd.cov$pow.n5
-    ar.cov[lidx, 6, ] <- df.verts.pd.cov$pow.n3
-    ar.cov[lidx, 7, ] <- df.verts.pd.cov$pow.n1
-    ar.cov[lidx, 8, ] <- df.verts.pd.cov$pow.1
-    ar.cov[lidx, 9, ] <- df.verts.pd.cov$pow.3
-    ar.cov[lidx,10, ] <- df.verts.pd.cov$pow.5
-    ar.cov[lidx,11, ] <- df.verts.pd.cov$betweenness
-    ar.cov[lidx,12, ] <- df.verts.pd.cov$constraint
-    if ('eig' %in% names(df.verts.pd.cov))
-        ar.cov[lidx,13, ] <- df.verts.pd.cov$eig
-    ## NODE COLLAPSE update network
-    g.pd <- nodeCollapseGraph(g.pd, acq.src.pd[j,])
     
-    if (lidx %% 50 == 0) {
-      saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = "acquisitions_rem_covs_2.rds")
-      saveRDS(l, file = "acquisitions_cov_list_2.rds")
-      saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = "acquisitions_verts_df_2.rds")
+    if (acq.src.allpd$acquiree_name_unique[j] %in% V(g.pd.orig)$name) {
+        lidx <- lidx + 1
+        l[[lidx]] <- list()
+        ## Update MMC after acquisition
+        l[[lidx]]$mmc <- getFmMmc(g.pd, as.integer(V(g.pd)$nc))
+    
+        ## SUM FM MMC over markets  ??????
+        V(g.pd)$fm.mmc.sum <- rowSums(l[[lidx]]$mmc)
+        V(g.pd)$num.mkts <- apply(l[[lidx]]$mmc,MARGIN=1,FUN=function(x){
+          return(length(x[x>0]))
+        })
+        ## save current data in dataframe
+        df.pd <- data.frame(fm.mmc.sum=V(g.pd)$fm.mmc.sum, 
+                            num.mkts=V(g.pd)$num.mkts,
+                            nc=V(g.pd)$nc)
+        df.mmc <- rbind(df.mmc, df.pd)
+        ## GET REM DATAFRAME VARS
+        # xi.orig.vid <- acq.src.pd$acquirer_vid[j]
+        # xj.orig.vid <- acq.src.pd$acquiree_vid[j]
+        xi.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquirer_name_unique[j] == V(g.pd.orig)$name)]
+        xj.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquiree_name_unique[j] == V(g.pd.orig)$name)]
+        xi <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.pd$acquirer_name_unique[j]])
+        xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.pd$acquirer_name_unique[j]])
+        xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
+        xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
+        xi.num.mkts <-  V(g.pd)$num.mkts[xi]
+        xi.deg <- igraph::degree(g.pd)[xi]
+        xi.pow <- igraph::power_centrality(g.pd, exponent = -0.3, sparse = T)[xi]
+        ##
+        xj <- as.integer(V(g.pd)[V(g.pd)$orig.vid==xj.orig.vid])
+        xj.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid])
+        xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
+        xj.mmc.sum <- ifelse(length(xj)==0,NA,  V(g.pd)$fm.mmc.sum[xj] )
+        xj.num.mkts <- ifelse(length(xj)==0,NA,  V(g.pd)$num.mkts[xj] )
+        xj.deg <- ifelse(length(xj)==0,NA,  igraph::degree(g.pd)[xj] )
+        xj.pow <- ifelse(length(xj)==0,NA,  igraph::power_centrality(g.pd, exponent = -0.3, sparse = T)[xj] )
+        src <- ifelse(length(acq.src.pd$acquirer_name_unique[j])>0, 
+                      acq.src.pd$acquirer_name_unique[j], NA)
+        trg <- ifelse(length(acq.src.pd$acquiree_name_unique[j])>0, 
+                      acq.src.pd$acquiree_name_unique[j], NA)
+        datestr <- acq.src.pd$acquired_on[j]
+        timeval.last <- timeval
+        timeval <- as.integer(ymd(datestr))
+        timeval <- ifelse(timeval%in%df.rem$t, timeval.last + 0.01, timeval)
+        # MAKE REM DATAFRAME
+        df.rem.pd <- data.frame(t=timeval, src=src, trg=trg, 
+                                time=datestr, idx=lidx,
+                                i.orig.vid=xi.orig.vid,
+                                j.orig.vid=xj.orig.vid,
+                                i=xi, 
+                                i.nc=xi.nc, i.mmc.sum=xi.mmc.sum, i.num.mkts=xi.num.mkts, 
+                                i.deg=xi.deg,i.pow=xi.pow,
+                                j=ifelse(length(xj)==0,NA,xj), 
+                                j.nc=xj.nc, j.mmc.sum=xj.mmc.sum, j.num.mkts=xj.num.mkts, 
+                                j.deg=xj.deg, j.pow=xj.pow
+        )
+        df.rem <- rbind(df.rem, df.rem.pd)
+        cat(sprintf("df.rem dim:  %s\n",paste(dim(df.rem),collapse=", ")))
+        ## SAVE COVARIATE ARRAY [m,p,n] for m times, p covars, n actors
+        df.pd.cov <- data.frame(name=V(g.pd)$name, 
+                                mmc.sum=as.numeric(V(g.pd)$fm.mmc.sum), 
+                                mmc.sum.sq=as.numeric(V(g.pd)$fm.mmc.sum)^2,
+                                num.mkts=as.numeric(V(g.pd)$num.mkts),
+                                deg=igraph::degree(g.pd),
+                                pow.n4=igraph::power_centrality(g.pd, exponent = -0.4),
+                                pow.n3=igraph::power_centrality(g.pd, exponent = -0.3),
+                                pow.n2=igraph::power_centrality(g.pd, exponent = -0.2),
+                                pow.n1=igraph::power_centrality(g.pd, exponent = -0.1),
+                                pow.1=igraph::power_centrality(g.pd, exponent = 0.1),
+                                pow.2=igraph::power_centrality(g.pd, exponent = 0.2),
+                                pow.3=igraph::power_centrality(g.pd, exponent = 0.3),
+                                pow.4=igraph::power_centrality(g.pd, exponent = 0.4),
+                                betweenness=igraph::betweenness(g.pd),
+                                constraint=igraph::constraint(g.pd)  )
+        eig <- igraph::eigen_centrality(g.pd)
+        if (length(eig$vector)>0)
+            df.pd.cov$eig  <- eig$vector
+        df.verts.pd.cov <- merge(df.verts, df.pd.cov, by = 'name', all.x = T)
+        df.verts.pd.cov <- df.verts.pd.cov[order(df.verts.pd.cov$id),]
+        l[[lidx]]$cov <- df.verts.pd.cov
+        ar.cov[lidx, 1, ] <- df.verts.pd.cov$mmc.sum
+        ar.cov[lidx, 2, ] <- df.verts.pd.cov$mmc.sum.sq
+        ar.cov[lidx, 3, ] <- df.verts.pd.cov$num.mkts
+        ar.cov[lidx, 4, ] <- df.verts.pd.cov$deg
+        ar.cov[lidx, 5, ] <- df.verts.pd.cov$pow.n4
+        ar.cov[lidx, 6, ] <- df.verts.pd.cov$pow.n3
+        ar.cov[lidx, 7, ] <- df.verts.pd.cov$pow.n2
+        ar.cov[lidx, 8, ] <- df.verts.pd.cov$pow.n1
+        ar.cov[lidx, 9, ] <- df.verts.pd.cov$pow.1
+        ar.cov[lidx,10, ] <- df.verts.pd.cov$pow.2
+        ar.cov[lidx,11, ] <- df.verts.pd.cov$pow.3
+        ar.cov[lidx,12, ] <- df.verts.pd.cov$pow.4
+        ar.cov[lidx,13, ] <- df.verts.pd.cov$betweenness
+        ar.cov[lidx,14, ] <- df.verts.pd.cov$constraint
+        if ('eig' %in% names(df.verts.pd.cov))
+            ar.cov[lidx,15, ] <- df.verts.pd.cov$eig
+    }
+    
+    ## NODE COLLAPSE update network
+    g.pd <- nodeCollapseGraph(g.pd, acq.src.allpd[j,])
+    
+    if (lidx %% 20 == 0) {
+      saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = sprintf("acquisitions_rem_covs_%s.rds",name_i))
+      saveRDS(l, file = sprintf("acquisitions_cov_list_%s.rds",name_i))
+      saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = sprintf("acquisitions_verts_df_%s.rds",name_i))
     }
   }
   
-  saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = "acquisitions_rem_covs_2.rds")
-  saveRDS(l, file = "acquisitions_cov_list_2.rds")
-  saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = "acquisitions_verts_df_2.rds")
+  saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = sprintf("acquisitions_rem_covs_%s.rds",name_i))
+  saveRDS(l, file = sprintf("acquisitions_cov_list_%s.rds",name_i))
+  saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = sprintf("acquisitions_verts_df_%s.rds",name_i))
   
-  CovRec <- sapply(df.verts.pd.cov$name, function(name) ifelse(name %in% V(g.pd.orig)$name, 1, 0))
-  saveRDS(list(CovRec=CovRec), file = "acquisitions_cov_rec_2.rds")
+  # CovRec <- sapply(df.verts.pd.cov$name, function(name) ifelse(name %in% V(g.pd.orig)$name, 1, 0))
+  CovRec <- sapply(1:nrow(df.rem), function(i) ifelse(df.rem$i.nc[i] == df.rem$j.nc[i], 1, 0))
+  saveRDS(list(CovRec=CovRec), file = sprintf("acquisitions_cov_rec_%s.rds",name_i))
   
 #-----------------------------------------------------------------------
-l1 <- readRDS("acquisitions_verts_df_2.rds")
-l2 <- readRDS("acquisitions_rem_covs_2.rds")
-l3 <- readRDS("acquisitions_cov_list_2.rds")
-l4 <- readRDS("acquisitions_cov_rec_2.rds")
+l1 <- readRDS(sprintf("acquisitions_verts_df_%s.rds",name_i))
+l2 <- readRDS(sprintf("acquisitions_rem_covs_%s.rds",name_i))
+l3 <- readRDS(sprintf("acquisitions_cov_list_%s.rds",name_i))
+l4 <- readRDS(sprintf("acquisitions_cov_rec_%s.rds",name_i))
 df.verts <- l1$df.verts
 acq.src.allpd <- l1$acq.src.allpd
 df.rem <- l2$df.rem
@@ -529,7 +547,15 @@ fit.rem.bpm.1 <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, 
                     covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
 summary(fit.rem.bpm.1)
 saveRDS(list(fit.rem.bpm.1=fit.rem.bpm.1), file = "acquisitions_fit_rem_rec_pshift_245_13_1.rds")
+
 #---------------------------------------------------------------------------
+
+screenreg(list(fit.rem.bpm.1), digits=3, 
+          custom.coef.names = c('Acquisition Experience', 'FM-MMC','FM-MMC Squared',
+                                'Num. Markets','Degree Centrality',
+                                'Power Centrality (b=-0.3)','Converging Acq. ("local" target)'))
+
+
 #------------------------- MODEL 1B - no sender stat ---------------------------------------
 effects <- c('CovSnd', 'CovRec')
 ##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,   deg,      pow.n5,  

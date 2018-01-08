@@ -3,7 +3,7 @@ library(relevent)
 library(informR)
 library(texreg)
 
-mod <- 4
+mod <- 1
 
 data_dir <- '/home/sdowning/data'
 
@@ -27,11 +27,11 @@ el <- data.frame(
   stringsAsFactors = F
 )
 
-effects <- c('CovSnd', 'CovRec') # NODSnd
-##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,   deg,      pow.n5,  
-##  [6] pow.n3,      pow.n1,       pow.1,      pow.3,    pow.5,      
-## [11] betweenness, constraint,   eig
-cov.idx <- c(1,2,3,4,  6, 12)
+effects <- c('CovSnd', 'NODSnd') # CovRec
+##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,    deg,          pow.n4,  
+##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
+## [11] pow.3,       pow.4,        betweenness, constraint,   eig
+cov.idx <- c(1,2,3,4,  6)
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
 ##

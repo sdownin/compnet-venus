@@ -419,7 +419,7 @@ ev.types <-  sapply(1:nrow(df.rem.sub),function(i) {
                 'converge'))
 })
 
-rawevents1 <- cbind(ev.types,  as.character(df.rem.sub$i.orig.vid))
+rawevents1 <- cbind(ev.types,  as.character(df.rem.sub$src))
 
 evls1 <- gen.evl(rawevents1)
 alpha.ints1 <- gen.intercepts(evls1, basecat = 'diverge-global') ## 2= local
@@ -451,9 +451,10 @@ fit3 <- rem(evls1$eventlist, gamma.ints1, estimator = "BPM",
 summary(fit3)
 
 
-glb.sformlist(evls1, list(c("a(b+|c)d", "a(b|c+)d")), new.names = c("a(b+|c+)d"))
+# glb.sformlist(evls1, list(c("a(b+|c)d", "a(b|c+)d")), new.names = c("a(b+|c+)d"))
 
-gamma.sforms <- gen.sformlist(evls1, c("a(b+|c)a","ab","bc","ca","ba","cb","ac"))
+a2 <- list(c("a(b+|c)a","a(b|c+)a"))
+gamma.sforms <- glb.sformlist(evls1, a2, new.names = c('a(b+|c+)a'))
 gamma.ints1 <- slbind(gamma.sforms, alpha.ints1, new.names = TRUE, event.key = evls1$event.key)
 
 fit4 <- rem(evls1$eventlist, gamma.ints1, estimator = "BPM",

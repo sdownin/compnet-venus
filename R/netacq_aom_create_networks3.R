@@ -253,72 +253,93 @@ for (i in 2:length(times)) {
   }
 }
 
+
+##
+# Computes the firm-to-market MMC for firms in 
+# competition network g with niche clusters defined in 'memberships'
+# @param {igraph}       g
+# @param {array int[]}  membership
+# @return {data.frame [N x M]} The FM-MMC for N firms in M markets
+##
 fmMmc <- function(g, membership)
 {
+  markets <- unique(membership)
+  markets <- markets[order(markets)]
+  adj <- igraph::as_adjacency_matrix(g, sparse = F)
   
+  #### 1. 
+  ## Create [Firm x Market] incidence matrix
+  ## markets of each firm (which markets they are in based on NC membership of their rivals)
+  df.ms <- ldply(1:nrow(adj), function(i){
+    i.nbr <- unname(which( adj[i, ] == 1 ))  ## rivals (neighbors in the network) ## i.nbr <- as.integer(igraph::neighbors(g, V(g)[i]))  
+    i.ms <- unique(membership[i.nbr])  ## markets of firm i (the markets of the rivals of firm i)
+    i.ms.row <- rep(0, length(markets)) ## dummy row for [Firm x Market] matrix
+    i.ms.row[ i.ms ] <- 1 ## assign [Firm x Market] matrix row value to 1
+    names(i.ms.row) <- sapply(1:length(markets),function(x)paste0('m',x))
+    return(i.ms.row)
+  })
+  ## convert df to matrix
+  m.ms <- as.matrix(df.ms)
+  
+  #### 2. 
+  ## Create [Firm x Firm] MMC matrix (each M[i,j] = count of markets in contact)
+  m.mmc <- m.ms %*% t(m.ms)
+  ## set diagonals to 0 (firms don't compete with themselves)
+  diag(m.mmc) <- 0
+  
+  #### 3. 
+  ## Get MMC competitors list {j} for each firm i (the competitors with which they have MMC)
+  js <- lapply(1:nrow(m.mmc), FUN = function(i)which(m.mmc[i, ] > 1))
+  
+  #### 4. 
+  ## numerator computation:  Sum_m{Sum_j{D_imt * D_jmt}}
+  numerator <- ldply(1:nrow(df.ms), function(i){
+    tmp <- rep(0, ncol(df.ms))
+    ## firm i market indices
+    i.ms <- which(df.ms[i,] > 0)
+    ## comps j in markets m that i is in 
+    js.i.ms <- df.ms[ js[[i]] , i.ms ]
+    if (length(js.i.ms) > 0) {
+      ## the MMC counts of compj in each market that j is in & i is in
+      js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
+      js.i.ms.sum <- colSums(js.i.ms.cnt) 
+      ## assign the MMC iteraction sums in i's markets with js who are MMC comps
+      tmp[ i.ms ] <- js.i.ms.sum
+    }
+    return(tmp)
+  })
+  
+  #### 5. 
+  ## denominator computation:  Sum_m{D_imt * N_mmc_t}
+  denominator <- ldply(1:nrow(df.ms), function(i){
+    tmp <- rep(0, ncol(df.ms))
+    ## firm i market indices
+    i.ms <- which(df.ms[i,] > 0)
+    D_imt <- length(i.ms)
+    ## comps j in markets m that i is in 
+    js.i.ms <- df.ms[ js[[i]] , i.ms ]
+    if (length(js.i.ms) > 0) {
+      ## the MMC counts of compj in each market m that j is in & i is in
+      js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
+      N.mmc.m <- apply(js.i.ms.cnt, MARGIN = 2, FUN = function(x){
+        return( length(x[x > 0]) * D_imt )
+      })
+      ## assign the MMC iteraction sums in i's markets with js who are MMC comps
+      tmp[ i.ms ] <- N.mmc.m
+    }
+    return(tmp)
+  })
+  
+  ## compute FM-MMC elementwise by component dfs
+  fm.mmc <- numerator / denominator
+  m.fm.mmc <- as.matrix(fm.mmc)
+  ## replace 
+  m.fm.mmc[(is.na(m.fm.mmc) | is.nan(m.fm.mmc))] <- 0
+  ## convert to dataframe
+  fm.mmc <- as.data.frame(m.fm.mmc)
+  
+  return(as.data.frame(m.fm.mmc))
 }
-
-markets <- unique(membership)
-markets <- markets[order(markets)]
-adj <- igraph::as_adjacency_matrix(g, sparse = F)
-
-#### 1. 
-## Create [Firm x Market] incidence matrix
-## markets of each firm (which markets they are in based on NC membership of their rivals)
-df.ms <- ldply(1:nrow(adj), function(i){
-  i.nbr <- unname(which( adj[i, ] == 1 ))  ## rivals (neighbors in the network) ## i.nbr <- as.integer(igraph::neighbors(g, V(g)[i]))  
-  i.ms <- unique(membership[i.nbr])  ## markets of firm i (the markets of the rivals of firm i)
-  i.ms.row <- rep(0, length(markets)) ## dummy row for [Firm x Market] matrix
-  i.ms.row[ i.ms ] <- 1 ## assign [Firm x Market] matrix row value to 1
-  names(i.ms.row) <- sapply(1:length(markets),function(x)paste0('m',x))
-  return(i.ms.row)
-})
-## convert df to matrix
-m.ms <- as.matrix(df.ms)
-
-#### 2. 
-## Create [Firm x Firm] MMC matrix (each M[i,j] = count of markets in contact)
-m.mmc <- m.ms %*% t(m.ms)
-## set diagonals to 0 (firms don't compete with themselves)
-diag(m.mmc) <- 0
-
-#### 3. 
-## Get MMC competitors list {j} for each firm i (the competitors with which they have MMC)
-js <- lapply(1:nrow(m.mmc), FUN = function(i)which(m.mmc[i, ] > 1))
-
-#### 4. 
-## numerator computation:  Sum_m{Sum_j{D_imt * D_jmt}}
-numerator <- ldply(1:nrow(df.ms), function(i){
-  tmp <- rep(0, ncol(df.ms))
-  ## firm i market indices
-  i.ms <- which(df.ms[i,] > 0)
-  ## comps j in markets m that i is in 
-  js.i.ms <- df.ms[ js[[i]] , i.ms ]
-  if (length(js.i.ms) > 0) {
-    ## the MMC counts of compj in each market that j is in & i is in
-    js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
-    js.i.ms.sum <- colSums(js.i.ms.cnt) 
-    ## assign the MMC iteraction sums in i's markets with js who are MMC comps
-    tmp[ i.ms ] <- js.i.ms.sum
-  }
-  return(tmp)
-})
-
-numerator <- ldply(1:nrow(df.ms), function(i){
-  tmp <- rep(0, ncol(df.ms))
-  ## firm i market indices
-  i.ms <- which(df.ms[i,] > 0)
-  ## comps j in markets m that i is in 
-  js.i.ms <- df.ms[ js[[i]] , i.ms ]
-  if (length(js.i.ms) > 0) {
-    ## the MMC counts of compj in each market that j is in & i is in
-    js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
-    js.i.ms.sum <- colSums(js.i.ms.cnt) 
-    ## assign the MMC iteraction sums in i's markets with js who are MMC comps
-    tmp[ i.ms ] <- js.i.ms.sum
-  }
-  return(tmp)
-})
 
 ##
 ##
