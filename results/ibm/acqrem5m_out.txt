@@ -1,0 +1,24 @@
+
+
+##------ Mon Jan  8 19:11:02 2018 ------##
+
+computing MMC target location interaction array...done.
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+              Estimate     Std.Err   Z value Pr(>|z|)    
+CovSnd.1    -5.8568201          NA        NA       NA    
+CovSnd.2     1.1240851          NA        NA       NA    
+CovSnd.3     0.7501531   0.0143810   52.1629  < 2e-16 ***
+CovSnd.4    -0.3990092   0.0030316 -131.6171  < 2e-16 ***
+CovSnd.5     0.0221342   0.0132017    1.6766  0.09362 .  
+CovSnd.6   -42.0831246   0.0642754 -654.7316  < 2e-16 ***
+CovEvent.1   0.2659051   0.0320267    8.3026  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 2458780320 on 238 degrees of freedom
+	Chi-square: -2458772118 on 6 degrees of freedom, asymptotic p-value 1 
+AIC: 2458780334 AICC: 2458780334 BIC: 2458780358 
+finished successfully.
