@@ -61,7 +61,7 @@ m_x <- 'm4'
 ##
 #R <- 2000
 
-nsim <- 100
+nsim <- 500
 
 ## make MMC nets list
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
@@ -79,6 +79,7 @@ if (!inherits(gof, "error")) {
   saveRDS(gof, file=gof.file)
   ## PRINT
   print(gof)
+  gof
 } else {
   cat(sprintf("\nfirm %s error msg: %s\n", firm_i, fit))
 }
