@@ -280,3 +280,25 @@ mmc (row)    3645 3645 3645 3645 3645 3645
 mmc (col)    3645 3645 3645 3645 3645 3645
 memory (row) 3645 3645 3645 3645 3645 3645
 memory (col) 3645 3645 3645 3645 3645 3645
+
+firm qualtrics error msg: Error in boot(unique.time.steps, estimate, R = R, Yi = Y, xsparsei = xsparse, : number of items to replace is not a multiple of replacement length
+
+computing qualtrics networks for distance d = 2:
+             t=2 t=3 t=4 t=5 t=6
+nets (row)   182 182 182 182 182
+nets (col)   182 182 182 182 182
+mmc (row)    182 182 182 182 182
+mmc (col)    182 182 182 182 182
+memory (row) 182 182 182 182 182
+memory (col) 182 182 182 182 182
+             t=2 t=3 t=4 t=5 t=6
+nets (row)   182 182 182 182 182
+nets (col)   182 182 182 182 182
+mmc (row)    182 182 182 182 182
+mmc (col)    182 182 182 182 182
+memory (row) 182 182 182 182 182
+memory (col) 182 182 182 182 182
+
+firm qualtrics error msg: Error in boot(unique.time.steps, estimate, R = R, Yi = Y, xsparsei = xsparse, : number of items to replace is not a multiple of replacement length
+
+finished successfully.
