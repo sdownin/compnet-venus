@@ -297,7 +297,7 @@ ar.cov <- array(dim=c(m,p,n))
         # xj.orig.vid <- acq.src.pd$acquiree_vid[j]
         xi.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquirer_name_unique[j] == V(g.pd.orig)$name)]
         xj.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquiree_name_unique[j] == V(g.pd.orig)$name)]
-        xi <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.pd$acquirer_name_unique[j]])
+        xi <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquirer_name_unique[j]])
         xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.pd$acquirer_name_unique[j]])
         xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
         xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
@@ -305,7 +305,7 @@ ar.cov <- array(dim=c(m,p,n))
         xi.deg <- igraph::degree(g.pd)[xi]
         xi.pow <- igraph::power_centrality(g.pd, exponent = -0.3, sparse = T)[xi]
         ##
-        xj <- as.integer(V(g.pd)[V(g.pd)$orig.vid==xj.orig.vid])
+        xj <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j]])
         xj.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid])
         xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
         xj.mmc.sum <- ifelse(length(xj)==0,NA,  V(g.pd)$fm.mmc.sum[xj] )

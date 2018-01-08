@@ -28,15 +28,14 @@ el <- data.frame(
   stringsAsFactors = F
 )
 
-effects <- c('CovSnd') # NODSnd CovRec
-##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,   deg,      pow.n5,  
-##  [6] pow.n3,      pow.n1,       pow.1,      pow.3,    pow.5,      
-## [11] betweenness, constraint,   eig
-cov.idx <- c(1,2,3,4,  6)
+effects <- c('NODSnd', 'CovSnd','CovRec') # CovRec NODSnd
+##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,    deg,          pow.n4,  
+##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
+## [11] pow.3,       pow.4,        betweenness, constraint,   eig
+cov.idx <- c(1,2,3,4,  6, 14)
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
-ar.cov.na0[is.na(ar.cov.na0)] <- 0
 ##
-covar <- list(CovSnd=ar.cov.na0)
+covar <- list(CovSnd=ar.cov.na0, CovRec=CovRec)
 ##
 fit <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
                 covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
