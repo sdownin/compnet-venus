@@ -1,0 +1,27 @@
+
+
+##------ Tue Dec 19 23:10:28 2017 ------##
+
+
+
+##------ Thu Dec 14 06:05:51 2017 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+            Estimate     Std.Err   Z value Pr(>|z|)    
+CovSnd.1 -5.6203e+00  1.7050e-01  -32.9624   <2e-16 ***
+CovSnd.2  1.9960e+00  5.3933e-02   37.0088   <2e-16 ***
+CovSnd.3 -1.5226e+00  6.4148e-02  -23.7351   <2e-16 ***
+CovSnd.4  1.5856e-03  3.2301e-03    0.4909   0.6235    
+CovSnd.5 -4.9349e-01  1.9282e-02  -25.5937   <2e-16 ***
+CovSnd.6 -1.0488e+02  3.6893e-01 -284.2787   <2e-16 ***
+CovRec.1 -8.0931e+02  2.3857e+00 -339.2421   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 1682388765 on 238 degrees of freedom
+	Chi-square: -1682380563 on 6 degrees of freedom, asymptotic p-value 1 
+AIC: 1682388779 AICC: 1682388780 BIC: 1682388804 
+finished successfully.
