@@ -1,6 +1,0 @@
-
-
-##------ Tue Dec 19 23:53:54 2017 ------##
-
-Computing preliminary statistics
-Fitting model

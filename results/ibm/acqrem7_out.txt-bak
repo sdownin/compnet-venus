@@ -1,0 +1,49 @@
+
+
+##------ Wed Dec 20 06:53:30 2017 ------##
+
+
+
+##------ Mon Jan  8 22:56:49 2018 ------##
+
+
+
+##------ Thu Dec 14 13:47:38 2017 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+           Estimate    Std.Err   Z value  Pr(>|z|)    
+CovSnd.1  -5.435240   0.559336   -9.7173 < 2.2e-16 ***
+CovSnd.2   0.603807   0.063037    9.5787 < 2.2e-16 ***
+CovSnd.3   1.178278   0.195193    6.0365 1.575e-09 ***
+CovSnd.4  -0.212808   0.010573  -20.1274 < 2.2e-16 ***
+CovSnd.5   0.121810   0.022384    5.4419 5.271e-08 ***
+CovSnd.6 -61.197896   0.077508 -789.5639 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 2458778156 on 239 degrees of freedom
+	Chi-square: -2458769953 on 5 degrees of freedom, asymptotic p-value 1 
+AIC: 2458778168 AICC: 2458778168 BIC: 2458778189 
+finished successfully.
+
+##------ Tue Jan  9 03:32:28 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+          Estimate Std.Err Z value Pr(>|z|)
+CovSnd.1 -177.0078      NA      NA       NA
+CovSnd.2   16.6926      NA      NA       NA
+CovSnd.3   28.1185      NA      NA       NA
+CovSnd.4   -0.8567      NA      NA       NA
+CovSnd.5    1.4586      NA      NA       NA
+CovSnd.6 -327.5054      NA      NA       NA
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 2458882181 on 239 degrees of freedom
+	Chi-square: -2458873979 on 5 degrees of freedom, asymptotic p-value 1 
+AIC: 2458882193 AICC: 2458882193 BIC: 2458882214 
+finished successfully.
