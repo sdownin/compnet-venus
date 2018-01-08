@@ -403,24 +403,70 @@ rawevents <- cbind(atus80ord$Activities, atus80ord$TUCASEID)
 evls <- gen.evl(rawevents, null.events = "MISSING")
 alpha.ints <- gen.intercepts(evls, basecat = "Sleeping")
 
+glb.sformlist(evls, list(c("a(b+|c)d", "a(b|c+)d")), new.names = "a(b+|c+)d")
 
-ev.types <-  sapply(1:nrow(df.rem),function(i) {
+
+# rawevents1 <- cbind(ev.types, as.character(df.rem$i.nc))
+
+cnt <- plyr::count(df.rem$src)
+cnt <- cnt[which(cnt$freq >3),]
+
+df.rem.sub <- df.rem[which(df.rem$src %in% cnt$x), ]
+
+ev.types <-  sapply(1:nrow(df.rem.sub),function(i) {
   ifelse(is.na(df.rem$j.nc[i]), 'diverge-global',
          ifelse(df.rem$i.nc[i] != df.rem$j.nc[i], 'diverge-local',
                 'converge'))
 })
-rawevents1 <- cbind(ev.types, as.character(df.rem$i.nc))
+
+rawevents1 <- cbind(ev.types,  as.character(df.rem.sub$i.orig.vid))
 
 evls1 <- gen.evl(rawevents1)
 alpha.ints1 <- gen.intercepts(evls1, basecat = 'diverge-global') ## 2= local
 
-alpha.fit1 <- rem.dyad(edgelist = , 
+alpha.fit1 <- rem(eventlist  = evls1$eventlist, statslist = alpha.ints1,
                  estimator = "BPM", prior.param = list(mu = 0, sigma = 100 , nu = 4))
 summary(alpha.fit1)
 
 
-a1 <- paste(evls$event.key[-9, 1], evls$event.key[-9, 1], sep = "")
-beta.sforms <- gen.sformlist(evls, a1)
+
+a1 <- paste(evls1$event.key[,1], evls1$event.key[,1], sep = "")
+beta.sforms1 <- gen.sformlist(evls1, a1)
+
+beta.ints1 <- slbind(beta.sforms1, alpha.ints1, new.names = TRUE, event.key = evls1$event.key)
+
+fit2 <- rem(evls1$eventlist, beta.ints1, estimator = "BPM",
+            prior.param = list(mu = 0, sigma = 100, nu = 4))
+summary(fit2)
+
+
+
+
+a2 <- c("ab","ac","bc","ba","ca","cb","aa","bb","cc")
+gamma.sforms <- gen.sformlist(evls1, a2)
+gamma.ints1 <- slbind(gamma.sforms, alpha.ints1, new.names = TRUE, event.key = evls1$event.key)
+
+fit3 <- rem(evls1$eventlist, gamma.ints1, estimator = "BPM",
+            prior.param = list(mu = 0, sigma = 100, nu = 4))
+summary(fit3)
+
+
+glb.sformlist(evls1, list(c("a(b+|c)d", "a(b|c+)d")), new.names = c("a(b+|c+)d"))
+
+gamma.sforms <- gen.sformlist(evls1, c("a(b+|c)a","ab","bc","ca","ba","cb","ac"))
+gamma.ints1 <- slbind(gamma.sforms, alpha.ints1, new.names = TRUE, event.key = evls1$event.key)
+
+fit4 <- rem(evls1$eventlist, gamma.ints1, estimator = "BPM",
+            prior.param = list(mu = 0, sigma = 100, nu = 4))
+summary(fit4)
+
+
+
+
+# a1 <- paste(evls$event.key[-9, 1], evls$event.key[-9, 1], sep = "")
+# beta.sforms <- gen.sformlist(evls, a1)
+
+
 
 
 # el <- data.frame(
@@ -469,7 +515,7 @@ effects <- c('NODSnd','CovSnd','CovRec')
 tmp.idx <- which(df.verts.pd.cov$name %in% df.verts.tmp$name)
 ar.cov.na0 <- ar.cov[1:nlim, 1:5, tmp.idx ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
-##
+## 
 ar.cov.rec <- array(dim=c(nrow(df.verts.tmp),nrow(df.verts.tmp),2))
 tmp.nc <- data.frame(name=df.rem$src,nc=df.rem$i.nc)
 tmp.nc <- unique(rbind(tmp.nc, data.frame(name=df.rem$trg,nc=df.rem$j.nc)))

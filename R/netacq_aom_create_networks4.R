@@ -246,7 +246,7 @@ acq.src.allpd <- acq.src[which(acq.src$acquired_on >= times[1] & acq.src$acquire
 acq.verts <- unique(c(as.character(acq.src.allpd$acquirer_name_unique), 
                                       as.character(acq.src.allpd$acquiree_name_unique)))
 df.verts <- data.frame(id=1:length(acq.verts), name=acq.verts, stringsAsFactors = F)
-p <- 5 ## i.mmc, i.mmc^2, num.mkts, deg, power
+p <- 13 ## i.mmc, i.mmc^2, num.mkts, deg, power
 m <- nrow(acq.src.allpd)
 n <- nrow(df.verts)
 ar.cov <- array(dim=c(m,p,n))
@@ -288,13 +288,16 @@ ar.cov <- array(dim=c(m,p,n))
     xi.orig.vid <- acq.src.pd$acquirer_vid[j]
     xj.orig.vid <- acq.src.pd$acquiree_vid[j]
     xi <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.pd$acquirer_name_unique[j]])
-    xi.nc <- as.integer(V(g.pd.orig)$nc[xi]) ## original nc for the period
+    xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.pd$acquirer_name_unique[j]])
+    xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
     xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
     xi.num.mkts <-  V(g.pd)$num.mkts[xi]
     xi.deg <- igraph::degree(g.pd)[xi]
     xi.pow <- igraph::power_centrality(g.pd, exponent = -0.5)[xi]
+    ##
     xj <- as.integer(V(g.pd)[V(g.pd)$orig.vid==xj.orig.vid])
-    xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj] )  ## original nc for the period
+    xj.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid])
+    xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
     xj.mmc.sum <- ifelse(length(xj)==0,NA,  V(g.pd)$fm.mmc.sum[xj] )
     xj.num.mkts <- ifelse(length(xj)==0,NA,  V(g.pd)$num.mkts[xj] )
     xj.deg <- ifelse(length(xj)==0,NA,  igraph::degree(g.pd)[xj] )
@@ -326,7 +329,17 @@ ar.cov <- array(dim=c(m,p,n))
                             mmc.sum.sq=as.numeric(V(g.pd)$fm.mmc.sum)^2,
                             num.mkts=as.numeric(V(g.pd)$num.mkts),
                             deg=igraph::degree(g.pd),
-                            pow=igraph::power_centrality(g.pd, exponent = -0.5))
+                            pow.n5=igraph::power_centrality(g.pd, exponent = -0.5),
+                            pow.n3=igraph::power_centrality(g.pd, exponent = -0.3),
+                            pow.n1=igraph::power_centrality(g.pd, exponent = -0.1),
+                            pow.1=igraph::power_centrality(g.pd, exponent = 0.1),
+                            pow.3=igraph::power_centrality(g.pd, exponent = 0.3),
+                            pow.5=igraph::power_centrality(g.pd, exponent = 0.5),
+                            betweenness=igraph::betweenness(g.pd),
+                            constraint=igraph::constraint(g.pd)  )
+    eig <- igraph::eigen_centrality(g.pd)
+    if (length(eig$vector)>0)
+        df.pd.cov$eig  <- eig$vector
     df.verts.pd.cov <- merge(df.verts, df.pd.cov, by = 'name', all.x = T)
     df.verts.pd.cov <- df.verts.pd.cov[order(df.verts.pd.cov$id),]
     l[[lidx]]$cov <- df.verts.pd.cov
@@ -334,33 +347,44 @@ ar.cov <- array(dim=c(m,p,n))
     ar.cov[lidx, 2, ] <- df.verts.pd.cov$mmc.sum.sq
     ar.cov[lidx, 3, ] <- df.verts.pd.cov$num.mkts
     ar.cov[lidx, 4, ] <- df.verts.pd.cov$deg
-    ar.cov[lidx, 5, ] <- df.verts.pd.cov$pow
+    ar.cov[lidx, 5, ] <- df.verts.pd.cov$pow.n5
+    ar.cov[lidx, 6, ] <- df.verts.pd.cov$pow.n3
+    ar.cov[lidx, 7, ] <- df.verts.pd.cov$pow.n1
+    ar.cov[lidx, 8, ] <- df.verts.pd.cov$pow.1
+    ar.cov[lidx, 9, ] <- df.verts.pd.cov$pow.3
+    ar.cov[lidx,10, ] <- df.verts.pd.cov$pow.5
+    ar.cov[lidx,11, ] <- df.verts.pd.cov$betweenness
+    ar.cov[lidx,12, ] <- df.verts.pd.cov$constraint
+    if ('eig' %in% names(df.verts.pd.cov))
+        ar.cov[lidx,13, ] <- df.verts.pd.cov$eig
     ## NODE COLLAPSE update network
     g.pd <- nodeCollapseGraph(g.pd, acq.src.pd[j,])
     
-    if (lidx %% 30 == 0) {
-      saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = "acquisitions_rem_covs.rds")
-      saveRDS(l, file = "acquisitions_cov_list.rds")
-      saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = "acquisitions_verts_df.rds")
-      
+    if (lidx %% 50 == 0) {
+      saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = "acquisitions_rem_covs_2.rds")
+      saveRDS(l, file = "acquisitions_cov_list_2.rds")
+      saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = "acquisitions_verts_df_2.rds")
     }
   }
   
-  saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = "acquisitions_rem_covs.rds")
-  saveRDS(l, file = "acquisitions_cov_list.rds")
-  saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = "acquisitions_verts_df.rds")
-
+  saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = "acquisitions_rem_covs_2.rds")
+  saveRDS(l, file = "acquisitions_cov_list_2.rds")
+  saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = "acquisitions_verts_df_2.rds")
   
+  CovRec <- sapply(df.verts.pd.cov$name, function(name) ifelse(name %in% V(g.pd.orig)$name, 1, 0))
+  saveRDS(list(CovRec=CovRec), file = "acquisitions_cov_rec_2.rds")
   
 #-----------------------------------------------------------------------
-l1 <- readRDS("acquisitions_verts_df.rds")
-l2 <- readRDS("acquisitions_rem_covs.rds")
-l3 <- readRDS("acquisitions_cov_list.rds")
+l1 <- readRDS("acquisitions_verts_df_2.rds")
+l2 <- readRDS("acquisitions_rem_covs_2.rds")
+l3 <- readRDS("acquisitions_cov_list_2.rds")
+l4 <- readRDS("acquisitions_cov_rec_2.rds")
 df.verts <- l1$df.verts
 acq.src.allpd <- l1$acq.src.allpd
 df.rem <- l2$df.rem
 ar.cov <- l2$ar.cov
 df.verts.pd.cov <- l3[[1]]$cov
+CovRec <- l4$CovRec
 #----------------------- RELATIONAL EVENT MODEL ------------------------
 
 #----------------------- RELATIONAL EVENT MODEL ------------------------
@@ -454,8 +478,8 @@ el <- data.frame(
   stringsAsFactors = F
 )
 effects <- c('NODSnd', 'CovSnd', 'PSAB-XA','PSAB-XY','PSAB-AY')
-ar.cov.na0 <- ar.cov
-ar.cov.na0[is.na(ar.cov.na0)] <- 0
+ar.cov.na0 <- ar.cov 
+ar.cov.na0[is.na(ar.cov.na0)] <- 0 
 covar <- list(CovSnd=ar.cov.na0)
 fit.rem.bpm.1 <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = T, 
                     covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
@@ -467,7 +491,23 @@ screenreg(list(fit.rem.bpm.1), digits=3,
                                 'Num. Markets','Degree Centrality','Power Centrality'))
 
 
-#---------------------------------------------------------------------------------------------
+
+
+# ##
+# tmp.nc <- data.frame(name=df.rem$src,nc=df.rem$i.nc)
+# tmp.nc <- unique(rbind(tmp.nc, data.frame(name=df.rem$trg,nc=df.rem$j.nc)))
+# tmp.nc <- tmp.nc[which(tmp.nc$name %in% df.verts.pd.cov$name), ]
+# 
+# df.nc <- merge(df.verts, tmp.nc, by='name', all.x = T, all.y=F)
+# df.nc[is.na(df.nc)] <- 9999
+# m.nc <- as.matrix(dist(df.nc$nc, method = 'manhattan',diag = T, upper = T))
+# m.nc[m.nc > 0] <- -99 ## mark diff nc
+# m.nc[m.nc == 0] <- 1  ## set same nc to 1
+# m.nc[m.nc < 0] <- 0   ## set diff nc to 0
+# CovRec <- m.nc
+
+
+#------------------------- MODEL 1 - Add receiver ---------------------------------------
 
 el <- data.frame(
   t = df.rem$t,
@@ -476,31 +516,69 @@ el <- data.frame(
   stringsAsFactors = F
 )
 
-effects <- c('NODSnd', 'CovSnd', 'CovRec', 'PSA0-X0','PSAB-A0')
-##
-tmp.nc <- data.frame(name=df.rem$src,nc=df.rem$i.nc)
-tmp.nc <- unique(rbind(tmp.nc, data.frame(name=df.rem$trg,nc=df.rem$j.nc)))
-df.nc <- merge(df.verts, tmp.nc, by='name', all.x = T, all.y=F)
-df.nc[is.na(df.nc)] <- 9999
-m.nc <- as.matrix(dist(df.nc$nc, method = 'manhattan',diag = T, upper = T))
-m.nc[m.nc > 0] <- -99 ## mark diff nc
-m.nc[m.nc == 0] <- 1  ## set same nc to 1
-m.nc[m.nc < 0] <- 0   ## set diff nc to 0
-CovRec <- m.nc
-##
-ar.cov.na0 <- ar.cov
+effects <- c('NODSnd', 'CovSnd', 'CovRec')
+##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,   deg,      pow.n5,  
+##  [6] pow.n3,      pow.n1,       pow.1,      pow.3,    pow.5,      
+## [11] betweenness, constraint,   eig
+cov.idx <- c(1,2,3,4,  6)
+ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
 ##
 covar <- list(CovSnd=ar.cov.na0, CovRec=CovRec)
-fit.rem.bpm.2 <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
+fit.rem.bpm.1 <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
                     covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
+summary(fit.rem.bpm.1)
+saveRDS(list(fit.rem.bpm.1=fit.rem.bpm.1), file = "acquisitions_fit_rem_rec_pshift_245_13_1.rds")
+#---------------------------------------------------------------------------
+#------------------------- MODEL 1B - no sender stat ---------------------------------------
+effects <- c('CovSnd', 'CovRec')
+##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,   deg,      pow.n5,  
+##  [6] pow.n3,      pow.n1,       pow.1,      pow.3,    pow.5,      
+## [11] betweenness, constraint,   eig
+cov.idx <- c(1,2,3,4,  6)
+ar.cov.na0 <- ar.cov[ , cov.idx, ]
+ar.cov.na0[is.na(ar.cov.na0)] <- 0
+##
+covar <- list(CovSnd=ar.cov.na0, CovRec=CovRec)
+fit.rem.bpm.1b <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
+                          covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
+summary(fit.rem.bpm.1b)
+saveRDS(list(fit.rem.bpm.1b=fit.rem.bpm.1b), file = "acquisitions_fit_rem_rec_pshift_245_13_1b.rds")
+
+#------------------------- MODEL 2 - All Sender (not receiver)  ------------------------------
+
+effects <- c('NODSnd', 'CovSnd')
+##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,   deg,      pow.n5,  
+##  [6] pow.n3,      pow.n1,       pow.1,      pow.3,    pow.5,      
+## [11] betweenness, constraint,   eig
+cov.idx <- c(1,2,3,4,  6,  11,12)
+ar.cov.na0 <- ar.cov[ , cov.idx, ]
+ar.cov.na0[is.na(ar.cov.na0)] <- 0
+##
+covar <- list(CovSnd=ar.cov.na0)
+fit.rem.bpm.2 <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
+                          covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
 summary(fit.rem.bpm.2)
-saveRDS(list(fit.rem.bpm.1=fit.rem.bpm.1,fit.rem.bpm.2=fit.rem.bpm.2), file = "acquisitions_fit_rem_rec_ps_245.rds")
+saveRDS(list(fit.rem.bpm.2=fit.rem.bpm.2), file = "acquisitions_fit_rem_rec_pshift_245_13_2.rds")
 #---------------------------------------------------------------------------
 
-fit.rem <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = T, 
-                    covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
 
+#------------------------- MODEL 3 ----------------------------------------------
+
+effects <- c('NODSnd', 'CovSnd', 'CovRec')
+##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,   deg,      pow.n5,  
+##  [6] pow.n3,      pow.n1,       pow.1,      pow.3,    pow.5,      
+## [11] betweenness, constraint,   eig
+cov.idx <- c(1,2,3,4,  6,  11,12)
+ar.cov.na0 <- ar.cov[ , cov.idx, ]
+ar.cov.na0[is.na(ar.cov.na0)] <- 0
+##
+covar <- list(CovSnd=ar.cov.na0, CovRec=CovRec)
+fit.rem.bpm.3 <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
+                          covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
+summary(fit.rem.bpm.3)
+saveRDS(list(fit.rem.bpm.3=fit.rem.bpm.3), file = "acquisitions_fit_rem_rec_pshift_245_13_3.rds")
+#---------------------------------------------------------------------------
 
 
 
