@@ -3,9 +3,10 @@ library(relevent)
 library(informR)
 library(texreg)
 
-mod <- 1
+mod <- 9
 
 data_dir <- '/home/sdowning/data'
+results_dir <- '/home/sdowning/compnet/results'
 
 l1 <- readRDS(file.path(data_dir,"acquisitions_verts_df_2.rds"))
 l2 <- readRDS(file.path(data_dir,"acquisitions_rem_covs_2.rds"))
@@ -17,7 +18,7 @@ df.rem <- l2$df.rem
 ar.cov <- l2$ar.cov
 df.verts.pd.cov <- l3[[1]]$cov
 CovRec <- l4$CovRec
-cat("loaded data frames.\n")
+
 ##-------------------------------------------------------------------------------
 
 el <- data.frame(
@@ -26,57 +27,35 @@ el <- data.frame(
   t.f = sapply(as.character(df.rem$trg), function(x)df.verts$id[which(x==df.verts$name)]),
   stringsAsFactors = F
 )
-cat("built edgelist.\n")
-effects <- c('CovSnd') # CovRec NODSnd
+
+effects <- c('NODSnd', 'CovSnd', 'CovEvent','CovRec') # NODSnd
 ##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,    deg,          pow.n4,  
 ##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
 ## [11] pow.3,       pow.4,        betweenness, constraint,   eig
 cov.idx <- c(1,2,3,4,  6)
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
+## MMC x target location (local/global) interaction
+cat("computing MMC target location interaction array...")
+dms <- dim(ar.cov)
+ar.cov.event <- array(dim=c(dms[1], 1, dms[3], dms[3]))
+for (i in 1:length(ar.cov.na0[,1,1])) {
+  mmc <- ar.cov.na0[i,1,]
+  target.position <- CovRec
+  ar.cov.event[i,1, , ] <- outer(mmc, target.position, '*')
+}
+cat("done.\n")
 ##
-covar <- list(CovSnd=ar.cov.na0)
-cat("fitting...\n")
+covar <- list(CovSnd=ar.cov.na0, CovEvent=ar.cov.event, CovRec=CovRec)
+##
 fit <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
-                          covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
+                covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
 summary(fit)
-saveRDS(list(fit=fit), file = sprintf("acq_rem_m%s.rds", mod))
+saveRDS(list(fit=fit), file = sprintf("acq_rem_fit_m%s.rds", mod))
+
+htmlreg(list(fit), digits = 3, file = sprintf("acq_rem_fit_m%s.html", mod))
 
 ####################### DEFINE MODELS ###################################
 
-
-
-##
-# SET RESAMPLES
-##
-R <- 1000
-
-for (i in 1:7) {
-  
-  m_x <- sprintf("m4%s", i)  #'m4'
-  mod <-  getModel(m_x) # m4
-  
-  ## RUN TERGM
-  fit <- tryCatch(
-    btergm(mod, R=R, parallel = "multicore", ncpus = detectCores())
-    , error = function(e)e
-  )
-  
-  if (!inherits(fit, "error")) {
-    ## SAVE SERIALIZED
-    fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s_betaNeg0_%s.rds', 
-                         firm_i, nPeriods, d, R, m_x, i)
-    saveRDS(fit, file=fits.file)
-    
-    ## SAVE FORMATTED REGRESSION TABLE
-    html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s_betaNeg0_%s.html',  
-                         firm_i, nPeriods, d, R, m_x, i)
-    htmlreg(fit, digits = 3, file=html.file)
-    
-  } else {
-    cat(sprintf("\nfirm %s error msg: %s\n", firm_i, fit))
-  }
-  
-}
 
 
 cat('finished successfully.')
