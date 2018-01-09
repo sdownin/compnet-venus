@@ -1,0 +1,15 @@
+
+
+##------ Tue Jan  9 18:49:21 2018 ------##
+
+computing MMC target location interaction array...
+
+##------ Tue Jan  9 17:00:47 2018 ------##
+
+computing MMC target location interaction array...
+
+##------ Tue Jan  9 17:28:57 2018 ------##
+
+computing MMC target location interaction array...done.
+Computing preliminary statistics
+Fitting model

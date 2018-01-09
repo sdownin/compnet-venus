@@ -1,0 +1,7 @@
+
+
+##------ Tue Jan  9 19:52:27 2018 ------##
+
+computing MMC target location interaction array...done.
+Computing preliminary statistics
+Fitting model
