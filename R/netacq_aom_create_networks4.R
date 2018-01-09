@@ -400,8 +400,12 @@ ar.cov <- array(dim=c(m,p,n))
   saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = sprintf("acquisitions_verts_df_%s.rds",name_i))
   
   # CovRec <- sapply(df.verts.pd.cov$name, function(name) ifelse(name %in% V(g.pd.orig)$name, 1, 0))
-  CovRec <- sapply(1:nrow(df.rem), function(i) ifelse(df.rem$i.nc[i] == df.rem$j.nc[i], 1, 0))
+  tmp <- sapply(1:nrow(df.verts),function(x)as.integer(V(g.pd.orig)[which(V(g.pd.orig)$name==df.verts$name[x])]$nc))
+  CovRec <- as.matrix(dist(x = tmp,method = 'manhattan',diag = T, upper = T))
   CovRec[is.na(CovRec)] <- 0
+  CovRec[CovRec > 0] <- -1 ## not same nc
+  CovRec[CovRec == 0] <- 1 ## same nc
+  CovRec[CovRec < 0] <- 0
   saveRDS(list(CovRec=CovRec), file = sprintf("acquisitions_cov_rec_%s.rds",name_i))
   
   

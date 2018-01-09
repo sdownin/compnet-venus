@@ -42,7 +42,8 @@ ar.cov.event <- array(dim=c(dms[1], 1, dms[3], dms[3]))
 for (i in 1:length(ar.cov.na0[,1,1])) {
   mmc <- ar.cov.na0[i,1,]
   target.position <- CovRec
-  ar.cov.event[i,1, , ] <- outer(mmc, target.position, '*')
+  # ar.cov.event[i,1, , ] <- outer(mmc, target.position, '*')
+  ar.cov.event[i,1, , ] <- mmc * CovRec
 }
 cat("done.\n")
 ##
