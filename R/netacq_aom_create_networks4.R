@@ -224,8 +224,8 @@ plot(x,y,pch=16); abline(h=y)
 ##--------------------------------------------------------------
 
 
-name_i <- 'dell'
-d <- 3
+name_i <- 'ibm'
+d <- 2
 times <- sapply(2014:2017, function(x)paste0(x,'-01-01'))
 
 g.ego <- igraph::make_ego_graph(graph = g.full,
@@ -249,15 +249,23 @@ acq.src.trg.allpd <- acq.src.allpd[which(acq.src.allpd$acquirer_name_unique %in%
                                        & acq.src.allpd$acquiree_name_unique %in% V(g.ego)$name), ]
 dim(acq.src.trg.allpd)
 ## get all verts in the period (first either acquired or acquirer)
-acq.verts <- unique(c(as.character(acq.src.trg.allpd$acquirer_name_unique), 
-                      as.character(acq.src.trg.allpd$acquiree_name_unique)))
+acq.verts <- unique(c(as.character(acq.src.allpd$acquirer_name_unique), 
+                      as.character(acq.src.allpd$acquiree_name_unique)))
 df.verts <- data.frame(id=1:length(acq.verts), name=acq.verts, stringsAsFactors = F)
+yrs <- co$founded_year[which(co$company_name_unique %in% df.verts$name & !is.na(co$founded_year))]
+df.verts$founded_year <- sapply(1:nrow(df.verts), function(x) {
+    year <- co$founded_year[which(co$company_name_unique == df.verts$name[x])]
+    year <- year[1]
+    return(ifelse(is.na(year)|length(year)<1|class(year)=='list', median(yrs,na.rm = T), year))
+  }, simplify = T)
+
 ##
-p <- 15 ## i.mmc, i.mmc^2, num.mkts, deg, power
-m <- nrow(acq.src.trg.allpd)
+p <- 17 ## i.mmc, i.mmc^2, num.mkts, deg, power
+m <- nrow(acq.src.allpd)
 n <- nrow(df.verts)
 ar.cov <- array(dim=c(m,p,n))
-    
+
+ar.cov.rec <- array(dim=c(m,2,n,n))
 
   start <- times[1]
   end <- times[length(times)]
@@ -277,7 +285,7 @@ ar.cov <- array(dim=c(m,p,n))
   for (j in 1:nrow(acq.src.allpd)) {
     cat(sprintf('\n\nstart %s end %s : acquisition %s\n\n',start,end,j))
     
-    if (acq.src.allpd$acquiree_name_unique[j] %in% V(g.pd.orig)$name) {
+    # if (acq.src.allpd$acquiree_name_unique[j] %in% V(g.pd.orig)$name) {
         lidx <- lidx + 1
         l[[lidx]] <- list()
         ## Update MMC after acquisition
@@ -298,6 +306,7 @@ ar.cov <- array(dim=c(m,p,n))
         # xj.orig.vid <- acq.src.allpd$acquiree_vid[j]
         xi.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquirer_name_unique[j] == V(g.pd.orig)$name)]
         xj.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquiree_name_unique[j] == V(g.pd.orig)$name)]
+        xj.orig.vid <- ifelse(length(xj.orig.vid) > 1, xj.orig.vid, NA)
         xi <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquirer_name_unique[j]])
         
         if (length(xi) >0 ) {
@@ -309,7 +318,8 @@ ar.cov <- array(dim=c(m,p,n))
             xi.pow <- igraph::power_centrality(g.pd, exponent = -0.3, sparse = T)[xi]
             ##
             xj <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j]])
-            xj.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid])
+            xj.orig <- ifelse( !is.na(xj.orig.vid), as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid]), NA)
+            xj.orig <- ifelse(length(xj.orig) > 1, xj.orig, NA)
             xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
             xj.mmc.sum <- ifelse(length(xj)==0,NA,  V(g.pd)$fm.mmc.sum[xj] )
             xj.num.mkts <- ifelse(length(xj)==0,NA,  V(g.pd)$num.mkts[xj] )
@@ -356,8 +366,18 @@ ar.cov <- array(dim=c(m,p,n))
             eig <- igraph::eigen_centrality(g.pd)
             if (length(eig$vector)>0)
               df.pd.cov$eig  <- eig$vector
+            ##
+            date_j <- acq.src.allpd$acquired_on[j]
+            df.verts$is.public <- sapply(1:nrow(df.verts), function(x){
+              ipo.date <- co_ipo$went_public_on[which(co_ipo$company_name_unique == df.verts$name[x])]
+              if (length(ipo.date)<1) 
+                return(0)
+              return(ifelse( ipo.date <= date_j, 1, 0))
+            })
+            dim(co_ipo[which(co_ipo$company_name_unique %in% acq.src.allpd$acquirer_name_unique), ])
             df.verts.pd.cov <- merge(df.verts, df.pd.cov, by = 'name', all.x = T)
             df.verts.pd.cov <- df.verts.pd.cov[order(df.verts.pd.cov$id),]
+            ## sender covariate array
             l[[lidx]]$cov <- df.verts.pd.cov
             ar.cov[lidx, 1, ] <- df.verts.pd.cov$mmc.sum
             ar.cov[lidx, 2, ] <- df.verts.pd.cov$mmc.sum.sq
@@ -373,10 +393,15 @@ ar.cov <- array(dim=c(m,p,n))
             ar.cov[lidx,12, ] <- df.verts.pd.cov$pow.4
             ar.cov[lidx,13, ] <- df.verts.pd.cov$betweenness
             ar.cov[lidx,14, ] <- df.verts.pd.cov$constraint
+            ar.cov[lidx,15, ] <- df.verts.pd.cov$founded_year
+            ar.cov[lidx,16, ] <- df.verts.pd.cov$is.public
             if ('eig' %in% names(df.verts.pd.cov))
-              ar.cov[lidx,15, ] <- df.verts.pd.cov$eig
+              ar.cov[lidx,17, ] <- df.verts.pd.cov$eig
+            ## Event covariate array
+            ar.cov.rec[lidx,1, , ] <- outer(df.verts.pd.cov$founded_year, df.verts.pd.cov$founded_year, '-')
+            ar.cov.rec[lidx,2, , ] <- as.matrix(dist(df.verts.pd.cov$is.public, df.verts.pd.cov$is.public, method = 'manhattan', diag = T, upper = T))
         }
-    }
+    # }
     
     ## NODE COLLAPSE update network
     g.pd <- nodeCollapseGraph(g.pd, acq.src.allpd[j,])
@@ -399,14 +424,14 @@ ar.cov <- array(dim=c(m,p,n))
   saveRDS(l, file = sprintf("acquisitions_cov_list_%s.rds",name_i))
   saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = sprintf("acquisitions_verts_df_%s.rds",name_i))
   
-  # CovRec <- sapply(df.verts.pd.cov$name, function(name) ifelse(name %in% V(g.pd.orig)$name, 1, 0))
-  tmp <- sapply(1:nrow(df.verts),function(x)as.integer(V(g.pd.orig)[which(V(g.pd.orig)$name==df.verts$name[x])]$nc))
-  CovRec <- as.matrix(dist(x = tmp,method = 'manhattan',diag = T, upper = T))
-  CovRec[is.na(CovRec)] <- 0
-  CovRec[CovRec > 0] <- -1 ## not same nc
-  CovRec[CovRec == 0] <- 1 ## same nc
-  CovRec[CovRec < 0] <- 0
-  saveRDS(list(CovRec=CovRec), file = sprintf("acquisitions_cov_rec_%s.rds",name_i))
+  # # CovRec <- sapply(df.verts.pd.cov$name, function(name) ifelse(name %in% V(g.pd.orig)$name, 1, 0))
+  # tmp <- sapply(1:nrow(df.verts),function(x)as.integer(V(g.pd.orig)[which(V(g.pd.orig)$name==df.verts$name[x])]$nc))
+  # CovRec <- as.matrix(dist(x = tmp,method = 'manhattan',diag = T, upper = T))
+  # CovRec[is.na(CovRec)] <- 0
+  # CovRec[CovRec > 0] <- -1 ## not same nc
+  # CovRec[CovRec == 0] <- 1 ## same nc
+  # CovRec[CovRec < 0] <- 0
+  saveRDS(list(ar.cov.rec=ar.cov.rec), file = sprintf("acquisitions_cov_rec_%s.rds",name_i))
   
   
   
@@ -420,7 +445,7 @@ acq.src.allpd <- l1$acq.src.allpd
 df.rem <- l2$df.rem
 ar.cov <- l2$ar.cov
 df.verts.pd.cov <- l3[[1]]$cov
-CovRec <- l4$CovRec
+ar.cov.rec <- l4$ar.cov.rec
 #----------------------- RELATIONAL EVENT MODEL ------------------------
 
 #----------------------- RELATIONAL EVENT MODEL ------------------------
