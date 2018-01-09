@@ -33,6 +33,7 @@ effects <- c('CovSnd') # CovRec NODSnd
 ## [11] pow.3,       pow.4,        betweenness, constraint,   eig
 cov.idx <- c(1,2,3,4,  6)
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
+ar.cov.na0[is.na(ar.cov.na0)] <- 0
 ##
 covar <- list(CovSnd=ar.cov.na0)
 fit <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 

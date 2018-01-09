@@ -243,6 +243,7 @@ timeval <- timeval.last <- 0
 ## all event vertices
 acq.src <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.ego)$name), ]
 acq.src.allpd <- acq.src[which(acq.src$acquired_on >= times[1] & acq.src$acquired_on < times[length(times)]) , ]
+acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F), ]
 ## check number of acquisitions to counts
 acq.src.trg.allpd <- acq.src.allpd[which(acq.src.allpd$acquirer_name_unique %in% V(g.ego)$name 
                                        & acq.src.allpd$acquiree_name_unique %in% V(g.ego)$name), ]
@@ -293,85 +294,88 @@ ar.cov <- array(dim=c(m,p,n))
                             nc=V(g.pd)$nc)
         df.mmc <- rbind(df.mmc, df.pd)
         ## GET REM DATAFRAME VARS
-        # xi.orig.vid <- acq.src.pd$acquirer_vid[j]
-        # xj.orig.vid <- acq.src.pd$acquiree_vid[j]
+        # xi.orig.vid <- acq.src.allpd$acquirer_vid[j]
+        # xj.orig.vid <- acq.src.allpd$acquiree_vid[j]
         xi.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquirer_name_unique[j] == V(g.pd.orig)$name)]
         xj.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquiree_name_unique[j] == V(g.pd.orig)$name)]
         xi <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquirer_name_unique[j]])
-        xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.pd$acquirer_name_unique[j]])
-        xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
-        xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
-        xi.num.mkts <-  V(g.pd)$num.mkts[xi]
-        xi.deg <- igraph::degree(g.pd)[xi]
-        xi.pow <- igraph::power_centrality(g.pd, exponent = -0.3, sparse = T)[xi]
-        ##
-        xj <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j]])
-        xj.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid])
-        xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
-        xj.mmc.sum <- ifelse(length(xj)==0,NA,  V(g.pd)$fm.mmc.sum[xj] )
-        xj.num.mkts <- ifelse(length(xj)==0,NA,  V(g.pd)$num.mkts[xj] )
-        xj.deg <- ifelse(length(xj)==0,NA,  igraph::degree(g.pd)[xj] )
-        xj.pow <- ifelse(length(xj)==0,NA,  igraph::power_centrality(g.pd, exponent = -0.3, sparse = T)[xj] )
-        src <- ifelse(length(acq.src.pd$acquirer_name_unique[j])>0, 
-                      acq.src.pd$acquirer_name_unique[j], NA)
-        trg <- ifelse(length(acq.src.pd$acquiree_name_unique[j])>0, 
-                      acq.src.pd$acquiree_name_unique[j], NA)
-        datestr <- acq.src.pd$acquired_on[j]
-        timeval.last <- timeval
-        timeval <- as.integer(ymd(datestr))
-        timeval <- ifelse(timeval%in%df.rem$t, timeval.last + 0.01, timeval)
-        # MAKE REM DATAFRAME
-        df.rem.pd <- data.frame(t=timeval, src=src, trg=trg, 
-                                time=datestr, idx=lidx,
-                                i.orig.vid=xi.orig.vid,
-                                j.orig.vid=xj.orig.vid,
-                                i=xi, 
-                                i.nc=xi.nc, i.mmc.sum=xi.mmc.sum, i.num.mkts=xi.num.mkts, 
-                                i.deg=xi.deg,i.pow=xi.pow,
-                                j=ifelse(length(xj)==0,NA,xj), 
-                                j.nc=xj.nc, j.mmc.sum=xj.mmc.sum, j.num.mkts=xj.num.mkts, 
-                                j.deg=xj.deg, j.pow=xj.pow
-        )
-        df.rem <- rbind(df.rem, df.rem.pd)
-        cat(sprintf("df.rem dim:  %s\n",paste(dim(df.rem),collapse=", ")))
-        ## SAVE COVARIATE ARRAY [m,p,n] for m times, p covars, n actors
-        df.pd.cov <- data.frame(name=V(g.pd)$name, 
-                                mmc.sum=as.numeric(V(g.pd)$fm.mmc.sum), 
-                                mmc.sum.sq=as.numeric(V(g.pd)$fm.mmc.sum)^2,
-                                num.mkts=as.numeric(V(g.pd)$num.mkts),
-                                deg=igraph::degree(g.pd),
-                                pow.n4=igraph::power_centrality(g.pd, exponent = -0.4),
-                                pow.n3=igraph::power_centrality(g.pd, exponent = -0.3),
-                                pow.n2=igraph::power_centrality(g.pd, exponent = -0.2),
-                                pow.n1=igraph::power_centrality(g.pd, exponent = -0.1),
-                                pow.1=igraph::power_centrality(g.pd, exponent = 0.1),
-                                pow.2=igraph::power_centrality(g.pd, exponent = 0.2),
-                                pow.3=igraph::power_centrality(g.pd, exponent = 0.3),
-                                pow.4=igraph::power_centrality(g.pd, exponent = 0.4),
-                                betweenness=igraph::betweenness(g.pd),
-                                constraint=igraph::constraint(g.pd)  )
-        eig <- igraph::eigen_centrality(g.pd)
-        if (length(eig$vector)>0)
-            df.pd.cov$eig  <- eig$vector
-        df.verts.pd.cov <- merge(df.verts, df.pd.cov, by = 'name', all.x = T)
-        df.verts.pd.cov <- df.verts.pd.cov[order(df.verts.pd.cov$id),]
-        l[[lidx]]$cov <- df.verts.pd.cov
-        ar.cov[lidx, 1, ] <- df.verts.pd.cov$mmc.sum
-        ar.cov[lidx, 2, ] <- df.verts.pd.cov$mmc.sum.sq
-        ar.cov[lidx, 3, ] <- df.verts.pd.cov$num.mkts
-        ar.cov[lidx, 4, ] <- df.verts.pd.cov$deg
-        ar.cov[lidx, 5, ] <- df.verts.pd.cov$pow.n4
-        ar.cov[lidx, 6, ] <- df.verts.pd.cov$pow.n3
-        ar.cov[lidx, 7, ] <- df.verts.pd.cov$pow.n2
-        ar.cov[lidx, 8, ] <- df.verts.pd.cov$pow.n1
-        ar.cov[lidx, 9, ] <- df.verts.pd.cov$pow.1
-        ar.cov[lidx,10, ] <- df.verts.pd.cov$pow.2
-        ar.cov[lidx,11, ] <- df.verts.pd.cov$pow.3
-        ar.cov[lidx,12, ] <- df.verts.pd.cov$pow.4
-        ar.cov[lidx,13, ] <- df.verts.pd.cov$betweenness
-        ar.cov[lidx,14, ] <- df.verts.pd.cov$constraint
-        if ('eig' %in% names(df.verts.pd.cov))
-            ar.cov[lidx,15, ] <- df.verts.pd.cov$eig
+        
+        if (length(xi) >0 ) {
+            xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.allpd$acquirer_name_unique[j]])
+            xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
+            xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
+            xi.num.mkts <-  V(g.pd)$num.mkts[xi]
+            xi.deg <- igraph::degree(g.pd)[xi]
+            xi.pow <- igraph::power_centrality(g.pd, exponent = -0.3, sparse = T)[xi]
+            ##
+            xj <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j]])
+            xj.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid])
+            xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
+            xj.mmc.sum <- ifelse(length(xj)==0,NA,  V(g.pd)$fm.mmc.sum[xj] )
+            xj.num.mkts <- ifelse(length(xj)==0,NA,  V(g.pd)$num.mkts[xj] )
+            xj.deg <- ifelse(length(xj)==0,NA,  igraph::degree(g.pd)[xj] )
+            xj.pow <- ifelse(length(xj)==0,NA,  igraph::power_centrality(g.pd, exponent = -0.3, sparse = T)[xj] )
+            src <- ifelse(length(acq.src.allpd$acquirer_name_unique[j])>0, 
+                          acq.src.allpd$acquirer_name_unique[j], NA)
+            trg <- ifelse(length(acq.src.allpd$acquiree_name_unique[j])>0, 
+                          acq.src.allpd$acquiree_name_unique[j], NA)
+            datestr <- acq.src.allpd$acquired_on[j]
+            timeval.last <- timeval
+            timeval <- as.integer(ymd(datestr))
+            timeval <- ifelse(timeval%in%df.rem$t, timeval.last + 0.01, timeval)
+            # MAKE REM DATAFRAME
+            df.rem.pd <- data.frame(t=timeval, src=src, trg=trg, 
+                                    time=datestr, idx=lidx,
+                                    i.orig.vid=xi.orig.vid,
+                                    j.orig.vid=xj.orig.vid,
+                                    i=xi, 
+                                    i.nc=xi.nc, i.mmc.sum=xi.mmc.sum, i.num.mkts=xi.num.mkts, 
+                                    i.deg=xi.deg,i.pow=xi.pow,
+                                    j=ifelse(length(xj)==0,NA,xj), 
+                                    j.nc=xj.nc, j.mmc.sum=xj.mmc.sum, j.num.mkts=xj.num.mkts, 
+                                    j.deg=xj.deg, j.pow=xj.pow
+            )
+            df.rem <- rbind(df.rem, df.rem.pd)
+            cat(sprintf("df.rem dim:  %s\n",paste(dim(df.rem),collapse=", ")))
+            ## SAVE COVARIATE ARRAY [m,p,n] for m times, p covars, n actors
+            df.pd.cov <- data.frame(name=V(g.pd)$name, 
+                                    mmc.sum=as.numeric(V(g.pd)$fm.mmc.sum), 
+                                    mmc.sum.sq=as.numeric(V(g.pd)$fm.mmc.sum)^2,
+                                    num.mkts=as.numeric(V(g.pd)$num.mkts),
+                                    deg=igraph::degree(g.pd),
+                                    pow.n4=igraph::power_centrality(g.pd, exponent = -0.4),
+                                    pow.n3=igraph::power_centrality(g.pd, exponent = -0.3),
+                                    pow.n2=igraph::power_centrality(g.pd, exponent = -0.2),
+                                    pow.n1=igraph::power_centrality(g.pd, exponent = -0.1),
+                                    pow.1=igraph::power_centrality(g.pd, exponent = 0.1),
+                                    pow.2=igraph::power_centrality(g.pd, exponent = 0.2),
+                                    pow.3=igraph::power_centrality(g.pd, exponent = 0.3),
+                                    pow.4=igraph::power_centrality(g.pd, exponent = 0.4),
+                                    betweenness=igraph::betweenness(g.pd),
+                                    constraint=igraph::constraint(g.pd)  )
+            eig <- igraph::eigen_centrality(g.pd)
+            if (length(eig$vector)>0)
+              df.pd.cov$eig  <- eig$vector
+            df.verts.pd.cov <- merge(df.verts, df.pd.cov, by = 'name', all.x = T)
+            df.verts.pd.cov <- df.verts.pd.cov[order(df.verts.pd.cov$id),]
+            l[[lidx]]$cov <- df.verts.pd.cov
+            ar.cov[lidx, 1, ] <- df.verts.pd.cov$mmc.sum
+            ar.cov[lidx, 2, ] <- df.verts.pd.cov$mmc.sum.sq
+            ar.cov[lidx, 3, ] <- df.verts.pd.cov$num.mkts
+            ar.cov[lidx, 4, ] <- df.verts.pd.cov$deg
+            ar.cov[lidx, 5, ] <- df.verts.pd.cov$pow.n4
+            ar.cov[lidx, 6, ] <- df.verts.pd.cov$pow.n3
+            ar.cov[lidx, 7, ] <- df.verts.pd.cov$pow.n2
+            ar.cov[lidx, 8, ] <- df.verts.pd.cov$pow.n1
+            ar.cov[lidx, 9, ] <- df.verts.pd.cov$pow.1
+            ar.cov[lidx,10, ] <- df.verts.pd.cov$pow.2
+            ar.cov[lidx,11, ] <- df.verts.pd.cov$pow.3
+            ar.cov[lidx,12, ] <- df.verts.pd.cov$pow.4
+            ar.cov[lidx,13, ] <- df.verts.pd.cov$betweenness
+            ar.cov[lidx,14, ] <- df.verts.pd.cov$constraint
+            if ('eig' %in% names(df.verts.pd.cov))
+              ar.cov[lidx,15, ] <- df.verts.pd.cov$eig
+        }
     }
     
     ## NODE COLLAPSE update network
@@ -384,13 +388,23 @@ ar.cov <- array(dim=c(m,p,n))
     }
   }
   
+  ## remove missing observations (skipped in loop)
+  acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F), ]
+  df.rem <- df.rem[order(df.rem$t, decreasing = F), ]
+  df.verts <- df.verts[which(df.verts$name %in% c(as.character(df.rem$src),as.character(df.rem$trg))),]
+  df.verts$id <- 1:nrow(df.verts)
+  ar.cov <- ar.cov[1:nrow(df.rem), , 1:nrow(df.verts) ]
+  
   saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = sprintf("acquisitions_rem_covs_%s.rds",name_i))
   saveRDS(l, file = sprintf("acquisitions_cov_list_%s.rds",name_i))
   saveRDS(list(df.verts=df.verts, acq.src.allpd=acq.src.allpd), file = sprintf("acquisitions_verts_df_%s.rds",name_i))
   
   # CovRec <- sapply(df.verts.pd.cov$name, function(name) ifelse(name %in% V(g.pd.orig)$name, 1, 0))
   CovRec <- sapply(1:nrow(df.rem), function(i) ifelse(df.rem$i.nc[i] == df.rem$j.nc[i], 1, 0))
+  CovRec[is.na(CovRec)] <- 0
   saveRDS(list(CovRec=CovRec), file = sprintf("acquisitions_cov_rec_%s.rds",name_i))
+  
+  
   
 #-----------------------------------------------------------------------
 l1 <- readRDS(sprintf("acquisitions_verts_df_%s.rds",name_i))
