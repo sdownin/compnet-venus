@@ -448,17 +448,33 @@ df.verts.pd.cov <- l3[[1]]$cov
 ar.cov.rec <- l4$ar.cov.rec
 #----------------------- RELATIONAL EVENT MODEL ------------------------
 
-## Correlations
+## ----------------- Correlations ---------------------------------------
 dim(ar.cov)
 
+cov.idx <-  c(1,2,3,4, 8, 15,16)
+ar.cov.na0 <- ar.cov[ , cov.idx, ]
+ar.cov.na0[is.na(ar.cov.na0)] <- 0
+
+dms <- dim(ar.cov.na0)
+ar.cov.2 <- array(dim=c(dms[1],length(iv.idx)+1,dms[3]))
+ar.cov.2[ , 1:length(iv.idx), ] <-ar.cov.na0
+ar.cov.2[ , 8, ] <- ar.cov.na0[ , 1, ] * ar.cov.na0[ , 5, ]
+
 df.cor <- data.frame()
-for (i in c(1,2,3,4, 6, 15,16)) {
-  df.cor <- rbind(df.cor, c(ar.cov[ , i, ]))  #flatten time x node covariates matrix for each predictor
-}
-for (i in c(1,2)) {
-  
+for (i in 1:dim(ar.cov.2)[2]) {
+  df.cor <- rbind(df.cor, c(ar.cov.2[ , i, ]))  #flatten time x node covariates matrix for each predictor
 }
 df.cor <- t(df.cor)
+
+library(psych)
+
+m.cor <- cor(df.cor)
+
+df.desc <- psych::describe(df.cor)
+
+df.cor.text <- psych::corr.test(df.cor)
+
+
 
 #----------------------- RELATIONAL EVENT MODEL ------------------------
 
