@@ -13,3 +13,9 @@ computing MMC target location interaction array...
 computing MMC target location interaction array...done.
 Computing preliminary statistics
 Fitting model
+
+
+##------ Wed Jan 10 07:27:31 2018 ------##
+
+Computing preliminary statistics
+Fitting model

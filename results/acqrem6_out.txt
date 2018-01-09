@@ -34,3 +34,8 @@ Residual deviance: 15454496 on 87 degrees of freedom
 	Chi-square: -15451461 on 6 degrees of freedom, asymptotic p-value 1 
 AIC: 15454510 AICC: 15454511 BIC: 15454528 
 finished successfully.
+
+##------ Thu Dec 21 07:22:16 2017 ------##
+
+Computing preliminary statistics
+Fitting model
