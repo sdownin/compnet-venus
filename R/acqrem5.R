@@ -37,7 +37,7 @@ ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
 ## MMC x target location (local/global) interaction
 cat("computing MMC target location interaction array...")
-dms <- dim(ar.cov)
+dms <- dim(ar.cov.na0)
 ar.cov.event <- array(dim=c(dms[1], 1, dms[3], dms[3]))
 for (i in 1:length(ar.cov.na0[,1,1])) {
   mmc <- ar.cov.na0[i,1,]

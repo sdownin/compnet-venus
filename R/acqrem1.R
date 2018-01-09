@@ -45,39 +45,4 @@ saveRDS(list(fit=fit), file = sprintf("acq_rem_m%s.rds", mod))
 ####################### DEFINE MODELS ###################################
 
 
-
-##
-# SET RESAMPLES
-##
-R <- 1000
-
-for (i in 1:7) {
-  
-  m_x <- sprintf("m4%s", i)  #'m4'
-  mod <-  getModel(m_x) # m4
-  
-  ## RUN TERGM
-  fit <- tryCatch(
-    btergm(mod, R=R, parallel = "multicore", ncpus = detectCores())
-    , error = function(e)e
-  )
-  
-  if (!inherits(fit, "error")) {
-    ## SAVE SERIALIZED
-    fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_d%s_R%s_%s_betaNeg0_%s.rds', 
-                         firm_i, nPeriods, d, R, m_x, i)
-    saveRDS(fit, file=fits.file)
-    
-    ## SAVE FORMATTED REGRESSION TABLE
-    html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_d%s_R%s_%s_betaNeg0_%s.html',  
-                         firm_i, nPeriods, d, R, m_x, i)
-    htmlreg(fit, digits = 3, file=html.file)
-    
-  } else {
-    cat(sprintf("\nfirm %s error msg: %s\n", firm_i, fit))
-  }
-  
-}
-
-
 cat('finished successfully.')
