@@ -17,7 +17,7 @@ df.rem <- l2$df.rem
 ar.cov <- l2$ar.cov
 df.verts.pd.cov <- l3[[1]]$cov
 CovRec <- l4$CovRec
-
+cat("loaded data frames.\n")
 ##-------------------------------------------------------------------------------
 
 el <- data.frame(
@@ -26,7 +26,7 @@ el <- data.frame(
   t.f = sapply(as.character(df.rem$trg), function(x)df.verts$id[which(x==df.verts$name)]),
   stringsAsFactors = F
 )
-
+cat("built edgelist.\n")
 effects <- c('CovSnd') # CovRec NODSnd
 ##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,    deg,          pow.n4,  
 ##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
@@ -36,6 +36,7 @@ ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
 ##
 covar <- list(CovSnd=ar.cov.na0)
+cat("fitting...\n")
 fit <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
                           covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
 summary(fit)
