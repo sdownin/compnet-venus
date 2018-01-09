@@ -16,7 +16,7 @@ acq.src.allpd <- l1$acq.src.allpd
 df.rem <- l2$df.rem
 ar.cov <- l2$ar.cov
 df.verts.pd.cov <- l3[[1]]$cov
-CovRec <- l4$CovRec
+ar.cov.rec <- l4$ar.cov.rec
 cat("loaded data frames.\n")
 ##-------------------------------------------------------------------------------
 
@@ -27,10 +27,11 @@ el <- data.frame(
   stringsAsFactors = F
 )
 cat("built edgelist.\n")
-effects <- c('CovSnd') # CovRec NODSnd
+effects <- c('NODSnd', 'CovSnd') # CovRec NODSnd
 ##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,    deg,          pow.n4,  
 ##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
-## [11] pow.3,       pow.4,        betweenness, constraint,   eig
+## [11] pow.3,       pow.4,        betweenness, constraint,   founded_year
+## [16] is.public    eig
 cov.idx <- c(1,2,3,4,  6)
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0

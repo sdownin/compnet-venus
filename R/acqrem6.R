@@ -17,7 +17,7 @@ acq.src.allpd <- l1$acq.src.allpd
 df.rem <- l2$df.rem
 ar.cov <- l2$ar.cov
 df.verts.pd.cov <- l3[[1]]$cov
-CovRec <- l4$CovRec
+ar.cov.rec <- l4$ar.cov.rec
 
 ##-------------------------------------------------------------------------------
 
@@ -28,26 +28,29 @@ el <- data.frame(
   stringsAsFactors = F
 )
 
-effects <- c('NODSnd', 'CovSnd', 'CovEvent') # NODSnd
+effects <- c('NODSnd', 'CovSnd', 'CovEvent') # CovRec NODSnd
 ##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,    deg,          pow.n4,  
 ##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
-## [11] pow.3,       pow.4,        betweenness, constraint,   eig
-cov.idx <- c(1,2,3,4,  6)
+## [11] pow.3,       pow.4,        betweenness, constraint,   founded_year
+## [16] is.public    eig
+cov.idx <- c(1,2,3,4,  6, 15,16)
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
-## MMC x target location (local/global) interaction
-cat("computing MMC target location interaction array...")
-dms <- dim(ar.cov.na0)
-ar.cov.event <- array(dim=c(dms[1], 1, dms[3], dms[3]))
-for (i in 1:length(ar.cov.na0[,1,1])) {
-  mmc <- ar.cov.na0[i,1,]
-  target.position <- CovRec
-  # ar.cov.event[i,1, , ] <- outer(mmc, target.position, '*')
-  ar.cov.event[i,1, , ] <- mmc * CovRec
-}
-cat("done.\n")
+
+# ## MMC x target location (local/global) interaction
+# cat("computing MMC target location interaction array...")
+# dms <- dim(ar.cov.na0)
+# ar.cov.event <- array(dim=c(dms[1], 1, dms[3], dms[3]))
+# for (i in 1:length(ar.cov.na0[,1,1])) {
+#   mmc <- ar.cov.na0[i,1,]
+#   target.position <- CovRec
+#   # ar.cov.event[i,1, , ] <- outer(mmc, target.position, '*')
+#   ar.cov.event[i,1, , ] <- mmc * CovRec
+# }
+# cat("done.\n")
+
 ##
-covar <- list(CovSnd=ar.cov.na0, CovEvent=ar.cov.event)
+covar <- list(CovSnd=ar.cov.na0, CovEvent=ar.cov.rec)
 ##
 fit <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
                 covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
