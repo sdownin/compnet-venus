@@ -448,6 +448,18 @@ df.verts.pd.cov <- l3[[1]]$cov
 ar.cov.rec <- l4$ar.cov.rec
 #----------------------- RELATIONAL EVENT MODEL ------------------------
 
+## Correlations
+dim(ar.cov)
+
+df.cor <- data.frame()
+for (i in c(1,2,3,4, 6, 15,16)) {
+  df.cor <- rbind(df.cor, c(ar.cov[ , i, ]))  #flatten time x node covariates matrix for each predictor
+}
+for (i in c(1,2)) {
+  
+}
+df.cor <- t(df.cor)
+
 #----------------------- RELATIONAL EVENT MODEL ------------------------
 
 # rem.dyad(edgelist, n, effects = NULL, ordinal = TRUE, acl = NULL,
