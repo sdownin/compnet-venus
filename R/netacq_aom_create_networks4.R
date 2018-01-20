@@ -258,23 +258,26 @@ df.verts$founded_year <- sapply(1:nrow(df.verts), function(x) {
     year <- year[1]
     return(ifelse(is.na(year)|length(year)<1|class(year)=='list', median(yrs,na.rm = T), year))
   }, simplify = T)
-
+df.verts$age <- 2018 - df.verts$founded_year
 ##
-p <- 17 ## i.mmc, i.mmc^2, num.mkts, deg, power
+p <- 18 ## i.mmc, i.mmc^2, num.mkts, deg, power
 m <- nrow(acq.src.allpd)
 n <- nrow(df.verts)
 ar.cov <- array(dim=c(m,p,n))
 
-ar.cov.rec <- array(dim=c(m,2,n,n))
+nEventCov <- 4
+ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
 
   start <- times[1]
   end <- times[length(times)]
   ## make period graph
   g.pd <- makePdGraph(g.ego, start, end, isolates.remove=TRUE)
+  g.full.pd <- makePdGraph(g.full, start, end, isolates.remove=TRUE)
   ## period NC
   V(g.pd)$nc <- as.integer(igraph::multilevel.community(g.pd)$membership)
   ## keep original pd graph
   g.pd.orig <- g.pd
+  g.full.pd.orig <- g.full.pd
   ## filter acquisitions made by firms in this period graph
   acq.src <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.pd)$name), ]
   ## filter acquisitions made during this period
@@ -333,6 +336,15 @@ ar.cov.rec <- array(dim=c(m,2,n,n))
             timeval.last <- timeval
             timeval <- as.integer(ymd(datestr))
             timeval <- ifelse(timeval%in%df.rem$t, timeval.last + 0.01, timeval)
+            ##
+            # ## Create Diff Graph (removed nodes are isolates)
+            vids <- as.integer( V(g.full.pd)[which( df.verts.pd.cov$name %in% V(g.full.pd)$name )] )
+            vids.orig <- as.integer( V(g.full.pd.orig)[which( df.verts.pd.cov$name %in% V(g.full.pd.orig)$name )] )
+            vids.orig.rm <- vids[which( !(vids.orig %in% vids))]
+            mapping <- V(g.full.pd.orig)[which(V(g.full.pd.orig)$orig.vid %in% V(g.full.pd)$orig.vid) ]
+            g.diff <- igraph::contract.vertices(g.full.pd, mapping = mapping)
+            V(g.diff)$name <- V(g.full.pd.orig)$name
+            vids.diff <- as.integer( V(g.diff)[which( df.verts$name %in% V(g.diff)$name )] )
             # MAKE REM DATAFRAME
             df.rem.pd <- data.frame(t=timeval, src=src, trg=trg, 
                                     time=datestr, idx=lidx,
@@ -352,20 +364,24 @@ ar.cov.rec <- array(dim=c(m,2,n,n))
                                     mmc.sum=as.numeric(V(g.pd)$fm.mmc.sum), 
                                     mmc.sum.sq=as.numeric(V(g.pd)$fm.mmc.sum)^2,
                                     num.mkts=as.numeric(V(g.pd)$num.mkts),
-                                    deg=igraph::degree(g.pd),
-                                    pow.n4=igraph::power_centrality(g.pd, exponent = -0.4),
-                                    pow.n3=igraph::power_centrality(g.pd, exponent = -0.3),
-                                    pow.n2=igraph::power_centrality(g.pd, exponent = -0.2),
-                                    pow.n1=igraph::power_centrality(g.pd, exponent = -0.1),
-                                    pow.1=igraph::power_centrality(g.pd, exponent = 0.1),
-                                    pow.2=igraph::power_centrality(g.pd, exponent = 0.2),
-                                    pow.3=igraph::power_centrality(g.pd, exponent = 0.3),
-                                    pow.4=igraph::power_centrality(g.pd, exponent = 0.4),
+                                    pow.n4=igraph::power_centrality(g.pd, exponent = -0.4), 
+                                    pow.n3=igraph::power_centrality(g.pd, exponent = -0.3), 
+                                    pow.1 =igraph::power_centrality(g.pd, exponent = 0.1),
+                                    pow.2 =igraph::power_centrality(g.pd, exponent = 0.2),
+                                    pow.3 =igraph::power_centrality(g.pd, exponent = 0.3),
+                                    pow.4 =igraph::power_centrality(g.pd, exponent = 0.4),
                                     betweenness=igraph::betweenness(g.pd),
                                     constraint=igraph::constraint(g.pd)  )
             eig <- igraph::eigen_centrality(g.pd)
             if (length(eig$vector)>0)
               df.pd.cov$eig  <- eig$vector
+            ##  compute degree and selected power centralities for vids.diff from full graph g.diff
+            .v1 <- unname(unlist(V(g.diff)[vids.diff]$name))
+            .v2 <- unname(unlist(igraph::degree(g.diff, v = vids.diff)))
+            .v3 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.2)))
+            .v4 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.1)))
+            df.diff.cov <- data.frame(name=.v1, deg = .v2, pow.n2=.v3, pow.n1=.v4)
+            df.pd.cov <- merge(x = df.pd.cov, y = df.diff.cov, by='name', all.x=T, all.y=F)
             ##
             date_j <- acq.src.allpd$acquired_on[j]
             df.verts$is.public <- sapply(1:nrow(df.verts), function(x){
@@ -393,18 +409,26 @@ ar.cov.rec <- array(dim=c(m,2,n,n))
             ar.cov[lidx,12, ] <- df.verts.pd.cov$pow.4
             ar.cov[lidx,13, ] <- df.verts.pd.cov$betweenness
             ar.cov[lidx,14, ] <- df.verts.pd.cov$constraint
-            ar.cov[lidx,15, ] <- df.verts.pd.cov$founded_year
+            ar.cov[lidx,15, ] <- df.verts.pd.cov$age
             ar.cov[lidx,16, ] <- df.verts.pd.cov$is.public
+            ar.cov[lidx,17, ] <- df.verts.pd.cov$mmc.sum.sq * df.verts.pd.cov$pow.n1
             if ('eig' %in% names(df.verts.pd.cov))
-              ar.cov[lidx,17, ] <- df.verts.pd.cov$eig
+              ar.cov[lidx,18, ] <- df.verts.pd.cov$eig
             ## Event covariate array
-            ar.cov.rec[lidx,1, , ] <- outer(df.verts.pd.cov$founded_year, df.verts.pd.cov$founded_year, '-')
+            ar.cov.rec[lidx,1, , ] <- outer(df.verts.pd.cov$age, df.verts.pd.cov$age, '-')
             ar.cov.rec[lidx,2, , ] <- as.matrix(dist(df.verts.pd.cov$is.public, df.verts.pd.cov$is.public, method = 'manhattan', diag = T, upper = T))
+            ### vids from diff graph
+            dists <- as.matrix( igraph::distances(g.diff, v = vids.diff, to = vids.diff) )
+            dists <- max(dists[dists < Inf]) * (1 / dists)
+            diag(dists) <- 0
+            ar.cov.rec[lidx,3, , ] <- dists
+            ar.cov.rec[lidx,4, , ] <- dists * df.verts.pd.cov$mmc.sum.sq
         }
     # }
     
     ## NODE COLLAPSE update network
     g.pd <- nodeCollapseGraph(g.pd, acq.src.allpd[j,])
+    g.full.pd <- nodeCollapseGraph(g.full.pd, acq.src.allpd[j,])
     
     if (lidx %% 20 == 0) {
       saveRDS(list(df.rem=df.rem, ar.cov=ar.cov), file = sprintf("acquisitions_rem_covs_%s.rds",name_i))
@@ -468,12 +492,61 @@ df.cor <- t(df.cor)
 
 library(psych)
 
-m.cor <- cor(df.cor)
 
 df.desc <- psych::describe(df.cor)
+write.csv(df.desc, file = 'acqrem_summary_stats.csv', row.names = F)
 
-df.cor.text <- psych::corr.test(df.cor)
+m.cor <- cor(df.cor)
+write.csv(m.cor, file = 'acqrem_cor.csv', row.names = F)
 
+df.cor.test <- psych::corr.test(as.data.frame(df.cor) )
+write.csv(df.cor.test$p, file = 'acqrem_cor_pval.csv', row.names = F)
+
+
+## PLOT TIMESERIES
+firm.names <- c('ibm','microsoft','oracle','salesforce','opentext','adobe-systems')
+matplot(ar.cov[,1,which(df.verts$name %in% firm.names)], 
+        xlab='Acquisition Order (2014 - 2017)', 
+        lwd=2, ylab='Total Firm-to-Market MMC',
+        type='l', col=1:6, lty = 1:6)
+legend('left',legend = firm.names, lty=1:6, col=1:6, lwd=2)
+
+
+clrs <- rainbow(n=length(unique(V(g.pd.orig)$nc)), s=.7, v=.75)[V(g.pd.orig)$nc]
+set.seed(14380)
+png("ibm_comp_net_1.png", height = 6.5, width=7, units = 'in', res=200)
+par(mar=c(.1,.1,.1,.1))
+plot(g.pd.orig, 
+     vertex.size=4, 
+     vertex.color=clrs, 
+     vertex.label='',
+     layout=layout.kamada.kawai)
+dev.off()
+
+
+
+tmp1 <- readRDS('acq_rem_m1.rds')
+tmp2 <- readRDS('acq_rem_fit_m4.rds')
+tmp3 <- readRDS('acq_rem_fit_m3n1.rds')
+tmp4 <- readRDS('acq_rem_fit_m8.rds')
+
+fits <- list(tmp1$fit,tmp2$fit,tmp3$fit,tmp4$fit)
+
+coef.name = c('Acquisition Experience', 'Num. Markets', 
+              'Degree Centrality','Founded Year','Ownership Status (1=public)')
+htmlreg(tmp1, digits = 3, file = "acq_rem_results_m1.html", custom.coef.names = coef.name)
+
+coef.name = c('Acquisition Experience', 'Firm-to-market MMC', 'Firm-to-market MMC Squared',
+               'Num. Markets',  'Degree Centrality','Founded Year','Ownership Status (1=public)')
+htmlreg(tmp2, digits = 3, file = "acq_rem_results_m2.html",  custom.coef.names = coef.name)
+
+coef.name = c('Acquisition Experience', 'Power Centrality',
+              'Num. Markets',   'Degree Centrality','Founded Year','Ownership Status (1=public)')
+htmlreg(tmp3, digits = 3, file = "acq_rem_results_m3.html",  custom.coef.names = coef.name)
+
+coef.name = c('Acquisition Experience', 'Firm-to-market MMC', 'Firm-to-market MMC Squared', 'Power Centrality',
+              'Num. Markets', 'Degree Centrality','Founded Year','Ownership Status (1=public)')
+htmlreg(tmp4, digits = 3, file = "acq_rem_results_m4.html",  custom.coef.names = coef.name)
 
 
 #----------------------- RELATIONAL EVENT MODEL ------------------------
