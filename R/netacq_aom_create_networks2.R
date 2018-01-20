@@ -19,6 +19,7 @@ source(file.path(getwd(),'R','netrisk_functions.R'))
 ## DATA
 source(file.path(getwd(),'R','cb_data_prep.R'))
 
+
 ## comptetition network
 ## 37828
 g.full <- read.graph('g_full.graphml', format='graphml')

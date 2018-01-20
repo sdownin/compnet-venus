@@ -2679,7 +2679,7 @@ makePdGraph <- function(g, start, end,
 # NOTE: add 'weight' and 'acquisitions' attributes to graph before start
 #
 ##
-nodeCollapseGraph <- function(g, acquisitions)
+nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
 {
   if (class(g) != 'igraph') stop("g must be an igraph object")
   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
@@ -2690,17 +2690,29 @@ nodeCollapseGraph <- function(g, acquisitions)
                                  & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
   cat(sprintf('processing acquisitions: %s ...', nrow(acqs.sub)))
   if (nrow(acqs.sub) > 0) {
-    acqMapping <- V(g)$orig.vid
+    # acqMapping <- V(g)$orig.vid
+    acqMapping <- as.integer( V(g) )
+    if (verbose) cat('updating acq mapping i: ')
     for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
+      if (verbose) cat(sprintf(" %s ",i))
       acqr.i <- unique(acqs.sub$acquirer_vid)[i] ##  acquirer vid
       acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid'] ## acquiree's vids
       acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)] ## filter acquiree's vids to those in subgraph
-      if (length(acqe.vids) > 0) {
-        acqMapping[  which( V(g)$orig.vid %in% acqe.vids ) ] <- acqr.i  ## assign acquirer's vid to value in acquiree's spots
-      } 
-    } 
+      if (length(acqe.vids) > 0) { ##replace current g vid of acquiree with current graph vid of acquirer by orig.vid property
+        acqr.g.i <- as.integer( V(g)[ which(V(g)$orig.vid == acqr.i) ] )
+        acqe.g.vids <- sapply(acqe.vids, function(x)as.integer(V(g)[which(V(g)$orig.vid == x)]))
+        acqMapping[  which( as.integer(V(g)) %in% acqe.g.vids ) ] <- as.integer(acqr.g.i)  ## assign acquirer's vid to value in acquiree's spots
+      }
+    }
+    if (verbose) cat('reindexing mapping ')
     ## change orig.vid to current subgraph vids (reindexing)
-    acqMappingSub <- sapply(acqMapping, function(x) as.integer(V(g)[which(x==V(g)$orig.vid)]) )
+    # acqMappingSub <- sapply(1:length(acqMapping), function(i){ 
+    #   if (verbose & (i %% 500 == 0)) cat(sprintf(" %s ",i))
+    #   x <- acqMapping[i]
+    #   return( as.integer(V(g)[which(x==V(g)$orig.vid)]) )
+    # })
+    acqMappingSub <- acqMapping ## no need to reindex here bc already using current subgraph vids
+    if (verbose) cat('finished reindexing  ')
     ##-------------- CONFIG GRAPH ATTRIBUTES COMBINATIONS ---------------------
     ## build vertex attr comb list
     vertex.attr.comb <- list(weight=function(x)sum(x),
@@ -2709,20 +2721,25 @@ nodeCollapseGraph <- function(g, acquisitions)
                              absorbed=function(x)paste(x,collapse="|") ) ## paste(x,collapse="|")
     attrs <- igraph::list.vertex.attributes(g)
     skipAttrs <- c('name','weight',names(vertex.attr.comb))
+    if (verbose) cat('finished reindexing  ')
     for (attr in attrs[which(!(attrs %in% skipAttrs))]) {
       vertex.attr.comb[[attr]] <- function(x)paste(unique(x),collapse="|")
     }
+    if (verbose) cat('finished adding attrs ')
     ## temporary attrs used to concat in mapping
     V(g)$absorbed <- V(g)$name
     V(g)$tmp.name <- V(g)$name[acqMappingSub]
     V(g)$tmp.orig.vid <- V(g)$orig.vid[acqMappingSub]
     ##---------------------- COLLAPSE NODES ---------------------------------
+    if (verbose) cat('contracting vertices ')
     g.acq <- igraph::contract.vertices(g, acqMappingSub, vertex.attr.comb=vertex.attr.comb)
     ## remove nodes that were acquired (had no remaining edges : degree=0)
+    if (verbose) cat('inducing subgraph ')
     g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0))
     V(g.acq)$name <- V(g.acq)$tmp.name
     V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
     ## contract edges
+    if (verbose) cat('simplifying edges ')
     edge.attr.comb = list(weight="sum",relation_began_on="min",relation_ended_on="min")
     g.acq.s <- igraph::simplify(g.acq, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
   } else {
@@ -2731,6 +2748,78 @@ nodeCollapseGraph <- function(g, acquisitions)
   cat('done.\n')
   return(g.acq.s)
 }
+
+
+# ##
+# # Update Graph collapsing nodes by acquisitions mapping
+# # NOTE: add 'weight' and 'acquisitions' attributes to graph before start
+# #
+# ##
+# nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
+# {
+#   if (class(g) != 'igraph') stop("g must be an igraph object")
+#   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
+#   ##--------------------- Acquisitions Mapping --------------------------
+#   ## acqs = c(1,4,3,3,1,4,...)
+#   ## {acquired} index --> {acquirer} acqs[index]  WHEN BOTH IN NETWORK
+#   acqs.sub <- acquisitions[which(acquisitions$acquirer_vid %in% V(g)$orig.vid
+#                                  & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
+#   cat(sprintf('processing acquisitions: %s ...', nrow(acqs.sub)))
+#   if (nrow(acqs.sub) > 0) {
+#     acqMapping <- V(g)$orig.vid
+#     if (verbose) cat('updating acq mapping ')
+#     for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
+#       if (verbose & (i %% 1000 == 0)) cat(sprintf(" %s ",i))
+#       acqr.i <- unique(acqs.sub$acquirer_vid)[i] ##  acquirer vid
+#       acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid'] ## acquiree's vids
+#       acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)] ## filter acquiree's vids to those in subgraph
+#       if (length(acqe.vids) > 0) {
+#         acqMapping[  which( V(g)$orig.vid %in% acqe.vids ) ] <- acqr.i  ## assign acquirer's vid to value in acquiree's spots
+#       }
+#     }
+#     if (verbose) cat('reindexing mapping ')
+#     ## change orig.vid to current subgraph vids (reindexing)
+#     acqMappingSub <- sapply(1:length(acqMapping), function(i){ 
+#       if (verbose & (i %% 500 == 0)) cat(sprintf(" %s ",i))
+#       x <- acqMapping[i]
+#       return( as.integer(V(g)[which(x==V(g)$orig.vid)]) )
+#     })
+#     if (verbose) cat('finished reindexing  ')
+#     ##-------------- CONFIG GRAPH ATTRIBUTES COMBINATIONS ---------------------
+#     ## build vertex attr comb list
+#     vertex.attr.comb <- list(weight=function(x)sum(x),
+#                              tmp.name=function(x)x[1],
+#                              tmp.orig.vid=function(x)x[1],
+#                              absorbed=function(x)paste(x,collapse="|") ) ## paste(x,collapse="|")
+#     attrs <- igraph::list.vertex.attributes(g)
+#     skipAttrs <- c('name','weight',names(vertex.attr.comb))
+#     if (verbose) cat('finished reindexing  ')
+#     for (attr in attrs[which(!(attrs %in% skipAttrs))]) {
+#       vertex.attr.comb[[attr]] <- function(x)paste(unique(x),collapse="|")
+#     }
+#     if (verbose) cat('finished adding attrs ')
+#     ## temporary attrs used to concat in mapping
+#     V(g)$absorbed <- V(g)$name
+#     V(g)$tmp.name <- V(g)$name[acqMappingSub]
+#     V(g)$tmp.orig.vid <- V(g)$orig.vid[acqMappingSub]
+#     ##---------------------- COLLAPSE NODES ---------------------------------
+#     if (verbose) cat('contracting vertices ')
+#     g.acq <- igraph::contract.vertices(g, acqMappingSub, vertex.attr.comb=vertex.attr.comb)
+#     ## remove nodes that were acquired (had no remaining edges : degree=0)
+#     if (verbose) cat('inducing subgraph ')
+#     g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0))
+#     V(g.acq)$name <- V(g.acq)$tmp.name
+#     V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
+#     ## contract edges
+#     if (verbose) cat('simplifying edges ')
+#     edge.attr.comb = list(weight="sum",relation_began_on="min",relation_ended_on="min")
+#     g.acq.s <- igraph::simplify(g.acq, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
+#   } else {
+#     g.acq.s <- g
+#   }
+#   cat('done.\n')
+#   return(g.acq.s)
+# }
 
 ##
 # Computes the firm-to-market MMC for firms in 

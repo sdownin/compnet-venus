@@ -436,6 +436,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
   ## make graph
   g <- igraph::graph.data.frame(d = el, directed = F, vertices = verts)
   E(g)$weight <- 1
+  V(g)$weight <- 1
   return(g)
 }
 
