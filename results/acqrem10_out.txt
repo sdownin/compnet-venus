@@ -19,3 +19,54 @@ Fitting model
 
 Computing preliminary statistics
 Fitting model
+Relational Event Model (Temporal Likelihood)
+
+              Estimate     Std.Err  Z value  Pr(>|z|)    
+NODSnd      0.30387596  5.57424604   0.0545  0.956525    
+CovSnd.1    3.39392564  1.26133401   2.6907  0.007129 ** 
+CovSnd.2    0.44390332  0.21639402   2.0514  0.040231 *  
+CovSnd.3   -1.04818603  0.07648748 -13.7040 < 2.2e-16 ***
+CovSnd.4    0.02571000  0.00376024   6.8373 8.068e-12 ***
+CovSnd.5   -0.70644489  0.11947075  -5.9131 3.357e-09 ***
+CovSnd.6   -0.01684639  0.00065643 -25.6638 < 2.2e-16 ***
+CovSnd.7    5.36772178  1.53606291   3.4945  0.000475 ***
+CovEvent.1 -0.06616169  0.00495400 -13.3552 < 2.2e-16 ***
+CovEvent.2  2.64920935  0.82822069   3.1987  0.001381 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 9155.489 on 235 degrees of freedom
+	Chi-square: -953.3262 on 9 degrees of freedom, asymptotic p-value 1 
+AIC: 9175.489 AICC: 9176.433 BIC: 9210.461 
+finished successfully.
+
+##------ Wed Jan 10 07:03:05 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+
+
+##------ Wed Jan 10 11:41:17 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+             Estimate    Std.Err  Z value  Pr(>|z|)    
+NODSnd      0.2530097  5.1146236   0.0495 0.9605464    
+CovSnd.1    4.2506914  1.2497394   3.4013 0.0006708 ***
+CovSnd.2   -0.6035305  0.2102514  -2.8705 0.0040980 ** 
+CovSnd.3    0.2674545  0.0957244   2.7940 0.0052059 ** 
+CovSnd.4   -0.0426100  0.0088752  -4.8010 1.579e-06 ***
+CovSnd.5   -0.2536853  0.0394259  -6.4345 1.239e-10 ***
+CovSnd.6   -0.0166706  0.0015350 -10.8606 < 2.2e-16 ***
+CovSnd.7    9.4107241  5.3751625   1.7508 0.0799839 .  
+CovEvent.1  0.0345140  0.0029627  11.6495 < 2.2e-16 ***
+CovEvent.2  3.2144346  0.4101289   7.8376 4.663e-15 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 9143.988 on 235 degrees of freedom
+	Chi-square: -941.8252 on 9 degrees of freedom, asymptotic p-value 1 
+AIC: 9163.988 AICC: 9164.932 BIC: 9198.96 
+finished successfully.

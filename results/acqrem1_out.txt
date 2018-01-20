@@ -78,3 +78,26 @@ Residual deviance: 164111673 on 239 degrees of freedom
 	Chi-square: -164103471 on 5 degrees of freedom, asymptotic p-value 1 
 AIC: 164111685 AICC: 164111685 BIC: 164111706 
 finished successfully.
+
+##------ Fri Dec 15 23:20:43 2017 ------##
+
+loaded data frames.
+built edgelist.
+fitting...
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+            Estimate     Std.Err  Z value Pr(>|z|)    
+NODSnd    1.57621777  6.21037748   0.2538  0.79965    
+CovSnd.1 -0.00682053  0.03127079  -0.2181  0.82734    
+CovSnd.2  0.00821217  0.00400291   2.0515  0.04021 *  
+CovSnd.3 -0.00952279  0.00010018 -95.0558  < 2e-16 ***
+CovSnd.4  4.26110959  0.36901159  11.5474  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 7641.386 on 240 degrees of freedom
+	Chi-square: 560.7773 on 4 degrees of freedom, asymptotic p-value 0 
+AIC: 7651.386 AICC: 7651.638 BIC: 7668.872 
+finished successfully.

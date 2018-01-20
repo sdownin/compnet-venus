@@ -21,3 +21,35 @@ Residual deviance: 15415278 on 87 degrees of freedom
 	Chi-square: -15412242 on 6 degrees of freedom, asymptotic p-value 1 
 AIC: 15415292 AICC: 15415293 BIC: 15415309 
 finished successfully.
+
+##------ Fri Dec 15 21:12:31 2017 ------##
+
+computing MMC target location interaction array...done.
+Computing preliminary statistics
+Fitting model
+
+
+##------ Thu Dec 21 14:57:23 2017 ------##
+
+computing MMC target location interaction array...done.
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+            Estimate     Std.Err  Z value  Pr(>|z|)    
+NODSnd    0.71604730  5.44998850   0.1314 0.8954707    
+CovSnd.1 11.49055845  1.65773866   6.9315 4.165e-12 ***
+CovSnd.2 -1.14120268  0.23798571  -4.7953 1.625e-06 ***
+CovSnd.3 -0.04516158  0.08433549  -0.5355 0.5923048    
+CovSnd.4 -0.02778994  0.00813522  -3.4160 0.0006355 ***
+CovSnd.5  1.24010114  0.25337701   4.8943 9.866e-07 ***
+CovSnd.6 -0.01885108  0.00074177 -25.4137 < 2.2e-16 ***
+CovSnd.7 -0.01981524  0.24771897  -0.0800 0.9362446    
+CovSnd.8 -0.28559476  0.06298943  -4.5340 5.787e-06 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 9874.641 on 236 degrees of freedom
+	Chi-square: -1672.478 on 8 degrees of freedom, asymptotic p-value 1 
+AIC: 9892.641 AICC: 9893.41 BIC: 9924.116 
+finished successfully.

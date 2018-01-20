@@ -32,7 +32,7 @@ effects <- c('NODSnd', 'CovSnd') # CovRec NODSnd
 ##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
 ## [11] pow.3,       pow.4,        betweenness, constraint,   founded_year
 ## [16] is.public    eig
-cov.idx <- c(1,2,3,4,  6)
+cov.idx <- c(3,4, 15, 16)
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
 ##
