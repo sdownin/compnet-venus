@@ -205,7 +205,7 @@ df.verts$age <- 2018 - df.verts$founded_year
       return(length(x[x>0]))
     })
     
-    ## GET REM DATAFRAME VARS
+    ## GET  DATAFRAME VARS
     
     ## Acquirer d2 original org.vid
     xi.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquirer_name_unique[j] == V(g.pd.orig)$name)]
@@ -310,19 +310,25 @@ df.verts$age <- 2018 - df.verts$founded_year
     df.targ.alt$event <- sapply(df.targ.alt$d, function(d)ifelse(as.integer(d)==0, 1, 0))
     df.alt <- rbind(df.acq.alt, df.targ.alt)
     
-    # ## Create Diff Graph (removed nodes are isolates)
-    vids <- as.integer( V(g.full.pd)[which( df.verts.pd.cov$name %in% V(g.full.pd)$name )] )
-    vids.orig <- as.integer( V(g.full.pd.orig)[which( df.verts.pd.cov$name %in% V(g.full.pd.orig)$name )] )
+    # ## Create Diff Graph (removed|acquired nodes are represented as isolates)
+    vids <- which( V(g.full.pd)$name %in% df.alt$company_name_unique )
+    vids.orig <- which( V(g.full.pd.orig)$name %in% df.alt$company_name_unique )
     vids.orig.rm <- vids[which( !(vids.orig %in% vids))]
     mapping <- V(g.full.pd.orig)[which(V(g.full.pd.orig)$orig.vid %in% V(g.full.pd)$orig.vid) ]
     g.diff <- igraph::contract.vertices(g.full.pd, mapping = mapping)
     V(g.diff)$name <- V(g.full.pd.orig)$name
-    vids.diff <- as.integer( V(g.diff)[which( V(g.diff)$name %in% df.verts$name )] )
+    vids.diff <- as.integer( V(g.diff)[which( V(g.diff)$name %in% df.alt$company_name_unique )] )
     
+    cat('computing network covariates...')
     ## set covars
-    df.alt$pow.n3 <- igraph::
-    df.alt$pow.n2
-    df.alt$pow.n1
+    df.alt$pow.n3 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.3)))
+    df.alt$pow.n2 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.2)))
+    df.alt$pow.n1 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.1)))
+    df.alt$deg <- igraph::degree(g.diff, v = vids.diff)
+    df.alt$fm.mmc.sum <- V(g.diff)$fm.mmc.sum[vids.diff]
+    df.alt$num.mkts <- V(g.diff)$num.mkts[vids.diff]
+    
+    cat('done.\n')
     
     ## save current data in dataframe
     df.pd <- data.frame(fm.mmc.sum=V(g.pd)$fm.mmc.sum, 
