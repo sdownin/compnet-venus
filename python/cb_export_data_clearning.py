@@ -5,7 +5,7 @@ Created on Mon Oct 24 19:22:12 2016
 @author: sdowning
 """
 
-dir_base = 'C:/Users/sdowning/Google Drive/PhD/Dissertation/crunchbase'
+dir_base = 'C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase'
 dir_source = dir_base + '/crunchbase_export_20161024/source'
 dir_output = dir_base + '/crunchbase_export_20161024'
 
@@ -58,22 +58,29 @@ def strMinSafe(strings):
         return None
     else:
         return min(notnull)    
-    
+
+def strMaxSafe(strings):
+    notnull = [str(i) for i in strings if not empty(i)]
+    if len(notnull) < 1:
+        return None
+    else:
+        return max(notnull) 
         
 #-------------------------------------------------
 
 ##-------------------------------------------------
 ##   1.0 ORGANIZATIONS
 ##-------------------------------------------------
-file_name = 'organizations.csv'
+#file_name = 'organizations.csv'
+file_name = 'organizations_patched_dates.csv'
 in_path  = dir_source + '/' + file_name
-out_path = dir_output + '/' + file_name
+out_path = dir_output + '/' + 'organizations.csv'
 co = pd.read_csv(in_path, sep=",", parse_dates=True, low_memory=False,  na_values=['','NA',None], keep_default_na=False, encoding='utf-8')
 #
 co.created_at = co.created_at.apply(lambda x: getDateSafe(x))
 co.updated_at = co.updated_at.apply(lambda x: getDateSafe(x))
 #
-co['company_name_unique'] = co.cb_url.apply(lambda x: x.split("/")[-1])
+co['company_name_unique'] = co.cb_url.apply(lambda x:  x.split("/")[-1] if type(x) is str and "/" in x else x)
 co['company_uuid'] = co.uuid.copy()
 co.drop(labels=['twitter_url','facebook_url','cb_url','profile_image_url','logo_url','uuid'], axis=1, inplace=True)
 co  = fillNA(co)
@@ -252,9 +259,25 @@ tmp.columns = ['company_name_unique','company_closed_on']
 tmp2.columns = ['competitor_name_unique','competitor_closed_on']
 comp = comp.merge(tmp, how='left', on='company_name_unique')
 comp = comp.merge(tmp2, how='left', on='competitor_name_unique')
+# ### FOUNDED
+tmp =  co[['company_name_unique','founded_on']].ix[ (~empty(co.founded_on) & (co.founded_on != 'NA') ) ].copy()
+tmp2 = tmp.copy()
+tmp.columns = ['company_name_unique','company_founded_on']
+tmp2.columns = ['competitor_name_unique','competitor_founded_on']
+comp = comp.merge(tmp, how='left', on='company_name_unique')
+comp = comp.merge(tmp2, how='left', on='competitor_name_unique')
+#
+## Previous version
+#comp['relation_ended_on'] = comp[['company_closed_on','competitor_closed_on','acquired_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
+#comp['relation_began_on'] = comp[['created_at','relation_ended_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
+##
+## New Definition of relation_began_on
 comp['relation_ended_on'] = comp[['company_closed_on','competitor_closed_on','acquired_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
 #
-comp['relation_began_on'] = comp[['created_at','relation_ended_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
+comp['max_founded_on'] = comp[['company_founded_on','competitor_founded_on']].apply(lambda x: strMaxSafe(x), axis=1).copy()
+comp['relation_began_on'] = comp[['max_founded_on','created_at']].apply(lambda x: strMaxSafe(x) if x[0] is not None and x[0] > '2014-04-01' else x[0], axis=1).copy()
+#comp['relation_began_on'] = comp[['max_founded_on','created_at']].apply(lambda x: strMinSafe(x), axis=1).copy()
+#comp['relation_began_on_max'] = comp[['max_founded_on','created_at']].apply(lambda x: strMaxSafe(x), axis=1).copy()
 #
 comp = fillNA(comp)
 #

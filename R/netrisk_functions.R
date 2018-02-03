@@ -2560,6 +2560,10 @@ getMultiMarketContact <- function(br, firms, end, ...)
   return( mmc )
 }
 
+testFunction <- function(message)
+{
+  return(message)
+}
 
 ##
 #
