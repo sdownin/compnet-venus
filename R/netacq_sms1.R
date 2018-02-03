@@ -183,6 +183,7 @@ df.verts$age <- 2018 - df.verts$founded_year
   
   ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
   for (j in 1:nrow(acq.src.allpd)) {
+    date_j <- acq.src.allpd$acquired_on[j]
     ## g.pd            d2 updated each acquisition
     ## g.pd.orig       d2 original
     ## g.full.pd.orig  global network within period start, end
@@ -227,14 +228,78 @@ df.verts$age <- 2018 - df.verts$founded_year
     xj.orig <- ifelse(length(xj.orig) > 1, xj.orig, NA)
     xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
     
+    ##--------------------------------------
+    ## TARGET ALTERNATIVES SET
+    ##--------------------------------------
     ## target alternative set vids
-    targ.vids.d2 <- igraph::neighborhood(graph = g.full.pd.orig, order = 2, 
-                                      nodes = which(V(g.full.pd.orig)$name == acq.src.allpd$acquiree_name_unique[j]))[[1]]
-    targ.vids.d1 <- igraph::neighborhood(graph = g.full.pd.orig, order = 1, 
-                                         nodes = which(V(g.full.pd.orig)$name == acq.src.allpd$acquiree_name_unique[j]))[[1]]
-    ##
-    df.targ.alt <- co[which(co$company_name_unique %in% names(targ.vids.d2)), ]
-    df.targ.alt$d <- sapply(df.targ.alt$company_name_unique, function(x)ifelse(x %in% names(targ.vids.d1), 1, 2))
+    targ.id <- which(V(g.full.pd)$name == acq.src.allpd$acquiree_name_unique[j])
+    targ.vids.d2 <- igraph::neighborhood(graph = g.full.pd, order = 2, nodes = targ.id)[[1]]
+    targ.vids.d2 <- targ.vids.d2[which( !(names(targ.vids.d2) %in% V(g.full.pd)$name[targ.id]))]
+    targ.vids.d1 <- igraph::neighborhood(graph = g.full.pd, order = 1, nodes = targ.id)[[1]]
+    targ.vids.d1 <- targ.vids.d1[which( !(names(targ.vids.d1) %in% V(g.full.pd)$name[targ.id]))]
+    ## Target alternatives dataframe
+    df.targ.alt <- co[which(co$company_name_unique %in% c(names(targ.vids.d1),names(targ.vids.d2),V(g.full.pd)$name[targ.id])), ]
+    df.targ.alt$d <- sapply(df.targ.alt$company_name_unique, function(x){ return(
+        ifelse(x ==  V(g.full.pd)$name[targ.id], 0, 
+               ifelse(x %in% names(targ.vids.d1), 1,   2))
+      )})
+    ## ipo status
+    df.targ.alt$is.public <- sapply(1:nrow(df.targ.alt), function(x){
+      isNotOperating <- df.targ.alt$status[x] != 'operating'
+      ipo.date <- co_ipo$went_public_on[which(co_ipo$company_name_unique == df.targ.alt$company_name_unique[x])]
+      if (length(ipo.date)<1) 
+        return(0)
+      return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
+    })
+    ## target had IPO
+    df.targ <- df.targ.alt[which(df.targ.alt$company_name_unique == V(g.full.pd)$name[targ.id]), ]
+    tmp <- df.targ.alt[df.targ.alt$company_name_unique %in% names(targ.vids.d2), ]
+    if (df.targ$is.public == 1) {
+      tmp <- tmp[tmp$is.public == 1, ]
+    } else {
+      tmp <- tmp[tmp$is.public == 0, ] 
+    }
+    tmp.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
+    ## combine target and alternatives for target set
+    df.targ.alt <- rbind(tmp.alt, df.targ)
+    ##--------------------------------------
+    
+    ##--------------------------------------
+    ## ACQUIRER ALTERNATIVES SET
+    ##--------------------------------------
+    ## acquirer alternative set vids
+    acq.id <- which(V(g.full.pd)$name == acq.src.allpd$acquirer_name_unique[j])
+    acq.vids.d2 <- igraph::neighborhood(graph = g.full.pd, order = 2, nodes = acq.id)[[1]]
+    acq.vids.d2 <- acq.vids.d2[which( !(names(acq.vids.d2) %in% V(g.full.pd)$name[acq.id]))]
+    acq.vids.d1 <- igraph::neighborhood(graph = g.full.pd, order = 1, nodes = acq.id)[[1]]
+    acq.vids.d1 <- acq.vids.d2[which( !(names(acq.vids.d1) %in% V(g.full.pd)$name[acq.id]))]
+    ## acquirer alternatives dataframe
+    # length(acq.vids.d1)
+    df.acq.alt <- co[which(co$company_name_unique %in% c(names(acq.vids.d1),names(acq.vids.d2),V(g.full.pd)$name[acq.id])), ]
+    df.acq.alt$d <- sapply(df.acq.alt$company_name_unique, function(x){ return(
+      ifelse(x ==  V(g.full.pd)$name[acq.id], 0, 
+             ifelse(x %in% names(acq.vids.d1), 1,   2))
+    )})
+    ## ipo status
+    df.acq.alt$is.public <- sapply(1:nrow(df.acq.alt), function(x){
+      isNotOperating <- df.acq.alt$status[x] != 'operating'
+      ipo.date <- co_ipo$went_public_on[which(co_ipo$company_name_unique == df.acq.alt$company_name_unique[x])]
+      if (length(ipo.date)<1) 
+        return(0)
+      return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
+    })
+    ## target had IPO
+    df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.full.pd)$name[acq.id]), ]
+    tmp <- df.acq.alt[df.acq.alt$company_name_unique %in% names(acq.vids.d2), ]
+    if (df.acq$is.public == 1) {
+      tmp <- tmp[tmp$is.public == 1, ]
+    } else {
+      tmp <- tmp[tmp$is.public == 0, ] 
+    }
+    tmp.acq.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
+    ## combine target and alternatives for target set
+    df.acq <- rbind(tmp.acq.alt, df.acq)
+    ##--------------------------------------
     
     ## save current data in dataframe
     df.pd <- data.frame(fm.mmc.sum=V(g.pd)$fm.mmc.sum, 
@@ -263,10 +328,11 @@ df.verts$age <- 2018 - df.verts$founded_year
 
     date_j <- acq.src.allpd$acquired_on[j]
     df.verts$is.public <- sapply(1:nrow(df.verts), function(x){
+      isNotOperating <- co$status[which(co$company_name_unique == df.verts$name[x])] != 'operating'
       ipo.date <- co_ipo$went_public_on[which(co_ipo$company_name_unique == df.verts$name[x])]
       if (length(ipo.date)<1) 
         return(0)
-      return(ifelse( ipo.date <= date_j, 1, 0))
+      return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
     })
     
     ##--------------------------------------------------------------------------    
