@@ -20,23 +20,19 @@ source(file.path(getwd(),'R','cb_data_prep.R'))
 #####################################################################################
 ## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
 #####################################################################################
-g.full <- makeGraph(comp = co_comp, vertdf = co)
-## cut out confirmed dates >= 2016
-g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016
-                                                                | is.na(V(g.full)$founded_year)
-                                                                | V(g.full)$founded_year=='' ) ] )
-g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
-## SIMPLIFY
-g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
-                           edge.attr.comb = list(weight='sum',
-                                                 relation_began_on='min',
-                                                 relation_ended_on='min'))
-## set default attrs for contractions
-V(g.full)$orig.vid <- as.integer(V(g.full))
-V(g.full)$weight <- 1
-E(g.full)$weight <- 1
-## save
-igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
+# g.full <- makeGraph(comp = co_comp, vertdf = co)
+# ## cut out confirmed dates >= 2016
+# g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016
+#                                                                 | is.na(V(g.full)$founded_year)
+#                                                                 | V(g.full)$founded_year=='' ) ] )
+# g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
+# ## SIMPLIFY
+# g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
+#                            edge.attr.comb = list(weight='sum',
+#                                                  relation_began_on='min',
+#                                                  relation_ended_on='min'))
+# ## save
+# igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
 ######################################################################################
 
 ## SORT CO_ACQ BY acquisition date
@@ -127,7 +123,7 @@ for (d in 1:6) {
 
 name_i <- 'ibm'
 d <- 2
-times <- sapply(2014:2017, function(x)paste0(x,'-01-01'))
+times <- sapply(2013:2017, function(x)paste0(x,'-01-01'))
 
 g.ego <- igraph::make_ego_graph(graph = g.full,
                                 nodes = V(g.full)[V(g.full)$name==name_i],
@@ -161,13 +157,13 @@ df.verts$founded_year <- sapply(1:nrow(df.verts), function(x) {
   }, simplify = T)
 df.verts$age <- 2018 - df.verts$founded_year
 ##
-p <- 18 ## i.mmc, i.mmc^2, num.mkts, deg, power
-m <- nrow(acq.src.allpd)
-n <- nrow(df.verts)
-ar.cov <- array(dim=c(m,p,n))
+# p <- 18 ## i.mmc, i.mmc^2, num.mkts, deg, power
+# m <- nrow(acq.src.allpd)
+# n <- nrow(df.verts)
+# ar.cov <- array(dim=c(m,p,n))
 
-nEventCov <- 4
-ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
+# nEventCov <- 4
+# ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
 
   start <- times[1]
   end <- times[length(times)]
@@ -187,25 +183,93 @@ ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
   
   ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
   for (j in 1:nrow(acq.src.allpd)) {
+    ## g.pd            d2 updated each acquisition
+    ## g.pd.orig       d2 original
+    ## g.full.pd.orig  global network within period start, end
+    
     cat(sprintf('\n\nstart %s end %s : acquisition %s\n\n',start,end,j))
+    if ( !(acq.src.allpd$acquiree_name_unique[j] %in% V(g.full.pd.orig)$name) ) 
+      next
+
     lidx <- lidx + 1
     l[[lidx]] <- list()
-    l[[lidx]]$acquired_on <- acq.src.allpd$acquired_on[j]
-    l[[lidx]]$acq <- acq.src.allpd[j,]
     l[[lidx]]$acq.exper <- plyr::count(acq.src.allpd$acquirer_name_unique[1:j])
     
     ## Update MMC after acquisition
     l[[lidx]]$mmc <- getFmMmc(g.pd, as.integer(V(g.pd)$nc))
+    
     ## SUM FM MMC over markets  ??????
     V(g.pd)$fm.mmc.sum <- rowSums(l[[lidx]]$mmc)
     V(g.pd)$num.mkts <- apply(l[[lidx]]$mmc,MARGIN=1,FUN=function(x){
       return(length(x[x>0]))
     })
     
-    ## CACHE current networks
-    l[[lidx]]$g.pd <- g.pd
-    l[[lidx]]$g.full.pd <- g.full.pd
+    ## GET REM DATAFRAME VARS
     
+    ## Acquirer d2 original org.vid
+    xi.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquirer_name_unique[j] == V(g.pd.orig)$name)]
+    ## target d2 original org.vid
+    xj.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquiree_name_unique[j] == V(g.pd.orig)$name)]
+    xj.orig.vid <- ifelse(length(xj.orig.vid) > 1, xj.orig.vid, NA)
+    ## acquirer  d2 t=j id
+    xi <- which(V(g.pd)$name==acq.src.allpd$acquirer_name_unique[j])
+    ## target  d2 t=j id
+    xj <- which(V(g.pd)$name==acq.src.allpd$acquirer_name_unique[j])
+    # acquirer id in original graph (at start of period)
+    xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.allpd$acquirer_name_unique[j]])
+    xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
+    #
+    xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
+    xi.num.mkts <-  V(g.pd)$num.mkts[xi]
+    ##
+    xj <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j]])
+    xj.orig <- ifelse( !is.na(xj.orig.vid), as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid]), NA)
+    xj.orig <- ifelse(length(xj.orig) > 1, xj.orig, NA)
+    xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
+    
+    ## target alternative set vids
+    targ.vids.d2 <- igraph::neighborhood(graph = g.full.pd.orig, order = 2, 
+                                      nodes = which(V(g.full.pd.orig)$name == acq.src.allpd$acquiree_name_unique[j]))[[1]]
+    targ.vids.d1 <- igraph::neighborhood(graph = g.full.pd.orig, order = 1, 
+                                         nodes = which(V(g.full.pd.orig)$name == acq.src.allpd$acquiree_name_unique[j]))[[1]]
+    ##
+    df.targ.alt <- co[which(co$company_name_unique %in% names(targ.vids.d2)), ]
+    df.targ.alt$d <- sapply(df.targ.alt$company_name_unique, function(x)ifelse(x %in% names(targ.vids.d1), 1, 2))
+    
+    ## save current data in dataframe
+    df.pd <- data.frame(fm.mmc.sum=V(g.pd)$fm.mmc.sum, 
+                        num.mkts=V(g.pd)$num.mkts,
+                        nc=V(g.pd)$nc)
+    df.mmc <- rbind(df.mmc, df.pd)
+    
+    ##
+    # ## Create Diff Graph (removed nodes are isolates)
+    vids <- as.integer( V(g.full.pd)[which( df.verts.pd.cov$name %in% V(g.full.pd)$name )] )
+    vids.orig <- as.integer( V(g.full.pd.orig)[which( df.verts.pd.cov$name %in% V(g.full.pd.orig)$name )] )
+    vids.orig.rm <- vids[which( !(vids.orig %in% vids))]
+    mapping <- V(g.full.pd.orig)[which(V(g.full.pd.orig)$orig.vid %in% V(g.full.pd)$orig.vid) ]
+    g.diff <- igraph::contract.vertices(g.full.pd, mapping = mapping)
+    V(g.diff)$name <- V(g.full.pd.orig)$name
+    vids.diff <- as.integer( V(g.diff)[which( V(g.diff)$name %in% df.verts$name )] )
+    
+    ##  compute degree and selected power centralities for vids.diff from full graph g.diff
+    .v1 <- unname(unlist(V(g.diff)[vids.diff]$name))
+    .v2 <- unname(unlist(igraph::degree(g.diff, v = vids.diff)))
+    .v3 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.3)))
+    .v4 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.2)))
+    .v5 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.1)))
+    df.diff.cov <- data.frame(name=.v1, deg = .v2, pow.n3=.v3, pow.n2=.v4, pow.n1=.v5)
+    df.pd.cov <- merge(x = df.pd.cov, y = df.diff.cov, by='name', all.x=T, all.y=F)
+
+    date_j <- acq.src.allpd$acquired_on[j]
+    df.verts$is.public <- sapply(1:nrow(df.verts), function(x){
+      ipo.date <- co_ipo$went_public_on[which(co_ipo$company_name_unique == df.verts$name[x])]
+      if (length(ipo.date)<1) 
+        return(0)
+      return(ifelse( ipo.date <= date_j, 1, 0))
+    })
+    
+    ##--------------------------------------------------------------------------    
     ## NODE COLLAPSE update network
     g.pd <- nodeCollapseGraph(g.pd, acq.src.allpd[j,])
     g.full.pd <- nodeCollapseGraph(g.full.pd, acq.src.allpd[j,])
@@ -215,7 +279,7 @@ ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
     }
   }
   
-  
+  saveRDS(list(l=l, g.full.pd.orig=g.full.pd.orig), file = sprintf("acqlogit_covs_list_%s.rds",name_i))
   
   
   

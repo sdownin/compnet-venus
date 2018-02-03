@@ -2667,6 +2667,12 @@ makePdGraph <- function(g, start, end,
     vids <- which(tmp < start & tmp != "NA")  
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
+  ##  REMOVE VERTICES acquired_on < `start`
+  if(vertAcquiredAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g, vertAcquiredAttr)
+    vids <- which( tmp < start & tmp != "NA" )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
   ## GET active VERTICES
   activeVerts <- which( !(V(g) %in% inactiveVerts) )
   ## SUBGRAPH OF ONLY ACTIVE VERTICES
