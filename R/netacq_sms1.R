@@ -298,16 +298,18 @@ df.verts$age <- 2018 - df.verts$founded_year
     }
     tmp.acq.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
     ## combine target and alternatives for target set
-    df.acq <- rbind(tmp.acq.alt, df.acq)
+    df.acq.alt <- rbind(tmp.acq.alt, df.acq)
     ##--------------------------------------
+  
+    ##--------------------------------------
+    ##  NETWORK COVARIATES
+    ##--------------------------------------
+    df.acq.alt$set <- 'acquirer'
+    df.acq.alt$event <- sapply(df.acq.alt$d, function(d)ifelse(as.integer(d)==0, 1, 0))
+    df.targ.alt$set <- 'target'
+    df.targ.alt$event <- sapply(df.targ.alt$d, function(d)ifelse(as.integer(d)==0, 1, 0))
+    df.alt <- rbind(df.acq.alt, df.targ.alt)
     
-    ## save current data in dataframe
-    df.pd <- data.frame(fm.mmc.sum=V(g.pd)$fm.mmc.sum, 
-                        num.mkts=V(g.pd)$num.mkts,
-                        nc=V(g.pd)$nc)
-    df.mmc <- rbind(df.mmc, df.pd)
-    
-    ##
     # ## Create Diff Graph (removed nodes are isolates)
     vids <- as.integer( V(g.full.pd)[which( df.verts.pd.cov$name %in% V(g.full.pd)$name )] )
     vids.orig <- as.integer( V(g.full.pd.orig)[which( df.verts.pd.cov$name %in% V(g.full.pd.orig)$name )] )
@@ -316,6 +318,19 @@ df.verts$age <- 2018 - df.verts$founded_year
     g.diff <- igraph::contract.vertices(g.full.pd, mapping = mapping)
     V(g.diff)$name <- V(g.full.pd.orig)$name
     vids.diff <- as.integer( V(g.diff)[which( V(g.diff)$name %in% df.verts$name )] )
+    
+    ## set covars
+    df.alt$pow.n3 <- igraph::
+    df.alt$pow.n2
+    df.alt$pow.n1
+    
+    ## save current data in dataframe
+    df.pd <- data.frame(fm.mmc.sum=V(g.pd)$fm.mmc.sum, 
+                        num.mkts=V(g.pd)$num.mkts,
+                        nc=V(g.pd)$nc)
+    df.mmc <- rbind(df.mmc, df.pd)
+    
+
     
     ##  compute degree and selected power centralities for vids.diff from full graph g.diff
     .v1 <- unname(unlist(V(g.diff)[vids.diff]$name))
