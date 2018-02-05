@@ -194,7 +194,7 @@ acq.src.pd <- acq.src.pd[order(acq.src.pd$acquired_on, decreasing = F), ]
 
 
 ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
-for (j in 1:nrow(acq.src.allpd)) {
+for (j in 67:nrow(acq.src.allpd)) {
   date_j <- acq.src.allpd$acquired_on[j]
   ## g.pd            d2 updated each acquisition
   ## g.pd.orig       d2 original
@@ -267,6 +267,10 @@ for (j in 1:nrow(acq.src.allpd)) {
   })
   ## target had IPO
   df.targ <- df.targ.alt[which(df.targ.alt$company_name_unique == V(g.full.pd)$name[targ.id]), ]
+  
+  if (nrow(df.targ) == 0)
+    next
+  
   tmp <- df.targ.alt[df.targ.alt$company_name_unique %in% names(targ.vids.d2), ]
   ## select based on ownership status
   if (df.targ$is.public == 1) {
@@ -314,6 +318,10 @@ for (j in 1:nrow(acq.src.allpd)) {
   })
   ## target had IPO
   df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.pd)$name[acq.id]), ]
+  
+  if (nrow(df.acq) == 0)
+    next
+  
   tmp <- df.acq.alt[df.acq.alt$company_name_unique %in% names(acq.vids.d2), ]
   ## select based on ownership status
   if (df.acq$is.public == 1) {
@@ -326,10 +334,10 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.acq.alt <- rbind(tmp.acq.alt, df.acq)
   ## set MMC
   df.acq.alt$fm.mmc.sum <- sapply(df.acq.alt$company_name_unique, function(name){
-      ifelse(name %in% V(g.pd)$name, V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)] , NA)
+      ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)]) , NA)
     })
   df.acq.alt$num.mkts <- sapply(df.acq.alt$company_name_unique, function(name){
-      ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mkts[which(V(g.pd)$name == name)] , NA)
+      ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mkts[which(V(g.pd)$name == name)]) , NA)
     })
   cat('done.\n')
   # cat('acquirer set ...')
@@ -390,20 +398,25 @@ for (j in 1:nrow(acq.src.allpd)) {
   vids.diff <- as.integer( V(g.diff)[which( V(g.diff)$name %in% df.alt$company_name_unique )] )
   
   ## global covars
-  df.alt$pow.n2 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.2)))
-  df.alt$pow.n1 <- unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.1)))
-  df.alt$deg <- igraph::degree(g.diff, v = vids.diff)
-  df.alt$constraint <- unname(unlist(igraph::constraint(g.diff, nodes = vids.diff)))
-  df.alt$acq.experience <- sapply(1:nrow(df.alt), function(x){ return(
-      nrow(acq.src.allpd[which(acq.src.allpd$acquirer_name_unique == df.alt$company_name_unique[x]
-                              & acq.src.allpd$acquired_on <= date_j), ]) / j ## scale experience to num observed acquisitions
-  )})
+  tmp.cov <- data.frame(
+    company_name_unique = unlist(V(g.diff)$name[vids.diff]),
+    pow.n2 = unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.2))),
+    pow.n1 = unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.1))),
+    deg = unname(igraph::degree(g.diff, v = vids.diff)),
+    constraint = unname(unlist(igraph::constraint(g.diff, nodes = vids.diff)))
+  )
+  df.alt <- merge(df.alt, tmp.cov, by = 'company_name_unique', all.x = T, all.y = F)
+  
+  df.alt$acq.experience <- unlist(sapply(1:nrow(df.alt), function(x){ return(
+    nrow(acq.src.allpd[which(acq.src.allpd$acquirer_name_unique == df.alt$company_name_unique[x]
+                             & acq.src.allpd$acquired_on <= date_j), ]) / j ## scale experience to num observed acquisitions
+  )}))
   ## local covars in pd graph
   df.alt$fm.mmc.sum <- sapply(df.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)], NA)
+    ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)]), NA)
   })
   df.alt$num.mkts   <-  sapply(df.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mkts[which(V(g.pd)$name == name)], NA)
+    ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mkts[which(V(g.pd)$name == name)]), NA)
   })
   
   cat('done.\n')
@@ -424,7 +437,7 @@ for (j in 1:nrow(acq.src.allpd)) {
                                      v = V(g.full.pd)[which(V(g.full.pd)$name == df.alt$company_name_unique[ix])], 
                                      to =V(g.full.pd)[which(V(g.full.pd)$name == df.alt$company_name_unique[jx])] )
         df.tmp.dyad <- data.frame(
-          # dyad features
+          # event features
           y = ifelse(as.integer(df.alt$event[ix]) & as.integer(df.alt$event[jx]), 1, 0),
           t = j,
           date = date_j,
@@ -452,13 +465,13 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.same.country = ifelse(df.alt$country_code[ix] == df.alt$country_code[jx], 1, 0),
           ij.same.employee.range = ifelse(df.alt$employee_count[ix] == df.alt$employee_count[jx], 1, 0),
           ij.dist = ifelse( class(ij.dist)=='matrix' & nrow(ij.dist)>0 & ncol(ij.dist)>0, ij.dist[1,1], Inf),
-          ij.diff.pow.n1 = df.alt$pow.n1[ix] - df.alt$pow.n1[jx],
-          ij.diff.pow.n2 = df.alt$pow.n2[ix] - df.alt$pow.n2[jx],
-          ij.diff.deg = df.alt$deg[ix] - df.alt$deg[jx],
-          ij.diff.fm.mmc.sum = ifelse(any(is.missing(df.alt$fm.mmc.sum[ix]),is.missing(df.alt$fm.mmc.sum[jx])), NA, df.alt$fm.mmc.sum[ix] - df.alt$fm.mmc.sum[jx]),
-          ij.diff.num.mkts = ifelse(any(is.missing(df.alt$num.mkts[ix]), is.missing(df.alt$num.mkts[jx])), NA, df.alt$num.mkts[ix] - df.alt$num.mkts[jx]),
-          ij.diff.constraint = df.alt$constraint[ix] - df.alt$constraint[jx],
-          ij.diff.acq.experience = df.alt$acq.experience[ix] - df.alt$acq.experience[jx]
+          ij.diff.pow.n1 = as.numeric(df.alt$pow.n1[ix]) - as.numeric(df.alt$pow.n1[jx]),
+          ij.diff.pow.n2 = as.numeric(df.alt$pow.n2[ix]) - as.numeric(df.alt$pow.n2[jx]),
+          ij.diff.deg = as.numeric(df.alt$deg[ix]) - as.numeric(df.alt$deg[jx]),
+          ij.diff.fm.mmc.sum = ifelse(any(is.missing(df.alt$fm.mmc.sum[ix]),is.missing(df.alt$fm.mmc.sum[jx])), NA, as.numeric(df.alt$fm.mmc.sum[ix]) - as.numeric(df.alt$fm.mmc.sum[jx])),
+          ij.diff.num.mkts = ifelse(any(is.missing(df.alt$num.mkts[ix]), is.missing(df.alt$num.mkts[jx])), NA, as.numeric(df.alt$num.mkts[ix]) - as.numeric(df.alt$num.mkts[jx])),
+          ij.diff.constraint = as.numeric(df.alt$constraint[ix]) - as.numeric(df.alt$constraint[jx]),
+          ij.diff.acq.experience = as.numeric(df.alt$acq.experience[ix]) - as.numeric(df.alt$acq.experience[jx])
         )
         df.reg <- rbind(df.reg, df.tmp.dyad)
       }
