@@ -502,30 +502,6 @@ saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_covs_list_%s.rds",name
 
 
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-
 
 
 
