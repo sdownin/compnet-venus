@@ -437,13 +437,13 @@ for (j in 67:nrow(acq.src.allpd)) {
                                      v = V(g.full.pd)[which(V(g.full.pd)$name == df.alt$company_name_unique[ix])], 
                                      to =V(g.full.pd)[which(V(g.full.pd)$name == df.alt$company_name_unique[jx])] )
         df.tmp.dyad <- data.frame(
-          # event features
+          # event features 
           y = ifelse(as.integer(df.alt$event[ix]) & as.integer(df.alt$event[jx]), 1, 0),
           t = j,
           date = date_j,
           i = df.alt$company_name_unique[ix], 
-          j = df.alt$company_name_unique[jx],
-          # acquirer covars
+          j = df.alt$company_name_unique[jx], 
+          # acquirer covars 
           i.pow.n1 = df.alt$pow.n1[ix],
           i.pow.n2 = df.alt$pow.n2[ix],
           i.deg = df.alt$deg[ix],
@@ -451,7 +451,7 @@ for (j in 67:nrow(acq.src.allpd)) {
           i.num.mkts = ifelse(is.missing(df.alt$num.mkts[ix]), NA, df.alt$num.mkts[ix]),
           i.constraint = df.alt$constraint[ix],
           i.acq.experience = df.alt$acq.experience[ix],
-          # target covars
+          # target covars 
           j.pow.n1 = df.alt$pow.n1[jx],
           j.pow.n2 = df.alt$pow.n2[jx],
           j.deg = df.alt$deg[jx],
@@ -459,7 +459,7 @@ for (j in 67:nrow(acq.src.allpd)) {
           j.num.mkts = ifelse(is.missing(df.alt$num.mkts[jx]), NA, df.alt$num.mkts[jx]),
           j.constraint = df.alt$constraint[jx],
           j.acq.experience = df.alt$acq.experience[jx],
-          # dyadic covars
+          # dyadic covars 
           ij.same.region = ifelse(df.alt$region[ix] == df.alt$region[jx], 1, 0),
           ij.same.state = ifelse(df.alt$state_code[ix] == df.alt$state_code[jx], 1, 0),
           ij.same.country = ifelse(df.alt$country_code[ix] == df.alt$country_code[jx], 1, 0),
@@ -500,8 +500,11 @@ saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_covs_list_%s.rds",name
 
 
 
+tmp <- readRDS(sprintf("acqlogit_covs_list_%s.rds",name_i))
+l <- tmp$l
+df.reg <- tmp$df.reg
 
-
+write.csv(df.reg, file = sprintf("acqlogit_covs_df_%s.csv",name_i), row.names = F)
 
 
 

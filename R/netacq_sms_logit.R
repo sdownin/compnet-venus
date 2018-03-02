@@ -75,12 +75,19 @@ df.reg <- data.in$df.reg
 
 ##_-------------------------------------------
 
+tmp <- co[,c('company_name_unique','founded_on')]; 
+tmpi <- tmp; names(tmpi) <- c('name','founded_on_i')
+tmpj <- tmp; names(tmpj) <- c('name','founded_on_j')
+df.reg <- merge(df.reg, tmpi, by.x='j',by.y='name',all.x=T,all.y=F)
+df.reg <- merge(df.reg, tmpj, by.x='i',by.y='name',all.x=T,all.y=F)
 
+df.reg$ij.age.diff <- as.numeric( (ymd(df.reg$founded_on_i) - ymd(df.reg$founded_on_j)) / 365.25 )
 
 df.reg$ij.inv.dist <- max(df.reg$ij.dist[df.reg$ij.dist < Inf ]) / df.reg$ij.dist
 
 ## cbind(y,t) ~ econ.left/class+welfare/class+auth/class,
 df.sub <- df.reg
+# df.sub$ij.dist[df.sub$ij.dist == Inf] <- median(df.reg$ij.dist[df.reg$ij.dist < Inf])
 df.sub$ij.dist[df.sub$ij.dist == Inf] <- 1 + max(df.reg$ij.dist[df.reg$ij.dist < Inf])
 
 ## replace NA|missing discrete homophily terms with mode
@@ -93,6 +100,112 @@ df.sub$ij.same.employee.range[is.na(df.sub$ij.same.employee.range)] <- Mode(df.s
 # df.sub$i.num.mkts[is.na(df.sub$i.num.mkts)]
 # df.sub$i.deg[is.na(df.sub$i.deg)] 
 # df.sub$ij.diff.deg[is.na(df.sub$ij.diff.deg)]
+
+##--------------------------------------------------
+acq.only <- df.sub[df.sub$y==1,c('t','i')]
+acq.only <-droplevels.data.frame(acq.only)
+#
+df.acq <- data.frame()
+df.cnt <- data.frame()
+for (i in 1:nrow(acq.only)) {
+  t <- as.numeric(acq.only$t[i])
+  firm_i <- as.character(acq.only$i[i])
+  tmp <- df.sub[as.numeric(df.sub$t) == t, ]
+  tmp <- tmp[as.character(tmp$i) == firm_i, ]
+  cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
+  df.cnt <- rbind(df.cnt, data.frame(t=t,n=nrow(tmp)))
+  df.acq <- rbind(df.acq, tmp)
+}
+## keep only nrow >= x
+t.keep.acq <- df.cnt$t[which(df.cnt$n >= 4)]
+df.acq <- df.acq[which(df.acq$t %in% t.keep), ]
+
+##-----------------------------------------------------
+targ.only <- df.sub[df.sub$y==1,c('t','j')]
+targ.only <-droplevels.data.frame(targ.only)
+#
+df.targ <- data.frame()
+df.cnt <- data.frame()
+for (i in 1:nrow(targ.only)) {
+  t <- as.numeric(targ.only$t[i])
+  j <- as.character(targ.only$j[i])
+  tmp <- df.sub[as.numeric(df.sub$t) == t, ]
+  tmp <- tmp[as.character(tmp$j) == j, ]
+  cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
+  df.cnt <- rbind(df.cnt, data.frame(t=t,n=nrow(tmp)))
+  df.targ <- rbind(df.targ, tmp)
+}
+## keep only nrow >= x
+t.keep.targ <- df.cnt$t[which(df.cnt$n >= 4)]
+df.targ <- df.targ[which(df.targ$t %in% t.keep), ]
+##-------------------------------------------------------
+df.sub.0 <- df.sub
+df.sub <- df.sub[which(df.sub$t %in% t.keep.targ
+                       & df.sub$t %in% t.keep.acq), ]
+##------------------------------------------------------
+
+mc0 <- mclogit(
+  cbind(y,t) ~  ij.same.region  + ij.same.employee.range + ij.diff.deg   +
+    i.deg  +  i.fm.mmc.sum    + I(i.acq.experience * 100) + 
+     i.pow.n1,
+  data = df.sub)
+summary(mc0)
+
+mc1 <- mclogit(
+  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
+    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
+     i.pow.n1 + ij.dist,
+  data = df.sub)
+summary(mc1)
+
+mc2 <- mclogit(
+  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
+    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n1 +
+    I(i.fm.mmc.sum^2) ,
+  data = df.sub)
+summary(mc2)
+
+mc3 <- mclogit(
+  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
+    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
+     i.pow.n1  +
+    I(i.fm.mmc.sum^2) +
+    I(i.fm.mmc.sum^2):i.pow.n1 , 
+  data = df.sub)
+summary(mc3)
+
+mc4 <- mclogit(
+  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
+    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n1  + ij.dist +
+    I(i.fm.mmc.sum^2) +
+    I(i.fm.mmc.sum^2):i.pow.n1 , 
+  data = df.sub)
+summary(mc4)
+
+memisc::mtable(mc0,mc1,mc2,mc3,mc4)
+
+mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4, signif.symbols = "")
+memisc::write.mtable(mtab, file = "sms_acq_logit_reg_table_ibm.txt", signif.symbols = "")
+
+# correlations
+round(cor(mc4$model),2)
+
+(smc0 <- mclogit::getSummary.mclogit(mc0, alpha=.05) )
+(smc1 <- mclogit::getSummary.mclogit(mc1, alpha=.05) )
+(smc2 <- mclogit::getSummary.mclogit(mc2, alpha=.05) )
+(smc3 <- mclogit::getSummary.mclogit(mc3, alpha=.05) )
+(smc4 <- mclogit::getSummary.mclogit(mc4, alpha=.05) )
+
+smc4$coef
+
+round(mc4$covmat, 3)
+
+df.model <- cbind(predict(mc4),mc4$model)
+
+
+
 
 ## SANITY CHECK
 mc0 <- mclogit(
@@ -206,6 +319,94 @@ mc2.i <- mclogit(
   data = df.sub)
 summary(mc2.i)
 
+## ----------------------------------------
+##  MIXED EFFECTS LOGISTIC
+##------------------------------------------
+glm1 <- glmer(
+  y ~ ij.same.region + ij.same.employee.range + ij.diff.deg  +
+    log(1 + i.deg) +  i.fm.mmc.sum +
+    I(i.fm.mmc.sum^2) +
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
+    (1 | i) + (1 | t), 
+  verbose = 9, 
+  family=binomial(link = "logit"),
+  control=glmerControl(optimizer="bobyqa",
+                       optCtrl=list(maxfun=1e4)),
+  data=df.sub
+)
+summary(glm1)
+
+
+##--------------------------------------
+## only acquirer (focus on target selection)
+##--------------------------------------
+acq.only <- df.sub[df.sub$y==1,c('t','i')]
+acq.only <-droplevels.data.frame(acq.only)
+#
+df.acq <- data.frame()
+df.cnt <- data.frame()
+for (i in 1:nrow(acq.only)) {
+  t <- as.numeric(acq.only$t[i])
+  firm_i <- as.character(acq.only$i[i])
+  tmp <- df.sub[as.numeric(df.sub$t) == t, ]
+  tmp <- tmp[as.character(tmp$i) == firm_i, ]
+  cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
+  df.cnt <- rbind(df.cnt, data.frame(t=t,n=nrow(tmp)))
+  df.acq <- rbind(df.acq, tmp)
+}
+## keep only nrow >= 3
+t.keep <- df.cnt$t[which(df.cnt$n >= 3)]
+df.acq <- df.acq[which(df.acq$t %in% t.keep), ]
+
+acq1 <- mclogit(
+  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
+    ij.dist + ij.diff.pow.n1 +
+    I(i.fm.mmc.sum^2):ij.dist ,
+  data = df.acq)
+summary(acq1)
+
+
+glm.acq1 <- glmer(
+  y ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
+    ij.dist + 
+    I(i.fm.mmc.sum^2):ij.dist  +
+    (1  | i) , 
+  verbose = 9, family=binomial(link='logit'),
+  control=glmerControl(optimizer="bobyqa",
+                       optCtrl=list(maxfun=2e5)),
+  data=df.acq
+)
+summary(glm.acq1)
+
+
+##--------------------------------------
+## only target (focus on MMC motivating acquirer)
+##--------------------------------------
+targ.only <- df.sub[df.sub$y==1,c('t','j')]
+targ.only <-droplevels.data.frame(targ.only)
+#
+df.targ <- data.frame()
+df.cnt <- data.frame()
+for (i in 1:nrow(targ.only)) {
+  t <- as.numeric(targ.only$t[i])
+  j <- as.character(targ.only$j[i])
+  tmp <- df.sub[as.numeric(df.sub$t) == t, ]
+  tmp <- tmp[as.character(tmp$j) == j, ]
+  cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
+  df.cnt <- rbind(df.cnt, data.frame(t=t,n=nrow(tmp)))
+  df.targ <- rbind(df.targ, tmp)
+}
+## keep only nrow >= 3
+t.keep <- df.cnt$t[which(df.cnt$n >= 4)]
+df.targ <- df.targ[which(df.targ$t %in% t.keep), ]
+
+write.csv(df.targ, file="sms_reg_df_targ_set_ibm.csv",row.names = F)
+
+##-----------------------------------------------
+## LOGIT Acquirer set only
+##-----------------------------------------------
+
 
 mc2t <- mclogit(
   cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
@@ -236,77 +437,97 @@ mc2tr.i <- mclogit(
   data = df.targ)
 summary(mc2tr.i)
 
-## ----------------------------------------
-##  MIXED EFFECTS LOGISTIC
-##------------------------------------------
-glm1 <- glmer(
+
+##--------------------------------------------
+##
+## SMS MIXED LOGIT REG TABLE
+##
+##--------------------------------------------
+m0 <- glmer(
+  y ~ ij.same.region + ij.same.employee.range + ij.diff.deg  +
+    log(1 + i.deg) +  i.fm.mmc.sum +
+    ij.dist +
+    i.pow.n1 +  
+    ( 1 | i ) + ( 1 | t ), 
+  # verbose = 9, 
+  family=binomial(link = "logit"),
+  control=glmerControl(optimizer="bobyqa",
+                       optCtrl=list(maxfun=2e5)),
+  data=df.targ
+)
+summary(m0)
+
+m1 <- glmer(
+  y ~ ij.same.region + ij.same.employee.range + ij.diff.deg  +
+    log(1 + i.deg) +  i.fm.mmc.sum +
+    I(i.fm.mmc.sum^2) +
+    ij.dist +
+    i.pow.n1 +  
+    ( 1 | i ) + ( 1 | t ), 
+  # verbose = 9, 
+  family=binomial(link = "logit"),
+  control=glmerControl(optimizer="bobyqa",
+                       optCtrl=list(maxfun=2e5)),
+  data=df.targ
+)
+summary(m1)
+
+m2 <- glmer(
+  y ~ ij.same.region + ij.same.employee.range + ij.diff.deg  +
+    log(1 + i.deg) +  i.fm.mmc.sum +
+    I(i.fm.mmc.sum^2) +
+    ij.dist + 
+    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
+    ( 1 | i ) + ( 1 | t ), 
+  # verbose = 9, 
+  family=binomial(link = "logit"),
+  control=glmerControl(optimizer="bobyqa",
+                       optCtrl=list(maxfun=2e5)),
+  data=df.targ
+)
+summary(m2)
+
+m3 <- glmer(
+  y ~ ij.same.region + ij.same.employee.range + ij.diff.deg  +
+    log(1 + i.deg) +  i.fm.mmc.sum +
+    I(i.fm.mmc.sum^2) +
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n1 + 
+    ( 1 | i ) + ( 1 | t ), 
+  # verbose = 9, 
+  family=binomial(link = "logit"),
+  control=glmerControl(optimizer="bobyqa",
+                       optCtrl=list(maxfun=2e5)),
+  data=df.targ
+)
+summary(m3)
+
+m4 <- glmer(
   y ~ ij.same.region + ij.same.employee.range + ij.diff.deg  +
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
     i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
-    (1 | i) + (1 | t), 
-  verbose = 9, 
+    ( 1 | i ) + ( 1 | t ), 
+  # verbose = 9, 
   family=binomial(link = "logit"),
   control=glmerControl(optimizer="bobyqa",
-                       optCtrl=list(maxfun=1e4)),
-  data=df.sub
-)
-summary(glm1)
-
-
-##--------------------------------------
-## only acquirer (focus on target selection)
-##--------------------------------------
-acq.only <- df.sub[df.sub$y==1,c('t','i')]
-acq.only <-droplevels.data.frame(acq.only)
-#
-df.acq <- data.frame()
-for (i in 1:nrow(acq.only)) {
-  t <- as.numeric(acq.only$t[i])
-  firm_i <- as.character(acq.only$i[i])
-  tmp <- df.sub[as.numeric(df.sub$t) == t, ]
-  tmp <- tmp[as.character(tmp$i) == firm_i, ]
-  cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
-  df.acq <- rbind(df.acq, tmp)
-}
-
-acq1 <- mclogit(
-  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
-    ij.dist + ij.diff.pow.n1 +
-    I(i.fm.mmc.sum^2):ij.dist ,
-  data = df.acq)
-summary(acq1)
-
-
-glm.acq1 <- glmer(
-  y ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
-    ij.dist + 
-    I(i.fm.mmc.sum^2):ij.dist  +
-    (1  | i) , 
-  verbose = 9, family=binomial(link='logit'),
-  control=glmerControl(optimizer="bobyqa",
                        optCtrl=list(maxfun=2e5)),
-  data=df.acq
+  data=df.targ
 )
-summary(glm.acq1)
+summary(m4)
 
 
-##--------------------------------------
-## only target (focus on MMC motivating acquirer)
-##--------------------------------------
-targ.only <- df.sub[df.sub$y==1,c('t','j')]
-targ.only <-droplevels.data.frame(targ.only)
-#
-df.targ <- data.frame()
-for (i in 1:nrow(targ.only)) {
-  t <- as.numeric(targ.only$t[i])
-  j <- as.character(targ.only$j[i])
-  tmp <- df.sub[as.numeric(df.sub$t) == t, ]
-  tmp <- tmp[as.character(tmp$j) == j, ]
-  cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
-  df.targ <- rbind(df.targ, tmp)
-}
+mlist <- list(m0=m0,m1=m1,m2=m2,m3=m3,m4=m4)
+screenreg(mlist, digits = 3, ci.force = T, ci.force.level = .95)
+screenreg(mlist, digits=3)
+htmlreg(mlist, file = "sms_acq_glmm_results_ibm.html", ci.force = T, ci.force.level = .95, digits = 3, star.symbol = '')
+
+df.targ2 <- cbind(predict(m4),(1/(1+exp(-predict(m4)))),df.targ)
+write.csv(df.targ2, file="acqlogit_covs_pred_df_ibm.csv",row.names = F)
+
+##--------------end sms-----------------------
+
 
 ## NESTED -- NO
 glm.targ1 <- glmer(
