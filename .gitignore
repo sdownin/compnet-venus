@@ -19,7 +19,8 @@
 *.RDat*
 *.rda*
 *.rds*
-*.Rhistory
+*.Rhistory*
+*.graph*
 *.db
 *.bgs
 *.luu
