@@ -29,11 +29,14 @@ library(mlogit)
 library(mclogit)
 library(lme4)
 library(lmerTest)
+library(lubridate)
 
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
 ## FUNCTIONS
 source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','netrisk_functions.R'))
+## DATA
+source(file.path(getwd(),'R','cb_data_prep.R'))
 ## DATA
 # source(file.path(getwd(),'R','cb_data_prep.R'))
 
@@ -117,8 +120,8 @@ for (i in 1:nrow(acq.only)) {
   df.acq <- rbind(df.acq, tmp)
 }
 ## keep only nrow >= x
-t.keep.acq <- df.cnt$t[which(df.cnt$n >= 4)]
-df.acq <- df.acq[which(df.acq$t %in% t.keep), ]
+t.keep.acq <- df.cnt$t[which(df.cnt$n >= 3)]
+df.acq <- df.acq[which(df.acq$t %in% t.keep.acq), ]
 
 ##-----------------------------------------------------
 targ.only <- df.sub[df.sub$y==1,c('t','j')]
@@ -136,14 +139,88 @@ for (i in 1:nrow(targ.only)) {
   df.targ <- rbind(df.targ, tmp)
 }
 ## keep only nrow >= x
-t.keep.targ <- df.cnt$t[which(df.cnt$n >= 4)]
-df.targ <- df.targ[which(df.targ$t %in% t.keep), ]
+t.keep.targ <- df.cnt$t[which(df.cnt$n >= 3)]
+df.targ <- df.targ[which(df.targ$t %in% t.keep.targ), ]
 ##-------------------------------------------------------
 df.sub.0 <- df.sub
 df.sub <- df.sub[which(df.sub$t %in% t.keep.targ
                        & df.sub$t %in% t.keep.acq), ]
 ##------------------------------------------------------
 
+
+## >= 10 constraint , power 
+## >= 9 constraint no, power no
+## >= 8 constraint no, power no
+## >= 7 constraint no, power no
+## >= 6 constraint no, power   no
+## >= 5 constraint no, power  no
+## >= 4 constraint no, power yes
+## >= 3 constraint yes, power yes
+## >= 2 constraint yes, power no
+mc3 <- mclogit(
+  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
+    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n1 + j.pow.n1 + ij.dist  +
+    i.constraint + ij.diff.constraint +
+    I(i.fm.mmc.sum^2) +
+    i.fm.mmc.sum:i.pow.n1 +
+    i.fm.mmc.sum:i.constraint +
+    i.fm.mmc.sum:ij.dist  , 
+  data = df.sub)
+summary(mc3)
+
+mc2 <- mclogit(
+  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
+    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n1 + j.pow.n1 + ij.dist  +
+    i.constraint + 
+    I(i.fm.mmc.sum^2) +
+    i.fm.mmc.sum:i.pow.n1 +
+    i.fm.mmc.sum:i.constraint +
+    i.fm.mmc.sum:j.constraint +
+    i.fm.mmc.sum:ij.dist  , 
+  data = df.sub)
+summary(mc2)
+
+
+memisc::mtable(mc1,mc2,mc3)
+
+mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4, signif.symbols = "")
+memisc::write.mtable(mtab, file = "sms_acq_logit_reg_table_ibm.txt", signif.symbols = "")
+
+# correlations
+round(cor(mc4$model),2)
+
+(smc0 <- mclogit::getSummary.mclogit(mc0, alpha=.05) )
+(smc1 <- mclogit::getSummary.mclogit(mc1, alpha=.05) )
+(smc2 <- mclogit::getSummary.mclogit(mc2, alpha=.05) )
+(smc3 <- mclogit::getSummary.mclogit(mc3, alpha=.05) )
+(smc4 <- mclogit::getSummary.mclogit(mc4, alpha=.05) )
+
+smc4$coef
+
+round(mc4$covmat, 3)
+
+df.model <- cbind(predict(mc4),mc4$model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###------------- SMS Proposal --------------------------------------
 mc0 <- mclogit(
   cbind(y,t) ~  ij.same.region  + ij.same.employee.range + ij.diff.deg   +
     i.deg  +  i.fm.mmc.sum    + I(i.acq.experience * 100) + 
