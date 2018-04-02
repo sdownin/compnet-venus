@@ -344,8 +344,8 @@ ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
             mapping <- V(g.full.pd.orig)[which(V(g.full.pd.orig)$orig.vid %in% V(g.full.pd)$orig.vid) ]
             g.diff <- igraph::contract.vertices(g.full.pd, mapping = mapping)
             V(g.diff)$name <- V(g.full.pd.orig)$name
-            vids.diff <- as.integer( V(g.diff)[which( df.verts$name %in% V(g.diff)$name )] )
-            # MAKE REM DATAFRAME
+            vids.diff <- as.integer( V(g.diff)[which( V(g.diff)$name %in% df.verts$name )] )
+            # MAKE REM DATAFRAME 
             df.rem.pd <- data.frame(t=timeval, src=src, trg=trg, 
                                     time=datestr, idx=lidx,
                                     i.orig.vid=xi.orig.vid,
@@ -475,14 +475,15 @@ ar.cov.rec <- l4$ar.cov.rec
 ## ----------------- Correlations ---------------------------------------
 dim(ar.cov)
 
-cov.idx <-  c(1,2,3,4, 8, 15,16)
+cov.idx <-  c(1,2,3,4, 7, 15,16,17)
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
 
-dms <- dim(ar.cov.na0)
-ar.cov.2 <- array(dim=c(dms[1],length(iv.idx)+1,dms[3]))
-ar.cov.2[ , 1:length(iv.idx), ] <-ar.cov.na0
-ar.cov.2[ , 8, ] <- ar.cov.na0[ , 1, ] * ar.cov.na0[ , 5, ]
+# dms <- dim(ar.cov.na0)
+# ar.cov.2 <- array(dim=c(dms[1],length(iv.idx)+1,dms[3]))
+# ar.cov.2[ , 1:length(iv.idx), ] <-ar.cov.na0
+# ar.cov.2[ , 8, ] <- ar.cov.na0[ , 1, ] * ar.cov.na0[ , 5, ]
+ar.cov.2 <- ar.cov.na0
 
 df.cor <- data.frame()
 for (i in 1:dim(ar.cov.2)[2]) {

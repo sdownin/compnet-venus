@@ -46,6 +46,7 @@ csv.ppl_desc <- 'people_descriptions.csv'
 #  Data import
 #----------------------------------
 cat('\nloading dataframes...\n')
+
 co <- read.table(file.path(data_dir, csv.co), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
 co_comp <- read.table(file.path(data_dir, csv.co_comp), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
 co_cust <- read.table(file.path(data_dir, csv.co_cust), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
@@ -109,6 +110,40 @@ co_cust$created_year <- as.numeric(stringr::str_sub(co_cust$created_at,1,4))
 
 ## Unique Branches
 co_br <- unique(co_br)
+
+## ONLY COMPANY organizations (no universities, etc)
+co <- co[which(co$primary_role == 'company'), ]
+co_comp <- co_comp[which(co_comp$company_name_unique %in% co$company_name_unique
+                         | co_comp$competitor_name_unique %in% co$company_name_unique), ]
+
+# ##-----------------------------------------
+# ## Add founded_on dates manually checked
+# ##-----------------------------------------
+# acqs.data.fix <- read.csv("acquisitions_companies_ibm_d2_814_FIXED.csv", header = T, na.strings = c('NA'), stringsAsFactors = F)
+# awar.data.fix <- read.csv("awareness_companies_qualtrics_d3_583_FIXED.csv", header = T, na.strings = c('NA'), stringsAsFactors = F)
+# 
+# isMissing <- function(x){
+#   return(is.na(x) | is.nan(x)  | x == '' | x == 'NA')
+# }
+# 
+# idx <- which( 
+#   isMissing(co$founded_on)
+#   & (co$company_name_unique %in% acqs.data.fix$company_name_unique 
+#      | co$company_name_unique %in% awar.data.fix$company_name_unique)
+# )
+# 
+# for(i in idx) {
+#   acq.idx.i <- which(acqs.data.fix$company_name_unique == co$company_name_unique[i])
+#   awr.idx.i <- which(awar.data.fix$company_name_unique == co$company_name_unique[i])
+#   acq.date <- ifelse(length(acq.idx.i) > 0, acqs.data.fix$founded_on[acq.idx.i], NA)
+#   awr.date <- ifelse(length(awr.idx.i) > 0, awar.data.fix$founded_on[awr.idx.i], NA)
+#   # print(cat(sprintf('%s %s %s\n',i,acq.date,awr.date)))
+#   co$founded_on[i] <- ifelse( !isMissing(acq.date), acq.date, 
+#                               ifelse(!isMissing(awr.date), awr.date, 
+#                                      NA  ))
+#   # cat(sprintf('%s\n',co$founded_on[i]))
+# }
+# ##-----
 
 # ## Firm age
 # co$founded_year

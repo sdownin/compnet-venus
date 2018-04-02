@@ -2560,6 +2560,10 @@ getMultiMarketContact <- function(br, firms, end, ...)
   return( mmc )
 }
 
+testFunction <- function(message)
+{
+  return(message)
+}
 
 ##
 #
@@ -2661,6 +2665,12 @@ makePdGraph <- function(g, start, end,
   if(vertClosedAttr %in% vertAttrs) {
     tmp <- igraph::get.vertex.attribute(g, vertClosedAttr)
     vids <- which(tmp < start & tmp != "NA")  
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES acquired_on < `start`
+  if(vertAcquiredAttr %in% vertAttrs) {
+    tmp <- igraph::get.vertex.attribute(g, vertAcquiredAttr)
+    vids <- which( tmp < start & tmp != "NA" )  # V(g)[which(tmp < start)]
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
   ## GET active VERTICES

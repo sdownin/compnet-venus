@@ -420,7 +420,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 {
   if(is.na(vertAttrs)) {
     vertAttrs <- c('company_name','founded_on','founded_year','closed_on','closed_year','category_list',
-                   'category_group_list','state_code','country_code','region','city')
+                   'category_group_list','state_code','country_code','region','city','acquired_on')
   }
   el <- data.frame(source=comp[,name], 
                    target=comp[,compName],
@@ -437,6 +437,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
   g <- igraph::graph.data.frame(d = el, directed = F, vertices = verts)
   E(g)$weight <- 1
   V(g)$weight <- 1
+  V(g)$orig.vid <- as.integer(V(g))
   return(g)
 }
 
