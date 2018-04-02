@@ -26,7 +26,7 @@ cat(sprintf("Using %s cores\n", detectCores()))
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
 pow <- lapply(nets, function(net) {
   x <- net %v% 'cent_pow_n0_5'
-  return(outer(x, x, '-'))
+  return(abs(outer(x, x, '-')))
 })
 
 
