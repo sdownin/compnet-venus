@@ -1,0 +1,53 @@
+
+
+##------ Sun Jan 21 17:59:54 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+              Estimate     Std.Err   Z value  Pr(>|z|)    
+NODSnd      3.4341e+00  7.4756e-01    4.5937 4.355e-06 ***
+CovSnd.1   -1.1868e+01  3.9240e-01  -30.2455 < 2.2e-16 ***
+CovSnd.2   -4.4106e-01  1.7160e-01   -2.5703   0.01016 *  
+CovSnd.3    7.8774e+00  2.5129e-01   31.3473 < 2.2e-16 ***
+CovSnd.4   -9.0364e-04  8.9261e+01    0.0000   0.99999    
+CovSnd.5    7.9559e-04  8.9261e+01    0.0000   0.99999    
+CovSnd.6   -2.7919e+00  7.5061e-03 -371.9445 < 2.2e-16 ***
+CovSnd.7    2.0225e+01  1.6608e-01  121.7791 < 2.2e-16 ***
+CovSnd.8   -5.8154e-05  8.9261e+01    0.0000   1.00000    
+CovEvent.1 -2.8703e+00  7.1438e-02  -40.1792 < 2.2e-16 ***
+CovEvent.2  5.1590e-01  8.3560e-03   61.7403 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 40143.65 on 234 degrees of freedom
+	Chi-square: -31941.48 on 10 degrees of freedom, asymptotic p-value 1 
+AIC: 40165.65 AICC: 40166.78 BIC: 40204.12 
+finished successfully.
+
+##------ Tue Jan 23 16:22:40 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+             Estimate    Std.Err   Z value  Pr(>|z|)    
+NODSnd      -3.185460  14.972888   -0.2127    0.8315    
+CovSnd.1   -11.988510   0.619124  -19.3637 < 2.2e-16 ***
+CovSnd.2     3.215964   0.281141   11.4390 < 2.2e-16 ***
+CovSnd.3     3.397734   0.244130   13.9177 < 2.2e-16 ***
+CovSnd.4    -0.074804   0.017801   -4.2021 2.644e-05 ***
+CovSnd.5    -0.638912   0.039457  -16.1924 < 2.2e-16 ***
+CovSnd.6    -2.283067   0.010358 -220.4096 < 2.2e-16 ***
+CovSnd.7    15.116460   0.195435   77.3478 < 2.2e-16 ***
+CovSnd.8    -0.184914   0.014421  -12.8221 < 2.2e-16 ***
+CovEvent.1  -2.508982   0.076607  -32.7515 < 2.2e-16 ***
+CovEvent.2   0.264307   0.010566   25.0144 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 35772.78 on 234 degrees of freedom
+	Chi-square: -27570.62 on 10 degrees of freedom, asymptotic p-value 1 
+AIC: 35794.78 AICC: 35795.92 BIC: 35833.25 
+finished successfully.
