@@ -48,6 +48,20 @@ def processHeader(string, pattern = r'[^a-zA-Z]+', repl='_'):
       header = header[1:] ## remove leading non-alphanumeric 
    return header
 
+def dedupDict(heading_map):
+   """ fix duplicate values in a dict mapping by count indexing each
+       after the first val,val_2,val_3,...
+   """
+   if not isinstance(heading_map, dict):
+      raise Exception('heading_map must be a dict-like object')
+   check = {}
+   for key in heading_map.keys():
+      val = heading_map[key]
+      check[val] = check[val]+1 if val in check else 1
+      if check[val] > 1:
+         heading_map[key] = '{h}_{i}'.format(h=val,i=check[val])
+   return heading_map
+
 def extract(x, index, sep='\n'):
    """ Extract an element of a joined string
    """
@@ -106,13 +120,15 @@ def main():
    #print(df.columns)
    
    ## fix heading strings
-   heading_map = {x:processHeader(x) for x in df.columns}
+   #heading_map = {x:'{i}_{h}'.format(i=i,h=processHeader(x)) for i,x in enumerate(df.columns)}
+   heading_map = dedupDict({x:processHeader(x) for x in df.columns})
+   ## rename columns by mapping
    df = df.rename(columns=heading_map)
    #print(df.columns)
    
    ## add row ID columns
    df['uuid'] = df[df.columns[0]].apply(lambda x: str(uuid4()))
-   df['id'] = pd.Series(range(1,df.shape[0]))
+   df['id'] = pd.Series(range(1,df.shape[0]+1))
    
    ## extract first and second entries to separate data frames
    df0 = extractDf(df.copy(), 0)
