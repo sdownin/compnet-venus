@@ -10,6 +10,8 @@ library(intergraph)
 library(RMySQL)
 library(lubridate)
 
+source(file.path(getwd(),'R','netrisk_functions.R'))
+source(file.path(getwd(),'R','comp_net_functions.R'))
 source(file.path(getwd(),'R','cb_data_prep.R'))
 
 
@@ -20,6 +22,19 @@ nets <- readRDS("firm_nets_cem\\qualtrics_d3.rds")
 
 gs <- lapply(nets, function(net)asIgraph(net))
 g1 <- gs[[length(gs)]]
+
+df.v <- gdf(g1)
+df.v <- df.v[order(df.v$cent_deg, decreasing = T), ]
+df.v <- merge(df.v, co[,c('company_name','company_name_unique','employee_count','funding_total_usd','funding_rounds')], 
+              by.x='vertex.names', by.y='company_name_unique', all.x=T, all.y=F)
+df.v2 <- df.v[, c('vertex.names','company_name','cent_deg','ipo_status','employee_count','funding_total_usd','funding_rounds') ]
+df.v2$name2 <- sapply(1:nrow(df.v2), function(i){
+  return(ifelse( is.na(df.v2$company_name[i]), df.v2$vertex.names[i], df.v2$company_name[i]  ))
+})
+View(df.v2)
+write.csv(df.v2, file = 'awareness_qualtrics_net_firms_details.csv', row.names = F)
+
+##--------------------------------------------------------------------------
 
 namedf <- expand.grid(V(g1)$vertex.names, V(g1)$vertex.names, stringsAsFactors = F)
 names(namedf) <- c('i','j')
@@ -55,11 +70,24 @@ rows2 <- which(df2$i %in% co_acq$acquiree_name_unique
 df3 <- df2[rows2, ]
 
 ## ONLY ACQUISITIONS THAT ARE ALSO IN CLOSED DISTANCE FIRM EDGES
-acq <- co_acq[acq$acquiree_name_unique %in% df3$i
-              | acq$acquiree_name_unique %in% df3$j, c('acquirer_name_unique','acquiree_name_unique','acquired_on')]
+idx.acq <- which(
+  acq$acquired_on >= '2012-01-01' 
+  & acq$acquired_on <= '2016-10-30'
+  & (
+    acq$acquiree_name_unique %in% df3$i
+    | acq$acquiree_name_unique %in% df3$j
+    | acq$acquirer_name_unique %in% df3$i
+    | acq$acquirer_name_unique %in% df3$j
+    )
+)
+acq <- co_acq[idx.acq, c('acquirer_name_unique','acquiree_name_unique','acquired_on')]
+
+
 
 df4 <- merge(df3, acq, by.x='i',by.y='acquiree_name_unique',all.x=T,all.y=F)
 df4 <- merge(df4, acq, by.x='j',by.y='acquiree_name_unique',all.x=T,all.y=F)
+df4 <- merge(df4, acq, by.x='i',by.y='acquirer_name_unique',all.x=T,all.y=F)
+df4 <- merge(df4, acq, by.x='j',by.y='acquirer_name_unique',all.x=T,all.y=F)
 
 
 dim(df3)
@@ -81,3 +109,10 @@ for (i in 2:length(ldf)) {
   tmp0 <- ldf[[i-1]]
   ldiff[[names(ldf)[i]]] <- tmp1 - tmp0
 }
+
+
+
+
+
+
+
