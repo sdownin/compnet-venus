@@ -3,15 +3,6 @@
 Created on Mon Oct 24 19:22:12 2016
 
 @author: sdowning
-
-
-Previous rules for competitive relation began_on, ended_on
-   ## ended_on
-   comp['relation_ended_on'] = comp[['company_closed_on','competitor_closed_on','acquired_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
-   ## began_on
-   comp['max_founded_on'] = comp[['company_founded_on','competitor_founded_on']].apply(lambda x: strMaxSafe(x), axis=1).copy()
-   comp['relation_began_on'] = comp[['max_founded_on','created_at']].apply(lambda x: strMaxSafe(x) if x[0] is not None and x[0] > '2014-04-01' else x[0], axis=1).copy()
-
 """
 
 dir_base = 'C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase'
@@ -242,55 +233,53 @@ tmp2.columns = ['competitor_name_unique','company_uuid']
 comp = comp.merge(tmp, how='left', left_on='entity_uuid', right_on='company_uuid', copy=True)
 comp = comp.merge(tmp2, how='left', left_on='competitor_uuid', right_on='company_uuid', copy=True)
 comp.drop(['company_uuid_x','company_uuid_y'],axis=1,inplace=True)
+# ### ACQUIRED
+tmp = ac[['acquiree_name_unique']].copy()
+tmp['acquired_on'] = ac[['created_at','updated_at']].apply(lambda x: strMinSafe(x), axis=1)
+comp_m = comp.merge(tmp, how='left', left_on='company_name_unique',right_on='acquiree_name_unique',copy=True)
+comp_m = comp_m.merge(tmp, how='left', left_on='competitor_name_unique',right_on='acquiree_name_unique',copy=True)
+comp_m['acquiree_name_unique'] = comp_m[['acquiree_name_unique_x', 'acquiree_name_unique_y']].apply(lambda x: joinSafe(x), axis=1).copy()
 
-##
-## MOVE ALL acquired_on, closed_on, founded_on dates to compute in R script data cleaning
-##
-## ### ACQUIRED
-#tmp = ac[['acquiree_name_unique']].copy()
-#tmp['acquired_on'] = ac[['created_at','updated_at']].apply(lambda x: strMinSafe(x), axis=1)
-#comp_m = comp.merge(tmp, how='left', left_on='company_name_unique',right_on='acquiree_name_unique',copy=True)
-#comp_m = comp_m.merge(tmp, how='left', left_on='competitor_name_unique',right_on='acquiree_name_unique',copy=True)
-#comp_m['acquiree_name_unique'] = comp_m[['acquiree_name_unique_x', 'acquiree_name_unique_y']].apply(lambda x: joinSafe(x), axis=1).copy()
+comp_index = ['company_name_unique','competitor_name_unique']
+x = comp_m.groupby(comp_index).agg({'acquired_on_x': lambda x: joinSafe(x),
+                                    'acquired_on_y': lambda x: joinSafe(x),
+                                    'acquiree_name_unique': lambda x: joinSafe(x)
+                                    }).reset_index()
+#y = comp_m.groupby(comp_index).agg({'acquired_on_y':'sum'}).reset_index()
+#xy = x.merge(y, how='inner', on=comp_index)
+x['acquired_on'] = x[['acquired_on_x','acquired_on_y']].apply(lambda x: joinSafe(x), axis=1)
+x.drop(['acquired_on_x','acquired_on_y'], axis=1, inplace=True)
+comp = comp.merge(x, how='left', on=comp_index).copy()
+comp.columns = np.concatenate((comp.columns[:-2].values,['acquiree_name_unique_concat', 'acquired_on_concat']))
+comp['acquired_on'] = comp.acquired_on_concat.ix[:30].apply(lambda x: min(x.split('|')) if not empty(x) else 'NA') 
+# ### CLOSED
+tmp =  co[['company_name_unique','closed_on']].ix[ (~empty(co.closed_on) & (co.closed_on != 'NA') ) ].copy()
+tmp2 = tmp.copy()
+tmp.columns = ['company_name_unique','company_closed_on']
+tmp2.columns = ['competitor_name_unique','competitor_closed_on']
+comp = comp.merge(tmp, how='left', on='company_name_unique')
+comp = comp.merge(tmp2, how='left', on='competitor_name_unique')
+# ### FOUNDED
+tmp =  co[['company_name_unique','founded_on']].ix[ (~empty(co.founded_on) & (co.founded_on != 'NA') ) ].copy()
+tmp2 = tmp.copy()
+tmp.columns = ['company_name_unique','company_founded_on']
+tmp2.columns = ['competitor_name_unique','competitor_founded_on']
+comp = comp.merge(tmp, how='left', on='company_name_unique')
+comp = comp.merge(tmp2, how='left', on='competitor_name_unique')
 #
-#comp_index = ['company_name_unique','competitor_name_unique']
-#x = comp_m.groupby(comp_index).agg({'acquired_on_x': lambda x: joinSafe(x),
-#                                    'acquired_on_y': lambda x: joinSafe(x),
-#                                    'acquiree_name_unique': lambda x: joinSafe(x)
-#                                    }).reset_index()
-##y = comp_m.groupby(comp_index).agg({'acquired_on_y':'sum'}).reset_index()
-##xy = x.merge(y, how='inner', on=comp_index)
-#x['acquired_on'] = x[['acquired_on_x','acquired_on_y']].apply(lambda x: joinSafe(x), axis=1)
-#x.drop(['acquired_on_x','acquired_on_y'], axis=1, inplace=True)
-#comp = comp.merge(x, how='left', on=comp_index).copy()
-#comp.columns = np.concatenate((comp.columns[:-2].values,['acquiree_name_unique_concat', 'acquired_on_concat']))
-#comp['acquired_on'] = comp.acquired_on_concat.ix[:30].apply(lambda x: min(x.split('|')) if not empty(x) else 'NA') 
-## ### CLOSED
-#tmp =  co[['company_name_unique','closed_on']].ix[ (~empty(co.closed_on) & (co.closed_on != 'NA') ) ].copy()
-#tmp2 = tmp.copy()
-#tmp.columns = ['company_name_unique','company_closed_on']
-#tmp2.columns = ['competitor_name_unique','competitor_closed_on']
-#comp = comp.merge(tmp, how='left', on='company_name_unique')
-#comp = comp.merge(tmp2, how='left', on='competitor_name_unique')
-## ### FOUNDED
-#tmp =  co[['company_name_unique','founded_on']].ix[ (~empty(co.founded_on) & (co.founded_on != 'NA') ) ].copy()
-#tmp2 = tmp.copy()
-#tmp.columns = ['company_name_unique','company_founded_on']
-#tmp2.columns = ['competitor_name_unique','competitor_founded_on']
-#comp = comp.merge(tmp, how='left', on='company_name_unique')
-#comp = comp.merge(tmp2, how='left', on='competitor_name_unique')
-
-## fix NAs
+## Previous version
+#comp['relation_ended_on'] = comp[['company_closed_on','competitor_closed_on','acquired_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
+#comp['relation_began_on'] = comp[['created_at','relation_ended_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
+##
+## New Definition of relation_began_on
+comp['relation_ended_on'] = comp[['company_closed_on','competitor_closed_on','acquired_on']].apply(lambda x: strMinSafe(x), axis=1).copy()
+#
+comp['max_founded_on'] = comp[['company_founded_on','competitor_founded_on']].apply(lambda x: strMaxSafe(x), axis=1).copy()
+comp['relation_began_on'] = comp[['max_founded_on','created_at']].apply(lambda x: strMaxSafe(x) if x[0] is not None and x[0] > '2014-04-01' else x[0], axis=1).copy()
+#comp['relation_began_on'] = comp[['max_founded_on','created_at']].apply(lambda x: strMinSafe(x), axis=1).copy()
+#comp['relation_began_on_max'] = comp[['max_founded_on','created_at']].apply(lambda x: strMaxSafe(x), axis=1).copy()
+#
 comp = fillNA(comp)
-
-###
-## UPDATE 2018-04-23: Jin-SU's updated competitor founded_on / ended_on data
-## remove relations where: 
-##    - either  (1) one of the competitors does not have name or (2) "NA" in name column
-##    - one of competitors has founded_on date of "no exist" 
-###
-
-
 #
 comp.to_csv(out_path, sep=",", index=False, encoding='utf-8', date_format='YYYY-MM-DD')
 

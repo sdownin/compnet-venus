@@ -17,6 +17,87 @@ library(lubridate, quietly = T)
 library(stringr, quietly = T)
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
 
+##
+# Return vector of indices of  x which are in y
+# @param [vector] x
+# @param [vector] y
+# @return [vector] length is length(intersect(x,y))
+##
+MATCH <- function (x,y)
+{
+  return(which(x %in% y))
+}
+
+##
+# Returns vector of values from dataframe df 
+#  by checking for non-NA values each row
+#  in columns (old.col, new.col)
+#  - if neither is non-NA, return default value provided (defaults to NA)
+#  - if 1 is non-NA, return the non-NA value
+#  - if both are non-NA, return the value of column `new.col`
+# @param [dataframe] df
+# @param [character] old.col  The old column name (to be replaced by new.col)
+# @param [character] new.col  The new column name (to replace old.col)
+# @return  [vector]
+##
+parseNonNa <- function(df, old.col, new.col, default=NA)
+{
+  return(unname(
+    apply(df[ , c(old.col, new.col)], MARGIN = 1, FUN = function(x){
+      idx <- which(!is.na(x))
+      switch(as.character(length(idx)),
+             '0'=default,## `default` if neither is non-NA
+             '1'=x[idx], ## the non-NA value if only 1 is non-NA
+             '2'=x[2]    ## the replacement column if both are non-NA
+      )
+    })
+  ))
+}
+
+##
+# Checks if the argument `x` is a falsy (null, <nan>, <na>, 'NA', or empty string)
+# @param [any] x  The element to check
+# @return [bool]  
+##
+isEmpty <- function(x)
+{
+  if (is.null(x)) 
+    return(TRUE)
+  return (is.nan(x) | is.na(x) | x=='NA' | x=='')
+}
+
+##
+# Returns vector of competitive relation beginning date strings (or NA) by the following logic:
+#  - take the latest founding date when both have valid founding dates
+#  - else NA
+##
+relationBeganOn <- function(df)
+{
+  cols <- c('company_founded_on','competitor_founded_on')
+  for(col in cols){
+    if (!(col %in% names(df))) stop(sprintf('dataframe missing column `%s`.',col))
+  }
+  return(unname(apply(X = df[,cols],MARGIN = 1,FUN = function(x){
+    max(x)
+  })))
+}
+
+##
+# Returns vector of competitive relation ending date strings (or NA) by the following logic:
+#  - take the earliest ending date (closed, acquired) if any (company,competitor) are not NA
+#  - else NA
+##
+relationEndedOn <- function(df)
+{
+  cols <- c('company_closed_on','company_acquired_on','competitor_closed_on','competitor_acquired_on')
+  for(col in cols){
+    if (!(col %in% names(df))) stop(sprintf('dataframe missing column `%s`.',col))
+  }
+  return(unname(apply(X = df[,cols],MARGIN = 1,FUN = function(x){
+    ifelse(any(!isEmpty(x)), min(x[!isEmpty(x)]), NA) 
+  })))
+}
+
 ##--------- Conversion functions---------------
 
 ##--------------------------------------------------------
@@ -45,7 +126,7 @@ csv.ppl_desc <- 'people_descriptions.csv'
 #----------------------------------
 #  Data import
 #----------------------------------
-cat('\nloading dataframes...\n')
+cat('\nloading dataframes...')
 
 co <- read.table(file.path(data_dir, csv.co), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
 co_comp <- read.table(file.path(data_dir, csv.co_comp), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
@@ -60,22 +141,54 @@ fund <- read.table(file.path(data_dir, csv.fund), sep=",",header=T, quote='"' , 
 inv <- read.table(file.path(data_dir, csv.inv), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
 inv_rou <- read.table(file.path(data_dir, csv.inv_rou), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
 inv_part <- read.table(file.path(data_dir, csv.inv_part), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
-ev <- read.table(file.path(data_dir, csv.ev), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
-ev_rel <- read.table(file.path(data_dir, csv.ev_rel), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
-categ <- read.table(file.path(data_dir, csv.categ), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+# ev <- read.table(file.path(data_dir, csv.ev), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+# ev_rel <- read.table(file.path(data_dir, csv.ev_rel), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+# categ <- read.table(file.path(data_dir, csv.categ), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+# job <- read.table(file.path(data_dir, csv.jobs), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+# ppl <- read.table(file.path(data_dir, csv.ppl), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+# ppl_desc <- read.table(file.path(data_dir, csv.ppl_desc), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+
+
+cat('done.\n')
+cat('cleaning data...')
+
+
 ##
-job <- read.table(file.path(data_dir, csv.jobs), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
-ppl <- read.table(file.path(data_dir, csv.ppl), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
-ppl_desc <- read.table(file.path(data_dir, csv.ppl_desc), sep=",",header=T, quote='"' , na.strings = 'NA', stringsAsFactors = F, fill=T)
+## COMPANY UPDATED FOUNDING DATE 
+##
+## update founded_on,closed_on dates  - Jin-Su's Email 2018-04-23
+co.date <- read.csv('founded_on_date_edit/missing_companies_20180330.csv', header = T, na.strings = c('','NA'), stringsAsFactors = F)
+names(co.date) <- c('com_uuid','com_name','com_founded_on_UPDATE','com_closed_on_UPDATE','com_status','note')
+## fix date formatting  '12/13/2011' ==> '2011-12-31'
+co.date$com_founded_on_UPDATE <- sapply(co.date$com_founded_on_UPDATE, function(x){
+    return(ifelse(isEmpty(x), NA,  as.character(mdy(x))))
+  })
+co.date$com_closed_on_UPDATE <- sapply(co.date$com_closed_on_UPDATE, function(x){
+    return(ifelse(isEmpty(x), NA,  as.character(mdy(x))))
+  })
 
-
-# MULTI_MARKET_CONTACT CODE
-co_br$mmc_code <- apply(co_br[,c('country_code3','region_code2')],1,function(x){
-  paste(x, collapse="_")
-})
+## merge udpatese into company df
+co <- merge(x=co,y=co.date,by.x='company_uuid',by.y='com_uuid',all.x=T,all.y=F)
+## APPLY UPDATE OLD_COLUMN TO NEW_COLUMN  
+## FASTER THAN FOR-LOOP WHEN DATAFRAME IS VERY LARGE
+co$company_name <- parseNonNa(co, 'company_name','com_name')
+co$status <- parseNonNa(co, 'status','com_status')
+co$founded_on <- parseNonNa(co, 'founded_on','com_founded_on_UPDATE')
+co$closed_on <- parseNonNa(co, 'closed_on','com_closed_on_UPDATE')
+## DROP REPLACEMENT COLUMNS
+co$com_name <- NULL
+co$com_status <- NULL
+co$com_founded_on_UPDATE <- NULL
+co$com_closed_on_UPDATE <- NULL
+co$note <- NULL
 
 # ##  DROP COMPANY row with mising name
 co <- co[which(co$company_name_unique!="" & !is.na(co$company_name_unique)), ]
+
+## ONLY COMPANIES (no universities, etc)
+co <- co[which(co$primary_role == 'company'), ]
+
+## DROP DUPLICATES
 co.cnt <- plyr::count(co$company_name_unique)
 co.cnt <- co.cnt[order(co.cnt$freq, decreasing = T), ]
 # co.cnt[co.cnt$freq > 1, ]
@@ -88,16 +201,94 @@ if(length(co.dups) > 0) {
 co$founded_year <- as.numeric(stringr::str_sub( co$founded_on,1,4))
 co$closed_year <-  as.numeric(stringr::str_sub( co$closed_on,1,4))
 co$acquired_year <-  as.numeric(stringr::str_sub( co$acquired_on,1,4))
-co_comp$relation_began_year <-  as.numeric(stringr::str_sub( co_comp$relation_began_on,1,4))
-co_comp$relation_ended_year <-  as.numeric(stringr::str_sub( co_comp$relation_ended_on,1,4))
+
+
+##
+## ACQUISITIONS
+##
+## make unique acquired on dates for each company
+##  - as min of acquired_on dates when multiple (acquired multiple times) 
+co_acq_acquired <- ddply(co_acq, .(acquiree_uuid,acquiree_name_unique,acquired_on), summarize,
+                           acquiree_name_unique=acquiree_name_unique,
+                           acquiree_uuid=acquiree_uuid,
+                           acquired_on=min(acquired_on),
+                           acquired_on_concat=paste(acquired_on,collapse="|"))
+co_acq_acquired <- co_acq_acquired[which(!isEmpty(co_acq_acquired$acquiree_name_unique) & !isEmpty(co_acq_acquired$acquired_on)),]
+##
+co_acq$company_name_unique <- co_acq$acquirer_name_unique
+co_acq$acquired_year <- as.numeric(stringr::str_sub(co_acq$acquired_on,1,4))
+
+
+##
+## COMPETITIVE RELATIONS
+##  - add dates to compute relation_began_on, relation_ended_on
+##
+## remove acquired_on|closed_on|founed_on dates from python pre-processing script
+## to set them here:
+drop.cols <- c('company_closed_on','competitor_closed_on','company_founded_on','competitor_founded_on',
+               'relation_ended_on','max_founded_on','relation_began_on',
+               'acquiree_name_unique_concat','acquired_on_concat','acquired_on')
+for (col in drop.cols){
+  if (col %in% names(co_comp)) {
+    co_comp[,col] <- NULL
+  }
+}
+## rename entity_uuid to company_uuid
+names(co_comp)[which(names(co_comp)=='entity_uuid')] <- 'company_uuid'
+##  - COMPANY FOUNDED | CLOSED
+tmp <- co[,c('company_uuid','founded_on','closed_on')]
+names(tmp) <- c('company_uuid','company_founded_on','company_closed_on')
+co_comp <- merge(x=co_comp,y=tmp, by.x='company_uuid',by.y='company_uuid', all.x=T,all.y=F)
+##  - COMPANY ACQUIRED  ## using co_acq_acquired for unique acquiree dates
+tmp <- co_acq_acquired[,c('acquiree_uuid','acquired_on')]
+names(tmp) <- c('acquiree_uuid','company_acquired_on')
+co_comp <- merge(x=co_comp,y=tmp, by.x='company_uuid',by.y='acquiree_uuid', all.x=T,all.y=F)
+##  - COMPETITOR FOUNDED | CLOSED
+tmp <- co[,c('company_uuid','founded_on','closed_on')]
+names(tmp) <- c('competitor_uuid','competitor_founded_on','competitor_closed_on')
+co_comp <- merge(x=co_comp,y=tmp, by.x='company_uuid',by.y='competitor_uuid', all.x=T,all.y=F)
+##  - COMPETITOR ACQUIRED  ## using co_acq_acquired for unique acquiree dates
+tmp <- co_acq_acquired[,c('acquiree_uuid','acquired_on')]
+names(tmp) <- c('acquiree_uuid','competitor_acquired_on')
+co_comp <- merge(x=co_comp,y=tmp, by.x='company_uuid',by.y='acquiree_uuid', all.x=T,all.y=F)
+
+##
+## keep only intersection of competitive relations by the following conditions:
+##
+## 1. company or competitor names is missing
+idx.name.exists <- which(co_comp$company_name_unique != '' & !is.na(co_comp$company_name_unique)
+                         & co_comp$competitor_name_unique != '' & !is.na(co_comp$competitor_name_unique) )
+## 2. only relations where both parties are in the company table 
+idx.name.in.co <- which(co_comp$company_uuid %in% co$company_uuid
+                        | co_comp$competitor_uuid %in% co$company_uuid)
+## 3. only relations where founded_on date is not missing or "no exist"
+idx.date.exists <- which( !isEmpty(co_comp$company_founded_on) 
+                          & co_comp$company_founded_on != "no exist"
+                          & !isEmpty(co_comp$competitor_founded_on) 
+                          & co_comp$competitor_founded_on != "no exist" )
+idx.all <- intersect( intersect(idx.name.exists,idx.name.in.co), idx.date.exists )
+co_comp <- co_comp[idx.all, ]
+## remove previous relation_began_on|relation_ended_on
+co_comp$relation_began_year <- NULL ##  as.numeric(stringr::str_sub( co_comp$relation_began_on,1,4))
+co_comp$relation_ended_year <- NULL ##  as.numeric(stringr::str_sub( co_comp$relation_ended_on,1,4))
+
+## set relation_began_on|relation_ended_on by new rules use new founed_on dates
+
+
+co_comp$relation_began_on <- relationBeganOn(co_comp)
+co_comp$relation_ended_on <- relationEndedOn(co_comp)
+
+
+
+# MULTI_MARKET_CONTACT CODE
+co_br$mmc_code <- apply(co_br[,c('country_code3','region_code2')],1,function(x){
+  paste(x, collapse="_")
+})
 
 
 # FUNDING ROUND
 co_rou$funded_year <- as.numeric(stringr::str_sub(co_rou$announced_on,1,4))
 
-# ACQUISITIONS ACQUIRER NAME
-co_acq$company_name_unique <- co_acq$acquirer_name_unique
-co_acq$acquired_year <- as.numeric(stringr::str_sub(co_acq$acquired_on,1,4))
 
 # BRANCHES
 co_br$created_year <- as.numeric(stringr::str_sub(co_br$created_at,1,4))
@@ -111,10 +302,22 @@ co_cust$created_year <- as.numeric(stringr::str_sub(co_cust$created_at,1,4))
 ## Unique Branches
 co_br <- unique(co_br)
 
-## ONLY COMPANY organizations (no universities, etc)
-co <- co[which(co$primary_role == 'company'), ]
-co_comp <- co_comp[which(co_comp$company_name_unique %in% co$company_name_unique
-                         | co_comp$competitor_name_unique %in% co$company_name_unique), ]
+
+
+cat('done.\n')
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # ##-----------------------------------------
 # ## Add founded_on dates manually checked
