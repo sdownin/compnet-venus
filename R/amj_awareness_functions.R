@@ -302,7 +302,7 @@ generalistIndex <- function(g, memberships)
 # @param [network] net          The network object
 # @param [integer] start        The starting year (included)
 # @param [integer] end          The ending year (excluded)
-# @param [character[]] covlist  The names of covariates to add to the network (vertices or edges), including c('age','mmc','dist','similarity','ipo_status','centrality','generalist')
+# @param [character[]] covlist  The names of covariates to add to the network (vertices or edges), including 'age','mmc','dist','similarity','ipo_status','centrality','generalist'
 # @param [dataframe] acq        The acquisitions dataframe
 # @param [dataframe] rou        The investment|funding roundings dataframe
 # @param [dataframe] br         The firm branches dataframe 
