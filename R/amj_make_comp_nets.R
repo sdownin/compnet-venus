@@ -1,55 +1,44 @@
 ##--------------------------------------------------------------
 ##
-##               CREATE FIRM NETWORK PERIOD LISTS  
+##  AMJ 2018 SPECIAL ISSUE 
+##  CREATE FIRM COMPETITION NETWORK PERIODS AS LIST OBJECTS
 ##
 ##--------------------------------------------------------------
 
 setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 # .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 
-library(parallel)
-library(statnet, quietly = T)
-library(network, quietly = T)
-library(xergm, quietly = T)  ## includes rem, tnam, GERGM
-library(texreg, quietly = T)
-library(igraph, quietly = T)
-library(plyr, quietly = T)
-library(dplyr, quietly = T)
-library(stringr, quietly = T)
-library(ndtv, quietly = T)
-library(visNetwork, quietly = T)
-library(scatterplot3d, quietly = T)
-library(lattice, quietly = T)
-library(latticeExtra, quietly = T)
-library(directlabels, quietly = T)
-library(lubridate)
-library(ggplot2, quietly = T)
-library(reshape2)
-library(plyr)
-library(ggplot2)
+source(file.path(getwd(),'R','amj_awareness_functions.R'))
+source(file.path(getwd(),'R','amj_cb_data_prep.R'))
+source(file.path(getwd(),'R','amj_cb_sic_codes.R'))
 
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
+wd <- getwd()
+full.graph.file <- 'g_full.graphml'
 
-source(file.path(getwd(),'R','amj_awareness_function.R'))
-source(file.path(getwd(),'R','cb_data_prep.R'))
-source(file.path(getwd(),'R','cb_sic_codes.R'))
+## make full graph if not working directory
+if ( !(full.graph.file %in% dir()) ) {
+  source(file.path(getwd(),'R','amj_make_full_graph.R')) 
+} 
 
 
 ## load full global competition network
-g.full <- read.graph('g_full.graphml', format='graphml')
+g.full <- read.graph(full.graph.file, format='graphml')
 
 
-## set firms to create networks
+## set firms to create networks (focal firm or replication study focal firms)
 firms.todo <- c('qualtrics') 
+
+## -- settings --
+d <- 3
+yrpd <- 1
+startYr <- 2007
+endYr <- 2017
+## --------------  
 
 ## run main network period creation loop
 for (i in 1:length(firms.todo)) {
-  ## -- settings --
-  d <- 3
-  yrpd <- 1
-  startYr <- 2007
-  endYr <- 2017
-  ## --------------
+
   name_i <- firms.todo[i]
   cat(sprintf('\n---------%s----------\n',name_i))
   periods <- seq(startYr,endYr,yrpd)
@@ -68,12 +57,12 @@ for (i in 1:length(firms.todo)) {
     ##
     # TODO : CHECK USING competitive NODE COLLAPSE in makepdnetwork algorithm
     #
-    tmp.net <- makePdNetwork(net.d.sub, 
-                             start=periods[t-1], end=periods[t])
-    nl[[t]] <- setCovariates(tmp.net, periods[t-1], periods[t],
-                             netRiskCommunityAlgo='multilevel.community',
-                             downweight.env.risk=FALSE,
-                             acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
+    tmp.net <- aaf$makePdNetwork(net.d.sub, 
+                                start=periods[t-1], end=periods[t])
+    nl[[t]] <- aaf$setCovariates(tmp.net, periods[t-1], periods[t],
+                                 netRiskCommunityAlgo='multilevel.community',
+                                 downweight.env.risk=FALSE,
+                                 acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
   }
   nl.bak <- nl
   nl <- nl[which(sapply(nl, length)>0)]

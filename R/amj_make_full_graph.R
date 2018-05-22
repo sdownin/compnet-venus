@@ -12,9 +12,9 @@ library(igraph)
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
 img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 
-source(file.path(getwd(),'R','amj_awareness_function.R'))
-source(file.path(getwd(),'R','cb_data_prep.R'))
-source(file.path(getwd(),'R','cb_sic_codes.R'))
+source(file.path(getwd(),'R','amj_awareness_functions.R'))
+source(file.path(getwd(),'R','amj_cb_data_prep.R'))
+source(file.path(getwd(),'R','amj_cb_sic_codes.R'))
 
 
 cat('\nmaking full graph...\n')
@@ -25,7 +25,7 @@ max.year <- 2016
 exclude.date <- sprintf('%d-01-01', max.year+1)
 
 ## make graph
-g.full <- makeGraph(comp = co_comp, vertdf = co)
+g.full <- aaf$makeGraph(comp = co_comp, vertdf = co)
 
 ## cut out confirmed dates >= 2016
 g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= max.year

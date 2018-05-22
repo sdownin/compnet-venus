@@ -1,11 +1,18 @@
 ##
-# amj_functions.R
+# AMJ 2018 SPECIAL ISSUE AWARENESS FUNCTIONS
+# amj_awareness_functions.R
+#
+# Notes:
+#  - loads list object `aaf`
 ##
 
 library(igraph)
 library(network)
 library(intergraph)
 library(xergm)
+
+## amj_awareness_functions list object
+aaf <- list()
 
 
 
@@ -21,11 +28,11 @@ library(xergm)
 # @param [character[]] vertAttrs        The names of vertex attributes from vertdf to include in the graph
 # @return [igraph]
 ##
-makeGraph <- function(comp,vertdf,name='company_name_unique', 
-                      compName='competitor_name_unique', 
-                      relationStartCol='relation_began_on',
-                      relationEndCol='relation_ended_on',
-                      vertAttrs=NA )
+aaf$makeGraph <- function(comp,vertdf,name='company_name_unique', 
+                          compName='competitor_name_unique', 
+                          relationStartCol='relation_began_on',
+                          relationEndCol='relation_ended_on',
+                          vertAttrs=NA )
 {
   if(is.na(vertAttrs)) {
     vertAttrs <- c('company_name','founded_on','founded_year','closed_on','closed_year','category_list',
@@ -51,23 +58,43 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 }
 
 
-
 ##
-# Returns age covariate
-# @see setCovariates()
-# @param [network] net     The network object
-# @param [integer] end     The ending year (excluded)
-# @return [integer[]] 
+# Computes the Generalist (vs Specialist) Index
+# for an igraph with given cluster memberships
+# values bounded between 0 and K (for K clusters in the memberships)
+# @param [igraph] g   The igraph object
+# @param [int[]] memberships  The vector of integers representing cluster memberships
+# @return [float[]] The generalist index vector [float[]]
 ##
-.cov.age <- function(net, end)
+aaf$generalistIndex <- function(g, memberships)
 {
-  year <- net %v% 'founded_year'
-  year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
-  age <- end - year
-  age[age < 0] <- 0
-  return(age)
+  if (class(g) != 'igraph') stop("g must be an igraph object")
+  clusters <- unique(memberships)
+  K <- length(clusters)
+  adj <- igraph::get.adjacency(g, sparse = F)
+  ## apply GI algorithm to adjacency matrix of graph g
+  gen.idx <- sapply(1:nrow(adj), function(i){
+    x <- adj[i,]
+    val <- 0 ## reset value for next node
+    for (k in clusters) {
+      ## get index of vertices in k'th cluster
+      v.in.k <- which(memberships == k)
+      ## exclude vertex i from computation of it's own generalist index
+      v.in.k <- v.in.k[v.in.k != i]
+      ## filter to members in cluster k (cols) for this row x
+      sub.k.x <- x[v.in.k]
+      ## sum edges from focal node i to members of cluster k
+      cnt.e.k <- sum(sub.k.x)
+      ## total possible edges node i to cluster k
+      max.e.k <- length(sub.k.x)
+      ## increment value by cluster ratio
+      ## define ratio as 0 if empty denominator (max.e.k=0)
+      val <- val + ifelse(max.e.k > 0, (cnt.e.k / max.e.k), 0)
+    }
+    return(val)
+  })
+  return(gen.idx)
 }
-
 
 ##
 # Returns the vector of firm-branch regions, each concatenated as a character string (separated by pipes "|")
@@ -77,16 +104,16 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [dataframe] 
 # 
 ##
-.cov.mmcMarketsDf <- function(df, drop=FALSE, ...)
+aaf$mmcMarketsDf <- function(df, drop=FALSE, ...)
 {
   if( !('company_name_unique' %in% names(df)))
     stop('df must contain `company_name_unique` column')
   if( !('mmc_code' %in% names(df)))
     stop('df must contain `mmc_code` column')
   return(plyr::ddply(df, .variables = .(company_name_unique),.drop = drop,
-                      summarise,
-                      concat = paste(mmc_code,collapse = "|"),
-                      .progress = 'text', ...))
+                     summarise,
+                     concat = paste(mmc_code,collapse = "|"),
+                     .progress = 'text', ...))
 }
 
 ##
@@ -96,7 +123,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [character] y   The concatenated markets, eg, 'USA_CA|USA_NY|ARG_9'
 # @return [float]
 ##
-.cov.mmcfromMarketConcat <- function(x,y)
+aaf$mmcfromMarketConcat <- function(x,y)
 {
   mx <- c(stringr::str_split(x, '[|]', simplify = T))
   my <- c(stringr::str_split(y, '[|]', simplify = T))
@@ -109,6 +136,23 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
   return(mmc)
 }
 
+
+##
+# Returns age covariate
+# @see setCovariates()
+# @param [network] net     The network object
+# @param [integer] end     The ending year (excluded)
+# @return [integer[]] 
+##
+aaf$.cov.age <- function(net, end)
+{
+  year <- net %v% 'founded_year'
+  year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
+  age <- end - year
+  age[age < 0] <- 0
+  return(age)
+}
+
 ##
 # Returns firm-branch geogrpahic overlap (proxying in this case firm-branch Multimarket contact)
 # @see setCovariates()
@@ -117,7 +161,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [integer] end        The ending year (excluded)
 # @return [matrix]
 ##
-.cov.mmc <- function(br, firms, end, ...)
+aaf$.cov.mmc <- function(br, firms, end, ...)
 {
   cols <- c('company_name_unique','created_year')
   for (col in cols){
@@ -125,11 +169,11 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
   }
   brsub <- br[which(br$company_name_unique %in% firms & br$created_year < end), ]
   cat('concatenating firm branch markets...\n')
-  df <- .cov.mmcMarketsDf(brsub, ...)
+  df <- aaf$mmcMarketsDf(brsub, ...)
   tmp <- data.frame(company_name_unique=firms,stringsAsFactors = F)
   df.m <- merge(x=tmp, y=df, by = 'company_name_unique', all.x=T, all.y=F)
   cat('computing MMC outer product matrix...')
-  mmc <- outer(df.m$concat, df.m$concat, Vectorize(.cov.mmcfromMarketConcat))
+  mmc <- outer(df.m$concat, df.m$concat, Vectorize(aaf$mmcfromMarketConcat))
   cat('done.\n')
   return(as.matrix(mmc))
 }
@@ -140,7 +184,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [igraph] g.net  The igraph object
 # @return [matrix]
 ##
-.cov.dist <- function(g.net)
+aaf$.cov.dist <- function(g.net)
 {
   D <- as.matrix(igraph::distances(g.net))
   rownames(D) <- NULL
@@ -155,7 +199,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [network] net  The network object
 # @return [matrix]
 ##
-.cov.ipo <- function(net, ipo, end, nameAttr='vertex.names')
+aaf$.cov.ipo <- function(net, ipo, end, nameAttr='vertex.names')
 {
   cols <- c('company_name_unique','went_public_year')
   for (col in cols){
@@ -173,7 +217,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [igraph] g.net  The igraph object 
 # @return [float[]]
 ##
-.cov.constraint <- function(g.net)
+aaf$.cov.constraint <- function(g.net)
 {
   cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
   cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
@@ -187,7 +231,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [character] method  The similarity compuation method (see igraph docs)
 # @return [float[]]
 ##
-.cov.similarity <- function(g.net, method='invlogweighted')
+aaf$.cov.similarity <- function(g.net, method='invlogweighted')
 {
   sim <- igraph::similarity(g.net, vids = V(g.net), mode = "all", method = method)
   sim[is.nan(sim) | is.na(sim)] <- 0
@@ -201,7 +245,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [network] net   The network object 
 # @return [network] 
 ##
-.cov.centrality(net)
+aaf$.cov.centrality <- function(net)
 {
   # cat('computing betweenness...\n')
   # betw <- igraph::betweenness(g.net)
@@ -235,7 +279,7 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
 # @param [network] net       The network object 
 # @return [network] 
 ## 
-.cov.generalistIndex <- function(net)
+aaf$.cov.generalistIndex <- function(net)
 {
   ## Community membership
   g.net <- intergraph::asIgraph(net)
@@ -249,53 +293,16 @@ makeGraph <- function(comp,vertdf,name='company_name_unique',
   net %v% 'com_labelprop'   <- igraph::label.propagation.community(g.net)$membership
   # net %v% 'com_eigenvector' <- igraph::leading.eigenvector.community(g.net)$membership  ## Arpack solver error
   ## Generalist Index
-  net %v% 'genidx_multilevel'  <- generalistIndex(g.net, net %v% 'com_multilevel' )
-  net %v% 'genidx_infomap'     <- generalistIndex(g.net, net %v% 'com_infomap' )
-  net %v% 'genidx_walktrap'    <- generalistIndex(g.net, net %v% 'com_walktrap' )
-  net %v% 'genidx_fastgreedy'  <- generalistIndex(g.net, net %v% 'com_fastgreedy' )
-  net %v% 'genidx_edgebetween' <- generalistIndex(g.net, net %v% 'com_edgebetween' )
-  net %v% 'genidx_labelprop'   <- generalistIndex(g.net, net %v% 'com_labelprop' )
+  net %v% 'genidx_multilevel'  <- aaf$generalistIndex(g.net, net %v% 'com_multilevel' )
+  net %v% 'genidx_infomap'     <- aaf$generalistIndex(g.net, net %v% 'com_infomap' )
+  net %v% 'genidx_walktrap'    <- aaf$generalistIndex(g.net, net %v% 'com_walktrap' )
+  net %v% 'genidx_fastgreedy'  <- aaf$generalistIndex(g.net, net %v% 'com_fastgreedy' )
+  net %v% 'genidx_edgebetween' <- aaf$generalistIndex(g.net, net %v% 'com_edgebetween' )
+  net %v% 'genidx_labelprop'   <- aaf$generalistIndex(g.net, net %v% 'com_labelprop' )
   return(net)
 }
 
 
-##
-# Computes the Generalist (vs Specialist) Index
-# for an igraph with given cluster memberships
-# values bounded between 0 and K (for K clusters in the memberships)
-# @param [igraph] g   The igraph object
-# @param [int[]] memberships  The vector of integers representing cluster memberships
-# @return [float[]] The generalist index vector [float[]]
-##
-generalistIndex <- function(g, memberships)
-{
-  if (class(g) != 'igraph') stop("g must be an igraph object")
-  clusters <- unique(memberships)
-  K <- length(clusters)
-  adj <- igraph::get.adjacency(g, sparse = F)
-  ## apply GI algorithm to adjacency matrix of graph g
-  gen.idx <- sapply(1:nrow(adj), function(i){
-    x <- adj[i,]
-    val <- 0 ## reset value for next node
-    for (k in clusters) {
-      ## get index of vertices in k'th cluster
-      v.in.k <- which(memberships == k)
-      ## exclude vertex i from computation of it's own generalist index
-      v.in.k <- v.in.k[v.in.k != i]
-      ## filter to members in cluster k (cols) for this row x
-      sub.k.x <- x[v.in.k]
-      ## sum edges from focal node i to members of cluster k
-      cnt.e.k <- sum(sub.k.x)
-      ## total possible edges node i to cluster k
-      max.e.k <- length(sub.k.x)
-      ## increment value by cluster ratio
-      ## define ratio as 0 if empty denominator (max.e.k=0)
-      val <- val + ifelse(max.e.k > 0, (cnt.e.k / max.e.k), 0)
-    }
-    return(val)
-  })
-  return(gen.idx)
-}
 
 ##
 # Set network covariates
@@ -309,7 +316,7 @@ generalistIndex <- function(g, memberships)
 # @param [dataframe] ipo        The firm IPO listing dataframe
 # @return [network]
 ##
-setCovariates <- function(net, start, end,
+aaf$setCovariates <- function(net, start, end,
                           covlist=c('age','mmc','dist','similarity','ipo_status','centrality','generalist'),
                           acq=NA,rou=NA,br=NA,ipo=NA)
 { 
@@ -317,35 +324,35 @@ setCovariates <- function(net, start, end,
     g.net <- intergraph::asIgraph(net)
     if ('age' %in% covlist) {
       cat('\ncomputing age ...\n')
-      net %v% 'age' <- .cov.age(net, end)
+      net %v% 'age' <- aaf$.cov.age(net, end)
     }
     if ('mmc' %in% covlist) {
       cat('computing multi-market contact (branch geographic overlap)...\n')
-      net %n% 'mmc' <- .cov.mmc(br, (net %v% 'vertex.names'), end)
+      net %n% 'mmc' <- aaf$.cov.mmc(br, (net %v% 'vertex.names'), end)
     }
     if ('dist' %in% covlist) {
       cat('computing distances lag contact...\n')
-      net %n% 'dist' <- .cov.dist(g.net)
+      net %n% 'dist' <- aaf$.cov.dist(g.net)
     }
     if ('ipo_status' %in% covlist) {
       cat('computing IPO status contact...\n')
-      net %v% 'ips_status' <- .cov.ipo(net, ipo, end) 
+      net %v% 'ips_status' <- aaf$.cov.ipo(net, ipo, end) 
     }
     if ('constraint' %in% covlist) {
       cat('computing constraint...\n')
-      net %v% 'constraint' <- .cov.constraint(g.net)
+      net %v% 'constraint' <- aaf$.cov.constraint(g.net)
     }
     if ('similarity' %in% covlist) {
       cat('computing inv.log.w.similarity...\n')
-      net %n% 'similarity' <- .cov.similarity(g.net)
+      net %n% 'similarity' <- aaf$.cov.similarity(g.net)
     }
     if ('centrality' %in% covlist) {
       cat('computing centralities...\n')
-      net <- .cov.centrality(net)
+      net <- aaf$.cov.centrality(net)  ## returns the updated network
     }
     if ('generalist' %in% covlist) {
       cat('computing Generalist (vs Specialist) Index...')
-      net <- .cov.generalistIndex(net)
+      net <- aaf$.cov.generalistIndex(net)  ## returns the updated network
     }
     cat('...done\n')
     
@@ -364,12 +371,12 @@ setCovariates <- function(net, start, end,
 ##
 # Update Graph collapsing nodes by acquisitions mapping
 # NOTE: add 'weight' and 'acquisitions' attributes to graph before start
-# @param [igraph] g      The igraph object 
-# @param [dataframe] df  The dataframe of acquisitions
-# @param [bool] verbose  A flag to echo stutus updates
-# @return [igraph] The node-collapsed igraph object
+# @param [igraph] g                 The igraph object 
+# @param [dataframe] acquisitions   The dataframe of acquisitions
+# @param [bool] verbose             A flag to echo stutus updates
+# @return [igraph] 
 ##
-nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
+aaf$nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
 {
   if (class(g) != 'igraph') stop("g must be an igraph object")
   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
@@ -380,7 +387,9 @@ nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
   acqs.sub <- acquisitions[which(acquisitions$acquirer_vid %in% V(g)$orig.vid
                                  & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
   cat(sprintf('processing acquisitions: %s ...', nrow(acqs.sub)))
-  if (nrow(acqs.sub) == 0) {
+  
+  if (nrow(acqs.sub) == 0) 
+  {
     
     g.acq.s <- g
     
@@ -458,14 +467,24 @@ nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
 # - remove missing edges and nodes
 # - transfers edges and apply node collapse on acquisitions
 # @see Hernandez & Menon 2017  Network Revolution
+# @param [igraph] g                   The igraph object 
+# @param [integer] start              The starting year (included)
+# @param [integer] end                The ending year (excluded)
+# @param [boolean] isolates.remove    A flag to remove isolate nodes
+# @param [character] edgeCreatedAtt   The name of the edge attribute for created date
+# @param [character] edgeDeletedAttr  The name of the edge attribute for deleted|removed date
+# @param [character] vertFoundedAttr  The name of the vertex attribute for founded date
+# @param [character] vertClosedAttr   The name of the vertex attribute for closed date
+# @param [character] vertAcquiredAttr The name of the vertex attribute for acquired date (acquired by other company)
+# @return [igraph] 
 ##
-makePdGraph <- function(g, start, end,
-                        isolates.remove = FALSE,
-                        edgeCreatedAttr='relation_began_on',
-                        edgeDeletedAttr='relation_ended_on',
-                        vertFoundedAttr='founded_on',
-                        vertClosedAttr='closed_on',
-                        vertAcquiredAttr='acquired_on')
+aaf$makePdGraph <- function(g, start, end,
+                            isolates.remove = FALSE,
+                            edgeCreatedAttr='relation_began_on',
+                            edgeDeletedAttr='relation_ended_on',
+                            vertFoundedAttr='founded_on',
+                            vertClosedAttr='closed_on',
+                            vertAcquiredAttr='acquired_on')
 {
   if (class(g) != 'igraph') stop("g must be an igraph object")
   ## start INCLUSIVE : end EXCLUSIVE
