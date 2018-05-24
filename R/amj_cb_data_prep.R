@@ -3,19 +3,35 @@
 # AMJ 2018 SPECIAL ISSUE COMPETITION NETWORKS AND ACQUISITIONS ACTIVITY ANALYSIS
 #
 # @author   Stephen Downing <sdowning.bm02g@nctu.edu.tw>
-# @date     May 2016
 #
+# @export [list] cb
 #
 ##########################################################################################
-setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 #.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
-#
 library(plyr, quietly = T)
 library(magrittr, quietly = T)
 library(reshape2, quietly = T)
 library(lubridate, quietly = T)
 library(stringr, quietly = T)
-data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+
+##
+# CRUNCHBASE DATA LIST OBJECT
+# @export [list] cb
+##
+cb <- list()
+
+## DIRECTORIES
+cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+setwd(cb$work_dir)
+
+## CACHE ENVIRONMENT to keep when clearing tmp objects added here
+.ls <- ls()
+
+
+##=================================
+##  FUNCTIONS
+##----------------------------------
 
 ##
 # Return vector of indices of  x which are in y
@@ -23,7 +39,7 @@ data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_e
 # @param [vector] y
 # @return [vector] length is length(intersect(x,y))
 ##
-MATCH <- function (x,y)
+cb$match <- function (x,y)
 {
   return(which(x %in% y))
 }
@@ -40,7 +56,7 @@ MATCH <- function (x,y)
 # @param [character] new.col  The new column name (to replace old.col)
 # @return  [vector]
 ##
-parseNonNa <- function(df, old.col, new.col, default=NA)
+cb$parseNonNa <- function(df, old.col, new.col, default=NA)
 {
   return(unname(
     apply(df[ , c(old.col, new.col)], MARGIN = 1, FUN = function(x){
@@ -55,11 +71,11 @@ parseNonNa <- function(df, old.col, new.col, default=NA)
 }
 
 ##
-# Checks if the argument `x` is a falsy (null, <nan>, <na>, 'NA', or empty string)
+# Checks if the argument `x` is a falsy (null, <nan>, <na>, 'NA', or "" empty string)
 # @param [any] x  The element to check
 # @return [bool]  
 ##
-isEmpty <- function(x)
+cb$falsy <- function(x)
 {
   if (is.null(x)) 
     return(TRUE)
@@ -73,7 +89,7 @@ isEmpty <- function(x)
 # @param [dataframe] df  The dataframe to apply the relationBeganOn logic to
 # @return [character[]]  The vector of beginning date strings
 ##
-relationBeganOn <- function(df)
+cb$relationBeganOn <- function(df)
 {
   cols <- c('company_founded_on','competitor_founded_on')
   for(col in cols){
@@ -91,14 +107,14 @@ relationBeganOn <- function(df)
 # @param [dataframe] df  The dataframe to apply the relationEndedOn logic to
 # @return [character[]]  The vector of ending date strings
 ##
-relationEndedOn <- function(df)
+cb$relationEndedOn <- function(df)
 {
   cols <- c('company_closed_on','company_acquired_on','competitor_closed_on','competitor_acquired_on')
   for(col in cols){
     if (!(col %in% names(df))) stop(sprintf('dataframe missing column `%s`.',col))
   }
   return(unname(apply(X = df[,cols],MARGIN = 1,FUN = function(x){
-    ifelse(any(!isEmpty(x)), min(x[!isEmpty(x)]), NA) 
+    ifelse(any(!cb$falsy(x)), min(x[!cb$falsy(x)]), NA) 
   })))
 }
 
@@ -112,7 +128,7 @@ relationEndedOn <- function(df)
 # @param [character] fill             A flag to fill missing columns per row
 # @return [dataframe] filename
 ##
-readCsv <- function(filename, header=T, quote='"', na.strings=c('NA',''), stringsAsFactors=F, fill=T)
+cb$readCsv <- function(filename, header=T, quote='"', na.strings=c('NA',''), stringsAsFactors=F, fill=T)
 {
   return(read.csv(file = filename, header=header, quote=quote, na.strings = na.strings, 
                   stringsAsFactors = stringsAsFactors, fill=fill))
@@ -123,50 +139,51 @@ readCsv <- function(filename, header=T, quote='"', na.strings=c('NA',''), string
 ##=================================
 ##  Sources
 ##----------------------------------
-csv.co          <- 'organizations.csv'
-csv.co_comp     <- 'competitors.csv'
-csv.co_cust     <- 'customers.csv'
-csv.co_parent   <- 'org_parents.csv'
-csv.co_prod     <- 'products.csv'
-csv.co_acq      <- 'acquisitions.csv'
-csv.co_br       <- 'branches.csv'
-csv.co_rou      <- 'funding_rounds.csv'  ## company--funding_round
-csv.co_ipo      <- 'ipos.csv'
-csv.fund        <- 'funds.csv'
-csv.inv         <- 'investors.csv'
-csv.inv_rou     <- 'investments.csv'  ## investor--funding_round
-csv.inv_part    <- 'investment_partners.csv'
-# csv.ev        <- 'events.csv'
-# csv.ev_rel    <- 'event_relationships.csv'
-# csv.categ     <- 'category_groups.csv'
-# csv.jobs      <- 'jobs.csv'
-# csv.ppl       <- 'people.csv'
-# csv.ppl_desc  <- 'people_descriptions.csv'
+cb$csv <- list()
+cb$csv$co          <- 'organizations.csv'
+cb$csv$co_comp     <- 'competitors.csv'
+cb$csv$co_cust     <- 'customers.csv'
+cb$csv$co_parent   <- 'org_parents.csv'
+cb$csv$co_prod     <- 'products.csv'
+cb$csv$co_acq      <- 'acquisitions.csv'
+cb$csv$co_br       <- 'branches.csv'
+cb$csv$co_rou      <- 'funding_rounds.csv'  ## company--funding_round
+cb$csv$co_ipo      <- 'ipos.csv'
+cb$csv$fund        <- 'funds.csv'
+cb$csv$inv         <- 'investors.csv'
+cb$csv$inv_rou     <- 'investments.csv'  ## investor--funding_round
+cb$csv$inv_part    <- 'investment_partners.csv'
+# cb$csv$ev        <- 'events.csv'
+# cb$csv$ev_rel    <- 'event_relationships.csv'
+# cb$csv$categ     <- 'category_groups.csv'
+# cb$csv$jobs      <- 'jobs.csv'
+# cb$csv$ppl       <- 'people.csv'
+# cb$csv$ppl_desc  <- 'people_descriptions.csv'
 
 ##=================================
 ##  Data import
 ##----------------------------------
 cat('\nloading dataframes...')
 
-co        <- readCsv(file.path(data_dir, csv.co))
-co_comp   <- readCsv(file.path(data_dir, csv.co_comp)) 
-co_cust   <- readCsv(file.path(data_dir, csv.co_cust)) 
-co_parent <- readCsv(file.path(data_dir, csv.co_parent))
-co_prod   <- readCsv(file.path(data_dir, csv.co_prod)) 
-co_acq    <- readCsv(file.path(data_dir, csv.co_acq)) 
-co_br     <- readCsv(file.path(data_dir, csv.co_br)) 
-co_rou    <- readCsv(file.path(data_dir, csv.co_rou)) 
-co_ipo    <- readCsv(file.path(data_dir, csv.co_ipo)) 
-fund      <- readCsv(file.path(data_dir, csv.fund)) 
-inv       <- readCsv(file.path(data_dir, csv.inv)) 
-inv_rou   <- readCsv(file.path(data_dir, csv.inv_rou)) 
-inv_part  <- readCsv(file.path(data_dir, csv.inv_part))  
-# ev        <- readCsv(file.path(data_dir, csv.ev))  
-# ev_rel    <- readCsv(file.path(data_dir, csv.ev_rel))  
-# categ     <- readCsv(file.path(data_dir, csv.categ))  
-# job       <- readCsv(file.path(data_dir, csv.jobs))  
-# ppl       <- readCsv(file.path(data_dir, csv.ppl))  
-# ppl_desc  <- readCsv(file.path(data_dir, csv.ppl_desc))  
+co        <- cb$readCsv(file.path(cb$data_dir, cb$csv$co))
+co_comp   <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_comp)) 
+co_cust   <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_cust)) 
+co_parent <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_parent))
+co_prod   <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_prod)) 
+co_acq    <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_acq)) 
+co_br     <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_br)) 
+co_rou    <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_rou)) 
+co_ipo    <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_ipo)) 
+fund      <- cb$readCsv(file.path(cb$data_dir, cb$csv$fund)) 
+inv       <- cb$readCsv(file.path(cb$data_dir, cb$csv$inv)) 
+inv_rou   <- cb$readCsv(file.path(cb$data_dir, cb$csv$inv_rou)) 
+inv_part  <- cb$readCsv(file.path(cb$data_dir, cb$csv$inv_part))  
+# ev        <- cb$readCsv(file.path(cb$data_dir, cb$csv$ev))  
+# ev_rel    <- cb$readCsv(file.path(cb$data_dir, cb$csv$ev_rel))  
+# categ     <- cb$readCsv(file.path(cb$data_dir, cb$csv$categ))  
+# job       <- cb$readCsv(file.path(cb$data_dir, cb$csv$jobs))  
+# ppl       <- cb$readCsv(file.path(cb$data_dir, cb$csv$ppl))  
+# ppl_desc  <- cb$readCsv(file.path(cb$data_dir, cb$csv$ppl_desc))  
 
 
 cat('done.\n')
@@ -177,24 +194,24 @@ cat('cleaning data...')
 ## COMPANIES 
 ##--------------------------
 ## update founded_on,closed_on dates  - Jin-Su's Email 2018-04-23
-co.date <- read.csv('founded_on_date_edit/missing_companies_20180330.csv', header = T, na.strings = c('','NA'), stringsAsFactors = F)
+co.date <- cb$readCsv('founded_on_date_edit/missing_companies_20180330.csv')
 names(co.date) <- c('com_uuid','com_name','com_founded_on_UPDATE','com_closed_on_UPDATE','com_status','note')
 ## fix date formatting  '12/13/2011' ==> '2011-12-31'
 co.date$com_founded_on_UPDATE <- sapply(co.date$com_founded_on_UPDATE, function(x){
-  return(ifelse(isEmpty(x), NA,  as.character(mdy(x))))
+  return(ifelse(cb$falsy(x), NA,  as.character(mdy(x))))
 })
 co.date$com_closed_on_UPDATE <- sapply(co.date$com_closed_on_UPDATE, function(x){
-  return(ifelse(isEmpty(x), NA,  as.character(mdy(x))))
+  return(ifelse(cb$falsy(x), NA,  as.character(mdy(x))))
 })
 
 ## merge udpatese into company df
 co <- merge(x=co,y=co.date,by.x='company_uuid',by.y='com_uuid',all.x=T,all.y=F)
 ## APPLY UPDATE OLD_COLUMN TO NEW_COLUMN  
 ## FASTER THAN FOR-LOOP WHEN DATAFRAME IS VERY LARGE
-co$company_name <- parseNonNa(co, 'company_name','com_name')
-co$status_update <- parseNonNa(co, 'status','com_status')
-co$founded_on <- parseNonNa(co, 'founded_on','com_founded_on_UPDATE')
-co$closed_on <- parseNonNa(co, 'closed_on','com_closed_on_UPDATE')
+co$company_name <- cb$parseNonNa(co, 'company_name','com_name')
+co$status_update <- cb$parseNonNa(co, 'status','com_status')
+co$founded_on <- cb$parseNonNa(co, 'founded_on','com_founded_on_UPDATE')
+co$closed_on <- cb$parseNonNa(co, 'closed_on','com_closed_on_UPDATE')
 ## DROP REPLACEMENT COLUMNS
 co$com_name <- NULL
 co$com_status <- NULL
@@ -226,14 +243,14 @@ co$acquired_year <-  as.numeric(stringr::str_sub( co$acquired_on,1,4))
 ##==========================
 ## ACQUISITIONS
 ##--------------------------
-## make unique acquired on dates for each company
-##  - as min of acquired_on dates when multiple (acquired multiple times) 
-cat('reshaping acquisitions dataframe:')
-co_acq_acquired <- ddply(co_acq, 'acquiree_name_unique', .progress='text', summarize,
+## make unique acquired_on dates for each company
+##  - as min of acquired_on dates when multiples (acquired multiple times) 
+cat('reshaping acquisitions dataframe...')
+co_acq_acquired <- ddply(co_acq, 'acquiree_name_unique', .progress='tk', summarize,
                          acquiree_uuid=paste(unique(acquiree_uuid),collapse="|"),
                          acquired_on=min(acquired_on),
                          acquired_on_concat=paste(acquired_on,collapse="|"))
-co_acq_acquired <- co_acq_acquired[which(!isEmpty(co_acq_acquired$acquiree_name_unique) & !isEmpty(co_acq_acquired$acquired_on)),]
+co_acq_acquired <- co_acq_acquired[which(!cb$falsy(co_acq_acquired$acquiree_name_unique) & !cb$falsy(co_acq_acquired$acquired_on)),]
 ##
 co_acq$company_name_unique <- co_acq$acquirer_name_unique
 co_acq$acquired_year <- as.numeric(stringr::str_sub(co_acq$acquired_on,1,4))
@@ -244,7 +261,7 @@ co_acq$acquired_year <- as.numeric(stringr::str_sub(co_acq$acquired_on,1,4))
 ##--------------------------
 ## add dates to compute relation_began_on, relation_ended_on
 ## remove acquired_on|closed_on|founed_on dates from python pre-processing script
-## to set them here:
+## if these exist:
 drop.cols <- c('company_closed_on','competitor_closed_on','company_founded_on','competitor_founded_on',
                'relation_ended_on','max_founded_on','relation_began_on',
                'acquiree_name_unique_concat','acquired_on_concat','acquired_on')
@@ -282,9 +299,9 @@ idx.name.exists <- which(co_comp$company_name_unique != '' & !is.na(co_comp$comp
 idx.name.in.co <- which(co_comp$company_uuid %in% co$company_uuid
                         | co_comp$competitor_uuid %in% co$company_uuid)
 ## 3. only relations where founded_on date is not missing or "no exist"
-idx.date.exists <- which( !isEmpty(co_comp$company_founded_on) 
+idx.date.exists <- which( !cb$falsy(co_comp$company_founded_on) 
                           & co_comp$company_founded_on != "no exist"
-                          & !isEmpty(co_comp$competitor_founded_on) 
+                          & !cb$falsy(co_comp$competitor_founded_on) 
                           & co_comp$competitor_founded_on != "no exist" )
 idx.all <- intersect( intersect(idx.name.exists,idx.name.in.co), idx.date.exists )
 co_comp <- co_comp[idx.all, ]
@@ -294,9 +311,10 @@ co_comp$relation_ended_year <- NULL ##  as.numeric(stringr::str_sub( co_comp$rel
 
 ## set relation_began_on|relation_ended_on by new rules use new founed_on dates
 
-
-co_comp$relation_began_on <- relationBeganOn(co_comp)
-co_comp$relation_ended_on <- relationEndedOn(co_comp)
+## RELATION BEGAN ON
+co_comp$relation_began_on <- cb$relationBeganOn(co_comp)
+## RELATION ENDED ON
+co_comp$relation_ended_on <- cb$relationEndedOn(co_comp)
 
 
 
@@ -338,6 +356,45 @@ co_cust$created_year <- as.numeric(stringr::str_sub(co_cust$created_at,1,4))
 co_br <- unique(co_br)
 
 
+cat('done.\n')
+
+
+
+##==========================
+##
+##  CLEAN ENVIRONMENT
+##
+##--------------------------
+cat('clearing environment...')
+## dataframes
+cb$co        <- co
+cb$co_comp   <- co_comp
+cb$co_cust   <- co_cust
+cb$co_parent <- co_parent
+cb$co_prod   <- co_prod
+cb$co_acq    <- co_acq
+cb$co_br     <- co_br
+cb$co_rou    <- co_rou
+cb$co_ipo    <- co_ipo
+cb$fund      <- fund
+cb$inv       <- inv
+cb$inv_rou   <- inv_rou 
+cb$inv_part  <- inv_part
+# cb$ev        <- ev
+# cb$ev_rel    <- ev_rel
+# cb$categ     <- categ
+# cb$job       <- job
+# cb$ppl       <- ppl
+# cb$ppl_desc  <- ppl_desc
+
+
+## clear tmp objects in environment 
+## from this script not to be exported
+## when called from external script
+.rm <- c('x')
+for (x in setdiff(ls(), .ls)) .rm <- c(.rm, x)
+rm(list=.rm)
+gc()
 
 cat('done.\n')
 
@@ -350,48 +407,6 @@ cat('done.\n')
 
 
 
-
-
-
-
-# ##-----------------------------------------
-# ## Add founded_on dates manually checked
-# ##-----------------------------------------
-# acqs.data.fix <- read.csv("acquisitions_companies_ibm_d2_814_FIXED.csv", header = T, na.strings = c('NA'), stringsAsFactors = F)
-# awar.data.fix <- read.csv("awareness_companies_qualtrics_d3_583_FIXED.csv", header = T, na.strings = c('NA'), stringsAsFactors = F)
-# 
-# isMissing <- function(x){
-#   return(is.na(x) | is.nan(x)  | x == '' | x == 'NA')
-# }
-# 
-# idx <- which( 
-#   isMissing(co$founded_on)
-#   & (co$company_name_unique %in% acqs.data.fix$company_name_unique 
-#      | co$company_name_unique %in% awar.data.fix$company_name_unique)
-# )
-# 
-# for(i in idx) {
-#   acq.idx.i <- which(acqs.data.fix$company_name_unique == co$company_name_unique[i])
-#   awr.idx.i <- which(awar.data.fix$company_name_unique == co$company_name_unique[i])
-#   acq.date <- ifelse(length(acq.idx.i) > 0, acqs.data.fix$founded_on[acq.idx.i], NA)
-#   awr.date <- ifelse(length(awr.idx.i) > 0, awar.data.fix$founded_on[awr.idx.i], NA)
-#   # print(cat(sprintf('%s %s %s\n',i,acq.date,awr.date)))
-#   co$founded_on[i] <- ifelse( !isMissing(acq.date), acq.date, 
-#                               ifelse(!isMissing(awr.date), awr.date, 
-#                                      NA  ))
-#   # cat(sprintf('%s\n',co$founded_on[i]))
-# }
-# ##-----
-
-# ## Firm age
-# co$founded_year
-
-# ## Add Acquried date to company df
-# co.tmp <- merge(data.frame(company_name_unique=co$company_name_unique, stringsAsFactors = F), 
-#                 co_acq[,c('acquiree_name_unique','acquired_on')], 
-#                 by.x = 'company_name_unique', by.y = 'acquiree_name_unique', all.x = T, all.y=F)
-# co.mer <- plyr::ddply(co.tmp, .(company_name_unique), summarise, 
-#                       acquired_on_concat=paste(acquired_on,collapse="|"))
 
 
 

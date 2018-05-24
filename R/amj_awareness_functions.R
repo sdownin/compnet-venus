@@ -11,7 +11,9 @@ library(network)
 library(intergraph)
 library(xergm)
 
-## amj_awareness_functions list object
+##
+# amj_awareness_functions list object
+##
 aaf <- list()
 
 

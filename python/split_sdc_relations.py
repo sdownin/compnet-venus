@@ -27,6 +27,14 @@ import pandas as pd
 import datetime as dt
 
 
+## pattern used to select columns to count number of relations 
+## in each alliance / joint venture
+## here using columns with ultimate parent CUSIP
+COUNT_COL = 'ultimate_parent_cusip'
+### column names to force string type
+#STRING_COLS = ['sic','cusip']
+
+
 def timestamp():
    """ RETURNS the unix epoch timestamp (example: 1526181030)
    """
@@ -39,7 +47,7 @@ def timestamp():
 def processHeader(string, pattern = r'[^a-zA-Z]+', repl='_'):
    """ Convert problematic data frame heading text to lower_snake_case
    """
-   header = string.rstrip().replace('\r','').lower()
+   header = string.rstrip().replace('\r','').replace('-\n','').lower()
    header = re.sub('\s+', '_', header)
    header = re.sub(pattern, repl, header)
    while re.match(pattern, header[-1]):
@@ -65,13 +73,13 @@ def dedupDict(heading_map):
 def extract(x, index, sep='\n'):
    """ Extract an element of a joined string
    """
-   if not isinstance(x, str) or index not in [0,1]:
+   if not isinstance(x, str):
       return x
    items = x.split(sep)
-   if index == 0:
-      return items[0]
-   if index == 1:
-      return items[1] if len(items) > 1 else items[0]
+   if index >= len(items):
+      return x
+   else:
+      return items[index]
    
 def extractDf(df, index, sep='\n'):
    """ Extract an element of a joined string (by index) for each row,col of data frame
@@ -80,6 +88,7 @@ def extractDf(df, index, sep='\n'):
       return df
    for col in df.columns:
       df[col] = df[col].apply(lambda x: extract(x,index,sep))
+   df.drop_duplicates(inplace=True)
    return df
 
 
@@ -112,9 +121,9 @@ def main():
    
    ## import data frame
    if ext == 'csv':
-      df = pd.read_csv(filepath)
+      df = pd.read_csv(filepath, low_memory=False)
    elif ext in ['xls','xlsx']:
-      df = pd.read_excel(filepath)
+      df = pd.read_excel(filepath, low_memory=False)
    else:
       sys.exit(file_ext_err_msg)
    #print(df.columns)
@@ -130,10 +139,30 @@ def main():
    df['uuid'] = df[df.columns[0]].apply(lambda x: str(uuid4()))
    df['id'] = pd.Series(range(1,df.shape[0]+1))
    
-   ## extract first and second entries to separate data frames
-   df0 = extractDf(df.copy(), 0)
-   df1 = extractDf(df.copy(), 1)
-   dfall = pd.concat([df0,df1]).reset_index(drop=True)
+   ## find max number of parties from all alliance / jv relation
+   row_counts = df[COUNT_COL].apply(lambda x: len(x.split('\n')) if isinstance(x,str) else 1)
+   max_counts = row_counts.max()
+   N,M = df.shape
+   
+   ## MAIN LOOP: extract entries for each party in the alliance / jv
+   print(' extracting relations...')
+   df_list = []
+   for index in range(0, max_counts):
+      df_sub_i = df.loc[row_counts > index, :].copy()
+      df_list.append(extractDf(df_sub_i, index))
+   dfall = pd.concat(df_list).reset_index(drop=True)
+   print(' done.')
+#   ## MAIN LOOP: extract entries for each party in the alliance / jv
+#   print(' extracting relations...')
+#   for i, cnt in enumerate(row_counts):
+#      for index in range(0,cnt):
+#         if i == 0 and index == 0:
+#            dfall = extractDf(df.iloc[0:1,:].copy(), index)
+#         else:
+#            dftmp = extractDf(df.iloc[i:(i+1),:].copy(), index)
+#            dfall = pd.concat([dfall, dftmp]).reset_index(drop=True)
+#      if i % round(N/N**(1/3)) == 0:
+#         print(' relation %d of %d (%0.1f%s)' % (i+1, N, 100*(i+1)/N, '%'))
    
    ## drop duplicates and sort by relation id
    dfall.drop_duplicates(inplace=True)

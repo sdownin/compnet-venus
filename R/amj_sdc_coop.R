@@ -1,6 +1,6 @@
 ##########################################################################################
 #
-# AMJ 2018 SPECIAL ISSUE SIC CODES
+# AMJ 2018 SPECIAL ISSUE SDC COOPERATIVE RELATIONS DATA
 #
 # Notes: 
 #  - must load 
@@ -46,7 +46,14 @@ cat('\nloading SDC cooperative relations data...')
 
 
 
+##===============================
+## SDC cooperative relations 
+##-------------------------------
 
+sdc <- cb$readCsv('SDC_data/awareness_583_software_2008-2018_SIC_report_cusip_7-SPLIT1526995992.csv')
+# cusip.cols <- names(sdc)[grep('cusip',names(sdc))]
+cols <- c('participant_parent_cusip','parti_cusip','ultimate_parent_cusip','participant_ultimate_parent_cusip')
+View(sdc[,cols])
 
 
 

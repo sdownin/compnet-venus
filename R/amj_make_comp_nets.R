@@ -92,18 +92,7 @@ for (i in 1:length(firms.todo)) {
 # load('netrisk_dynamic_firm_nets.RData')
 
 
-## # ADD SIMILARITY NETWORK PROPERTY TO FIRM.NETS
-# for (i in seq_along(firm.nets)) {
-#   firm.list <- firm.nets[[i]]
-#   for (j in seq_along(firm.list)) {
-#     net <- firm.list[[j]]
-#     g.net <- getIgraphFromNet(net)
-#     sim <- igraph::similarity(g.net,vids = V(g.net), 
-#                               mode = "all", method = "invlogweighted" )
-#     sim[is.nan(sim) | is.na(sim)] <- 0
-#     firm.nets[[i]][[j]] %n% 'similarity' <- sim
-#   }
-# }
+
 
 # # ADD CONSTRAINT NODE PROPERTY
 # for (t in 1:length(nets)) {
