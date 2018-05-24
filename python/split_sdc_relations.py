@@ -135,11 +135,11 @@ def main():
    df = df.rename(columns=heading_map)
    #print(df.columns)
    
-   ## add row ID columns
-   df['uuid'] = df[df.columns[0]].apply(lambda x: str(uuid4()))
-   df['id'] = pd.Series(range(1,df.shape[0]+1))
+   ## add alliance/jv entity IDs
+   df['coop_uuid'] = df[df.columns[0]].apply(lambda x: str(uuid4()))
+   df['coop_id'] = pd.Series(range(1,df.shape[0]+1))
    
-   ## find max number of parties from all alliance / jv relation
+   ## find number of parties from each alliance / jv relation
    row_counts = df[COUNT_COL].apply(lambda x: len(x.split('\n')) if isinstance(x,str) else 1)
    max_counts = row_counts.max()
    N,M = df.shape
@@ -152,21 +152,14 @@ def main():
       df_list.append(extractDf(df_sub_i, index))
    dfall = pd.concat(df_list).reset_index(drop=True)
    print(' done.')
-#   ## MAIN LOOP: extract entries for each party in the alliance / jv
-#   print(' extracting relations...')
-#   for i, cnt in enumerate(row_counts):
-#      for index in range(0,cnt):
-#         if i == 0 and index == 0:
-#            dfall = extractDf(df.iloc[0:1,:].copy(), index)
-#         else:
-#            dftmp = extractDf(df.iloc[i:(i+1),:].copy(), index)
-#            dfall = pd.concat([dfall, dftmp]).reset_index(drop=True)
-#      if i % round(N/N**(1/3)) == 0:
-#         print(' relation %d of %d (%0.1f%s)' % (i+1, N, 100*(i+1)/N, '%'))
    
    ## drop duplicates and sort by relation id
    dfall.drop_duplicates(inplace=True)
-   dfall.sort_values('id', inplace=True)
+   dfall.sort_values('coop_id', inplace=True)
+   
+   ## add individual company-alliance/jv relation IDs
+   dfall['uuid'] = dfall[dfall.columns[0]].apply(lambda x: str(uuid4()))
+   dfall['id'] = pd.Series(range(1,dfall.shape[0]+1))
    
    ## file extension
    #ext2 = ext  ## keeping same file extension
@@ -191,46 +184,4 @@ def main():
 if __name__ == '__main__':
    main()
 
-
-
-##------------------------------------------------
-
-#dir_base = 'C:/SDC/4.0.4.0/Platinum/USR'
-##dir_source = dir_base + '/crunchbase_export_20161024/source'
-##dir_output = dir_base + '/crunchbase_export_20161024'
-
-
-### file
-#fname = 'awareness_583_software_2008-2018_SIC_report_5.xlsx'
-
-
-
-
-
-### fix header text
-#with open(os.path.join(dir_base,fname)) as f:
-#    content = f.readlines()
-#rows = [x.strip() for x in content[:20] if x.strip() is not ''] 
-#
-#
-#
-#
-#os.listdir(dir_base)
-#
-#pattern = re.compile('.+\.txt$')
-#
-#for file in os.listdir(dir_base):
-#   if pattern.match(file):
-#      print(file)
-#      
-#with open(os.path.join(dir_base,fname)) as f:
-#    content = f.readlines()
-## you may also want to remove whitespace characters like `\n` at the end of each line
-#
-#rows = [x.strip() for x in content[:20] if x.strip() is not ''] 
-#
-#print(rows)
-#
-#for row in rows:
-#   print(len(row))
 

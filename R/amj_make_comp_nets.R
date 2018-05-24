@@ -4,26 +4,47 @@
 ##  CREATE FIRM COMPETITION NETWORK PERIODS AS LIST OBJECTS
 ##
 ##--------------------------------------------------------------
-
-setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 # .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
+library(igraph)
+library(intergraph)
 
 source(file.path(getwd(),'R','amj_awareness_functions.R'))
 source(file.path(getwd(),'R','amj_cb_data_prep.R'))
 source(file.path(getwd(),'R','amj_cb_sic_codes.R'))
+source(file.path(getwd(),'R','amj_sdc_coop.R'))
 
-data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
-wd <- getwd()
+## CACHE ENVIRONMENT to keep when clearing tmp objects added here
+.ls <- ls()
+
+## DIRECTORIES
+cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+cb$img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
+
+## set woring dir
+setwd(cb$work_dir)
+
+## graph filename
 full.graph.file <- 'g_full.graphml'
 
-## make full graph if not working directory
+## make full graph if  not exists in working directory
 if ( !(full.graph.file %in% dir()) ) {
   source(file.path(getwd(),'R','amj_make_full_graph.R')) 
-} 
+} else {
+  g.full <- read.graph(full.graph.file, format='graphml')
+}
 
 
-## load full global competition network
-g.full <- read.graph(full.graph.file, format='graphml')
+## add full network vertex IDs for acquirer|acquiree
+## to identify unique  vertex over time after node collapsing
+if (!('acquirer_vid' %in% names(cb$co_acq))) {
+  tmp <- data.frame(acquirer_vid=as.integer(V(g.full)), acquirer_uuid=V(g.full)$company_uuid)
+  cb$co_acq <- merge(cb$co_acq, tmp, by='acquirer_uuid')
+}
+if (!('acquiree_vid' %in% names(cb$co_acq))) {
+  tmp <- data.frame(acquiree_vid=as.integer(V(g.full)), acquiree_uuid=V(g.full)$company_uuid)
+  cb$co_acq <- merge(cb$co_acq, tmp, by='acquiree_uuid')
+}
 
 
 ## set firms to create networks (focal firm or replication study focal firms)
@@ -43,30 +64,40 @@ for (i in 1:length(firms.todo)) {
   cat(sprintf('\n---------%s----------\n',name_i))
   periods <- seq(startYr,endYr,yrpd)
   company.name <- 'company_name_unique'
-  verbose <- TRUE
-  #
-  g.base <- g.full
+  g.base <- g.full  
+  
+  ## focal firm ego network sample
   g.d.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], order = d, mode = 'all')[[1]]
-  net.d.sub <- asIgraph(g.d.sub)
+  net.d.sub <- asNetwork(g.d.sub)
   net <- net.d.sub
   net %n% 'ego' <- name_i
-  #----------------Network List-------------------
+  
+  ##-------process pre-start-year acquisitions----------
+  acqs.pd <- cb$co_acq[cb$co_acq$acquired_on <= sprintf('%d-12-31',startYr-1), ]
+  g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, verbose = T)
+  net.d.sub <- asNetwork
+  
+  ##------------Network Time Period List--------------------
   nl <- list()
   for (t in 2:length(periods)) {
     cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
-    ##
-    # TODO : CHECK USING competitive NODE COLLAPSE in makepdnetwork algorithm
-    #
-    tmp.net <- aaf$makePdNetwork(net.d.sub, 
-                                start=periods[t-1], end=periods[t])
-    nl[[t]] <- aaf$setCovariates(tmp.net, periods[t-1], periods[t],
-                                 netRiskCommunityAlgo='multilevel.community',
-                                 downweight.env.risk=FALSE,
-                                 acq=co_acq,br=co_br,rou=co_rou,ipo=co_ipo)
+    t1 <- sprintf('%d-01-01',periods[t-1])
+    t2 <- sprintf('%d-12-31',periods[t-1])
+    ## 1. Node Collapse acquisitions within period
+    acqs.pd <- cb$co_acq[cb$co_acq$acquired_on >= t1 & cb$co_acq$acquired_on <= t2, ]
+    g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, verbose = T)
+    net.d.sub <- asNetwork(g.d.sub)
+    ## 2. Subset Period Network
+    net.d.sub <- aaf$makePdNetwork(net.d.sub, periods[t-1], periods[t], isolates.remove = F) 
+    ## 3. Set Covariates for updated Period Network
+    nl[[t]] <- aaf$setCovariates(net.d.sub, periods[t-1], periods[t],
+                                 acq=cb$co_acq,br=cb$co_br,rou=cb$co_rou,ipo=cb$co_ipo,
+                                 coop=coop)
   }
   nl.bak <- nl
   nl <- nl[which(sapply(nl, length)>0)]
   names(nl) <- periods[2:length(periods)]
+  
   ## ---------- add LAGS ----------------
   for (t in 2:length(nl)) { 
     nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
@@ -78,13 +109,9 @@ for (i in 1:length(firms.todo)) {
   nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
   #-------------------------------------------------
   
-  ## SAVE variable in image
-  # firm.nl <- list()
-  firm.nets[[net_group]][[name_i]] <- nets
-  
   ## CAREFUL TO OVERWRITE 
-  file.rds <- sprintf('netrisk_dynamic_firm_nets_1yr_v3_%s.rds',net_group)
-  saveRDS()
+  file.rds <- sprintf('amj_firm_nets_1yr_d%s_%s.rds',d,name_i)
+  saveRDS(nets, file = file.rds)
   
 }
 

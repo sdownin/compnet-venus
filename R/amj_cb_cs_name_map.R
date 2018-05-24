@@ -12,15 +12,16 @@ library(stringi)
 library(stringdist)
 
 ## LOAD AND PREP CRUNCHBASE DATA IF NOT IN MEMORY
-if(!('cb' %in% ls())) source(file.path(getwd(),'R','amj_cb_data_prep.R'))
+if(!('cb' %in% ls())) 
+  source(file.path(getwd(),'R','amj_cb_data_prep.R'))
+
+## CACHE ENVIRONMENT to keep when clearing tmp objects added here
+.ls <- ls()
 
 ## DIRECTORIES
 cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
 cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
 setwd(cb$work_dir)
-
-## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
 
 
 cat('\nloading SIC data...')
@@ -200,39 +201,42 @@ for(i in seq_len(nrow(co.pub.names))) {
   
 }
 
-##===============================
-## SAVE
-##-------------------------------
-saveRDS(namemap, file = 'compustat_crunchbase_co_name_mapping_by_domain_df.rds')
 
+##===============================
+## SET IS_MATCH RULE
+##-------------------------------
+## reorder columns
 map.cols <- c('cb_uuid','cs_gvkey','cs_cusip')
 otr.cols <- names(namemap)[ !(names(namemap) %in% map.cols) ]
 namemap <- namemap[,c(map.cols,otr.cols)]
-
 ## add is_matched rule
-namemap$is_matched <- as.integer(namemap$d < 0.01)
+namemap$is_matched <- as.integer(namemap$d < tol)
 ## add dummy for is_manually_checked
 namemap$is_checked_manually <- 0
 
-## save to csv
-write.csv(namemap, file = 'amj_cb_cs_name_map.csv', row.names = F)
-
 ##===============================
-## EXPORT INTO CB NAMESPACE
+## EXPORT COMPUSTAT DATA and NAMEMAP
 ##-------------------------------
 cb$namemap <- namemap
-## subset checked firms:   the companies are matched below tolorance or checked manually
-cb$namemap.ck <- namemap[namemap$is_matched | namemap$is_checked_manually, ]
+## add cs to environment exportable list
+cs <- cs.names.full
+.ls <- c(.ls,'cs')
 
 ##===============================
-## SIC CODES 
+## SAVE
 ##-------------------------------
-tmp <- cb$namemap.ck[,c('cb_uuid','cb_name','cs_name','cs_gvkey','cs_cusip')]
-names(tmp) <- c('company_uuid','company_matched_name','company_compustat_name','company_gvkey','company_cusip')
-cb$co <- merge(x=cb$co, y=tmp, by.x='company_uuid', by.y='company_uuid', all.x=T, all.y=F)
+## save in rds
+saveRDS(namemap, file = 'compustat_crunchbase_co_name_mapping_by_domain_df.rds')
+## save namemap to csv
+write.csv(namemap, file = 'amj_cb_cs_name_map.csv', row.names = F)
+
+## save compustat dataframe
+write.csv(cs.names.full, file = 'amj_cs_names.csv', row.names = F)
 
 
-
+##===============================
+## CLEAR ENVIRONMENT
+##-------------------------------
 ## clear tmp objects in environment 
 ## from this script not to be exported
 ## when called from external script

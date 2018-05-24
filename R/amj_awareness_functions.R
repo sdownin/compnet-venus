@@ -38,7 +38,9 @@ aaf$makeGraph <- function(comp,vertdf,name='company_name_unique',
 {
   if(is.na(vertAttrs)) {
     vertAttrs <- c('company_name','founded_on','founded_year','closed_on','closed_year','category_list',
-                   'category_group_list','state_code','country_code','region','city','acquired_on')
+                   'category_group_list','state_code','country_code','region','city','acquired_on',
+                   'company_gvkey','company_uuid','domain','status_update',
+                   'company_cusip','company_cusip_6','company_sic','employee_count')
   }
   el <- data.frame(source=comp[,name], 
                    target=comp[,compName],
@@ -149,6 +151,7 @@ aaf$mmcfromMarketConcat <- function(x,y)
 aaf$.cov.age <- function(net, end)
 {
   year <- net %v% 'founded_year'
+  year <- unname(sapply(year,function(x)min(as.integer(str_split(x,'[|]')[[1]]))))
   year[is.na(year) | is.nan(year)] <- median(year, na.rm = T)
   age <- end - year
   age[age < 0] <- 0
@@ -167,7 +170,7 @@ aaf$.cov.mmc <- function(br, firms, end, ...)
 {
   cols <- c('company_name_unique','created_year')
   for (col in cols){
-    if (col %in% names(br)) stop(sprintf('br dataframe missing attribute `%s`', col))
+    if (!(col %in% names(br))) stop(sprintf('br dataframe missing attribute `%s`', col))
   }
   brsub <- br[which(br$company_name_unique %in% firms & br$created_year < end), ]
   cat('concatenating firm branch markets...\n')
@@ -205,7 +208,7 @@ aaf$.cov.ipo <- function(net, ipo, end, nameAttr='vertex.names')
 {
   cols <- c('company_name_unique','went_public_year')
   for (col in cols){
-    if (col %in% names(br)) stop(sprintf('ipo dataframe missing attribute `%s`', col))
+    if (!(col %in% names(ipo))) stop(sprintf('ipo dataframe missing attribute `%s`', col))
   }
   idx <- which(ipo$company_name_unique %in% (net %v% 'vertex.names') & ipo$went_public_year < end)
   iposub <- ipo[idx, ]
@@ -219,9 +222,9 @@ aaf$.cov.ipo <- function(net, ipo, end, nameAttr='vertex.names')
 # @param [igraph] g.net  The igraph object 
 # @return [float[]]
 ##
-aaf$.cov.constraint <- function(g.net)
+aaf$.cov.constraint <- function(g)
 {
-  cons <-  igraph::constraint(g.net)    ### isolates' constraint = NaN
+  cons <-  igraph::constraint(g)    ### isolates' constraint = NaN
   cons[is.nan(cons) | is.na(cons)] <- 0 ### ?Is this theoretically OK?
   return(cons)
 }
@@ -233,9 +236,9 @@ aaf$.cov.constraint <- function(g.net)
 # @param [character] method  The similarity compuation method (see igraph docs)
 # @return [float[]]
 ##
-aaf$.cov.similarity <- function(g.net, method='invlogweighted')
+aaf$.cov.similarity <- function(g, method='invlogweighted')
 {
-  sim <- igraph::similarity(g.net, vids = V(g.net), mode = "all", method = method)
+  sim <- igraph::similarity(g, vids = V(g), mode = "all", method = method)
   sim[is.nan(sim) | is.na(sim)] <- 0
   return(sim)
 }
@@ -249,19 +252,20 @@ aaf$.cov.similarity <- function(g.net, method='invlogweighted')
 ##
 aaf$.cov.centrality <- function(net)
 {
+  g <- asIgraph(net)
   # cat('computing betweenness...\n')
   # betw <- igraph::betweenness(g.net)
   # net %v% 'betweenness' <- betw
   # net %v% 'betweenness_log' <- log(betw + .001) 
-  net %v% 'cent_deg' <- igraph::degree(g.net)
-  net %v% 'cent_eig' <- igraph::eigen_centrality(g.net)$vector
+  net %v% 'cent_deg' <- igraph::degree(g)
+  net %v% 'cent_eig' <- igraph::eigen_centrality(g)$vector
   ## larger exp (Bonacich "beta") increase sensitivity to effects from distant node
-  pcn0.0 <- tryCatch(tmpn0.0<- igraph::power_centrality(g.net,exp= 0), error = function(e)e)
-  pcn0.1 <- tryCatch(tmpn0.1<- igraph::power_centrality(g.net,exp=-0.1), error = function(e)e)
-  pcn0.2 <- tryCatch(tmpn0.2<- igraph::power_centrality(g.net,exp=-0.2), error = function(e)e)
-  pcn0.3 <- tryCatch(tmpn0.3<- igraph::power_centrality(g.net,exp=-0.3), error = function(e)e)
-  pcn0.4 <- tryCatch(tmpn0.4<- igraph::power_centrality(g.net,exp=-0.4), error = function(e)e)
-  pcn0.5 <- tryCatch(tmpn0.5<- igraph::power_centrality(g.net,exp=-0.5), error = function(e)e)
+  pcn0.0 <- tryCatch(tmpn0.0<- igraph::power_centrality(g,exp= 0), error = function(e)e)
+  pcn0.1 <- tryCatch(tmpn0.1<- igraph::power_centrality(g,exp=-0.1), error = function(e)e)
+  pcn0.2 <- tryCatch(tmpn0.2<- igraph::power_centrality(g,exp=-0.2), error = function(e)e)
+  pcn0.3 <- tryCatch(tmpn0.3<- igraph::power_centrality(g,exp=-0.3), error = function(e)e)
+  pcn0.4 <- tryCatch(tmpn0.4<- igraph::power_centrality(g,exp=-0.4), error = function(e)e)
+  pcn0.5 <- tryCatch(tmpn0.5<- igraph::power_centrality(g,exp=-0.5), error = function(e)e)
   
   if (!inherits(pcn0.0, "error")) net %v% 'cent_pow_n0_0' <- pcn0.0
   if (!inherits(pcn0.1, "error")) net %v% 'cent_pow_n0_1' <- pcn0.1
@@ -284,27 +288,73 @@ aaf$.cov.centrality <- function(net)
 aaf$.cov.generalistIndex <- function(net)
 {
   ## Community membership
-  g.net <- intergraph::asIgraph(net)
+  g <- intergraph::asIgraph(net)
   ##igraph::optimal.community()  ## too slow
   ##igraph::spinglass.community() ## too slow
-  net %v% 'com_multilevel'  <- igraph::multilevel.community(g.net)$membership
-  net %v% 'com_infomap'     <- igraph::infomap.community(g.net)$membership
-  net %v% 'com_walktrap'    <- igraph::walktrap.community(g.net)$membership
-  net %v% 'com_fastgreedy'  <- igraph::fastgreedy.community(g.net)$membership
-  net %v% 'com_edgebetween' <- igraph::edge.betweenness.community(g.net)$membership
-  net %v% 'com_labelprop'   <- igraph::label.propagation.community(g.net)$membership
+  net %v% 'com_multilevel'  <- igraph::multilevel.community(g)$membership
+  net %v% 'com_infomap'     <- igraph::infomap.community(g)$membership
+  net %v% 'com_walktrap'    <- igraph::walktrap.community(g)$membership
+  net %v% 'com_fastgreedy'  <- igraph::fastgreedy.community(g)$membership
+  net %v% 'com_edgebetween' <- igraph::edge.betweenness.community(g)$membership
+  net %v% 'com_labelprop'   <- igraph::label.propagation.community(g)$membership
   # net %v% 'com_eigenvector' <- igraph::leading.eigenvector.community(g.net)$membership  ## Arpack solver error
   ## Generalist Index
-  net %v% 'genidx_multilevel'  <- aaf$generalistIndex(g.net, net %v% 'com_multilevel' )
-  net %v% 'genidx_infomap'     <- aaf$generalistIndex(g.net, net %v% 'com_infomap' )
-  net %v% 'genidx_walktrap'    <- aaf$generalistIndex(g.net, net %v% 'com_walktrap' )
-  net %v% 'genidx_fastgreedy'  <- aaf$generalistIndex(g.net, net %v% 'com_fastgreedy' )
-  net %v% 'genidx_edgebetween' <- aaf$generalistIndex(g.net, net %v% 'com_edgebetween' )
-  net %v% 'genidx_labelprop'   <- aaf$generalistIndex(g.net, net %v% 'com_labelprop' )
+  net %v% 'genidx_multilevel'  <- aaf$generalistIndex(g, net %v% 'com_multilevel' )
+  net %v% 'genidx_infomap'     <- aaf$generalistIndex(g, net %v% 'com_infomap' )
+  net %v% 'genidx_walktrap'    <- aaf$generalistIndex(g, net %v% 'com_walktrap' )
+  net %v% 'genidx_fastgreedy'  <- aaf$generalistIndex(g, net %v% 'com_fastgreedy' )
+  net %v% 'genidx_edgebetween' <- aaf$generalistIndex(g, net %v% 'com_edgebetween' )
+  net %v% 'genidx_labelprop'   <- aaf$generalistIndex(g, net %v% 'com_labelprop' )
   return(net)
 }
 
+## 
+# Assigns 
+# @see setCovariates(), generalistIndex()
+# @param [network] net       The network object 
+# @return [network] 
+## 
+aaf$.cov.coop <- function(net, coop, start, end)
+{
+  g <- intergraph::asIgraph(net)
+  idx <- which(
+    coop$date_effective < end 
+    & (
+      is.na(coop$date_alliance_terminated) 
+      | coop$date_alliance_terminated >= end 
+      | is.na(coop$date_expired)
+      | coop$date_expired >= end
+    )
+  )
+  coop.sub <- coop[idx, ]
+  
+  
+  
+  
 
+  return(net)
+}
+
+## 
+# Assigns 
+# @see setCovariates(), generalistIndex()
+# @param [network] net       The network object 
+# @return [network] 
+## 
+aaf$.cov.coopPast <- function(net, coop, start)
+{
+  g <- intergraph::asIgraph(net)
+  idx <- which(
+    coop$date_effective < start 
+    & (coop$date_alliance_terminated < start | coop$date_expired < start)
+  )
+  coop.sub <- coop[idx, ]
+  
+  
+  
+  
+  return(net)
+}
 
 ##
 # Set network covariates
@@ -319,44 +369,69 @@ aaf$.cov.generalistIndex <- function(net)
 # @return [network]
 ##
 aaf$setCovariates <- function(net, start, end,
-                          covlist=c('age','mmc','dist','similarity','ipo_status','centrality','generalist'),
-                          acq=NA,rou=NA,br=NA,ipo=NA)
+                              covlist=c('age','mmc','dist','ipo_status','constraint','similarity','centrality','generalist','coop'),
+                              acq=NA,rou=NA,br=NA,ipo=NA,coop=NA,
+                              verbose=TRUE)
 { 
   if( network::network.edgecount(net) > 0 ) {
-    g.net <- intergraph::asIgraph(net)
-    if ('age' %in% covlist) {
-      cat('\ncomputing age ...\n')
+    
+    g <- intergraph::asIgraph(net)
+    
+    if ('age' %in% covlist) 
+    {
+      if (verbose) cat('\ncomputing age ...')
       net %v% 'age' <- aaf$.cov.age(net, end)
+      if (verbose) cat('done\n')
     }
-    if ('mmc' %in% covlist) {
-      cat('computing multi-market contact (branch geographic overlap)...\n')
+    if ('mmc' %in% covlist) 
+    {
+      if (verbose) cat('computing multi-market contact (branch geographic overlap)...')
       net %n% 'mmc' <- aaf$.cov.mmc(br, (net %v% 'vertex.names'), end)
+      if (verbose) cat('done\n')
     }
-    if ('dist' %in% covlist) {
-      cat('computing distances lag contact...\n')
-      net %n% 'dist' <- aaf$.cov.dist(g.net)
+    if ('dist' %in% covlist) 
+    {
+      if (verbose) cat('computing distances lag contact...')
+      net %n% 'dist' <- aaf$.cov.dist(g)
+      if (verbose) cat('done\n')
     }
-    if ('ipo_status' %in% covlist) {
-      cat('computing IPO status contact...\n')
+    if ('ipo_status' %in% covlist) 
+    {
+      if (verbose) cat('computing IPO status contact...')
       net %v% 'ips_status' <- aaf$.cov.ipo(net, ipo, end) 
+      if (verbose) cat('done\n')
     }
-    if ('constraint' %in% covlist) {
-      cat('computing constraint...\n')
-      net %v% 'constraint' <- aaf$.cov.constraint(g.net)
+    if ('constraint' %in% covlist) 
+    {
+      if (verbose) cat('computing constraint...')
+      net %v% 'constraint' <- aaf$.cov.constraint(g)
+      if (verbose) cat('done\n')
     }
-    if ('similarity' %in% covlist) {
-      cat('computing inv.log.w.similarity...\n')
-      net %n% 'similarity' <- aaf$.cov.similarity(g.net)
+    if ('similarity' %in% covlist) 
+    {
+      if (verbose) cat('computing inv.log.w.similarity...')
+      net %n% 'similarity' <- aaf$.cov.similarity(g)
+      if (verbose) cat('done\n')
     }
-    if ('centrality' %in% covlist) {
-      cat('computing centralities...\n')
+    if ('centrality' %in% covlist) 
+    {
+      if (verbose) cat('computing centralities...')
       net <- aaf$.cov.centrality(net)  ## returns the updated network
+      if (verbose) cat('done\n')
     }
-    if ('generalist' %in% covlist) {
-      cat('computing Generalist (vs Specialist) Index...')
+    if ('generalist' %in% covlist) 
+    {
+      if (verbose) cat('computing Generalist (vs Specialist) Index...')
       net <- aaf$.cov.generalistIndex(net)  ## returns the updated network
+      if (verbose) cat('done\n')
     }
-    cat('...done\n')
+    if ('coop' %in% covlist) 
+    {
+      if (verbose) cat('computing Cooperative relations (alliance/JV)...')
+      net %n% 'coop' <- aaf$.cov.coop(net, coop, start, end)  ## returns the updated network
+      net %n% 'coop_past' <- aaf$.cov.coopPast(net, coop, start)  ## returns the updated network
+      if (verbose) cat('done\n')
+    }
     
   } else {
     
@@ -382,6 +457,8 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
 {
   if (class(g) != 'igraph') stop("g must be an igraph object")
   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
+  if (!('acquirer_vid' %in% names(acquisitions))) stop("acquirer_vid must be set in acquisitions dataframe")
+  if (!('acquiree_vid' %in% names(acquisitions))) stop("acquiree_vid must be set in acquisitions dataframe")
   
   ##--------------------- Acquisitions Mapping --------------------------
   ## acqs = c(1,4,3,3,1,4,...)
@@ -464,6 +541,84 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
 
 
 
+
+##
+# Makes period network 
+# - remove missing edges and nodes
+# - transfers edges and apply node collapse on acquisitions
+# @see Hernandez & Menon 2017  Network Revolution
+# @param [network] net                The network object 
+# @param [integer] start              The starting year (included)
+# @param [integer] end                The ending year (excluded)
+# @param [boolean] isolates.remove    A flag to remove isolate nodes
+# @param [character] edgeCreatedAtt   The name of the edge attribute for created date
+# @param [character] edgeDeletedAttr  The name of the edge attribute for deleted|removed date
+# @param [character] vertFoundedAttr  The name of the vertex attribute for founded date
+# @param [character] vertClosedAttr   The name of the vertex attribute for closed date
+# @param [character] vertAcquiredAttr The name of the vertex attribute for acquired date (acquired by other company)
+# @return [igraph] 
+##
+aaf$makePdNetwork <- function(net, start, end, 
+                          isolates.remove = FALSE,
+                          edgeCreatedAttr='relation_began_on',
+                          edgeDeletedAttr='relation_ended_on',
+                          vertFoundedAttr='founded_year',
+                          vertClosedAttr='closed_year',
+                          vertAcquiredAttr='acquired_year')
+{
+  cat('\ncollecting edges and vertices to remove...')
+  vertAttrs <- network::list.vertex.attributes(net)
+  edgeAttrs <- network::list.edge.attributes(net)
+  inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
+  ##------------------ COLLECT EDGES TO REMOVE -----------
+  ## Get EDGES CREATED AT ___ to be removed
+  if (edgeCreatedAttr %in% edgeAttrs) {
+    tmp <- network::get.edge.attribute(net, edgeCreatedAttr)
+    eids <- which(tmp >= end)
+    inactiveEdges <- unique( c(inactiveEdges, eids) )
+  }
+  if (edgeDeletedAttr %in% edgeAttrs) {
+    tmp <- network::get.edge.attribute(net, edgeDeletedAttr)
+    eids <- which(tmp < start)
+    inactiveEdges <- unique( c(inactiveEdges, eids) )
+  }
+  ##------------------ COLLECT VERTICES TO REMOVE ------- 
+  ##  REMOVE VERTICES founded_on >= `end`
+  if(vertFoundedAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertFoundedAttr)
+    vids <- which(tmp >= end) #(g)[which(tmp > end)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  ##  REMOVE VERTICES closed_on < `start`
+  if(vertClosedAttr %in% vertAttrs) {
+    tmp <- network::get.vertex.attribute(net, vertClosedAttr)
+    vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+    inactiveVerts <- unique( c(inactiveVerts, vids) )
+  }
+  # ##  REMOVE VERTICES acquired_at < `start` <<<=== acquisitions logic moved into nodeCollapseGraph()
+  # if(vertAcquiredAttr %in% vertAttrs) {
+  #   tmp <- network::get.vertex.attribute(net, vertAcquiredAttr)
+  #   vids <- which( tmp < start )  # V(g)[which(tmp < start)]
+  #   inactiveVerts <- unique( c(inactiveVerts, vids) )
+  # }
+  # ##---------- GET EDGES FOR WHICH VERTICES ARE INACTIVES -------
+  el <- network::as.edgelist(net)
+  inactiveVertsEdges <-  which( el[,1] %in% inactiveVerts | el[,2] %in% inactiveVerts )
+  inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
+  ##------------- DELTE EDGES & VERTICES --------------------------------------
+  net <- network::delete.edges(net, inactiveEdges)
+  net <- network::delete.vertices(net, inactiveVerts)
+  ## remove isolates
+  if (isolates.remove) {
+    g <- asIgraph(net)
+    net <- asNetwork(igraph::induced.subgraph(g,vids = which(igraph::degree(g)>0)))
+  }
+  cat('done.\n')
+  return(net)
+}
+
+
+
 ##
 # Makes period graph 
 # - remove missing edges and nodes
@@ -526,12 +681,12 @@ aaf$makePdGraph <- function(g, start, end,
     vids <- which(tmp < start & tmp != "NA")  
     inactiveVerts <- unique( c(inactiveVerts, vids) )
   }
-  ##  REMOVE VERTICES acquired_on < `start`
-  if(vertAcquiredAttr %in% vertAttrs) {
-    tmp <- igraph::get.vertex.attribute(g, vertAcquiredAttr)
-    vids <- which( tmp < start & tmp != "NA" )  # V(g)[which(tmp < start)]
-    inactiveVerts <- unique( c(inactiveVerts, vids) )
-  }
+  # ##  REMOVE VERTICES acquired_on < `start` <<<=== acquisitions logic moved into nodeCollapseGraph()
+  # if(vertAcquiredAttr %in% vertAttrs) {
+  #   tmp <- igraph::get.vertex.attribute(g, vertAcquiredAttr)
+  #   vids <- which( tmp < start & tmp != "NA" )  # V(g)[which(tmp < start)]
+  #   inactiveVerts <- unique( c(inactiveVerts, vids) )
+  # }
   ## GET active VERTICES
   activeVerts <- which( !(V(g) %in% inactiveVerts) )
   ## SUBGRAPH OF ONLY ACTIVE VERTICES
@@ -542,3 +697,5 @@ aaf$makePdGraph <- function(g, start, end,
   cat('done.\n')
   return(g)
 }
+
+

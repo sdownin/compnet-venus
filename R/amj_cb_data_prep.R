@@ -20,14 +20,14 @@ library(stringr, quietly = T)
 ##
 cb <- list()
 
+## CACHE ENVIRONMENT to keep when clearing tmp objects added here
+.ls <- ls()
+
+
 ## DIRECTORIES
 cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
 cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
 setwd(cb$work_dir)
-
-## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
-
 
 ##=================================
 ##  FUNCTIONS
