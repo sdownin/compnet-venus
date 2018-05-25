@@ -53,8 +53,8 @@ firms.todo <- c('qualtrics')
 ## -- settings --
 d <- 3
 yrpd <- 1
-startYr <- 2007
-endYr <- 2017
+startYr <- 2006
+endYr <- 2017  ## dropping first for memory term; actual dates 2007-2016
 ## --------------  
 
 ## run main network period creation loop
@@ -94,6 +94,8 @@ for (i in 1:length(firms.todo)) {
                                  acq=cb$co_acq,br=cb$co_br,rou=cb$co_rou,ipo=cb$co_ipo,
                                  coop=coop)
   }
+  
+  ## ----drop null and skipped periods----
   nl.bak <- nl
   nl <- nl[which(sapply(nl, length)>0)]
   
@@ -119,7 +121,7 @@ for (i in 1:length(firms.todo)) {
   #-------------------------------------------------
   
   ## CAREFUL TO OVERWRITE 
-  file.rds <- sprintf('firm_nets/amj_RR_firm_nets_1yr_d%s_%s.rds',d,name_i)
+  file.rds <- sprintf('firm_nets_rnr/%s_d%d.rds',name_i,d)
   saveRDS(nets, file = file.rds)
   
 }
