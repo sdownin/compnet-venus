@@ -6,6 +6,14 @@
 # .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 library(igraph)
 
+## DIRECTORIES
+cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+cb$img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
+
+## set woring dir
+setwd(cb$work_dir)
+
 source(file.path(getwd(),'R','amj_awareness_functions.R'))
 source(file.path(getwd(),'R','amj_cb_data_prep.R'))
 source(file.path(getwd(),'R','amj_cb_sic_codes.R'))
@@ -14,13 +22,6 @@ source(file.path(getwd(),'R','amj_sdc_coop.R'))
 
 ## CACHE ENVIRONMENT to keep when clearing tmp objects added here
 .ls <- ls()
-
-## DIRECTORIES
-cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
-cb$img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
-
-setwd(cb$work_dir)
 
 
 cat('\nmaking full graph...\n')

@@ -8,14 +8,6 @@
 library(igraph)
 library(intergraph)
 
-source(file.path(getwd(),'R','amj_awareness_functions.R'))
-source(file.path(getwd(),'R','amj_cb_data_prep.R'))
-source(file.path(getwd(),'R','amj_cb_sic_codes.R'))
-source(file.path(getwd(),'R','amj_sdc_coop.R'))
-
-## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
-
 ## DIRECTORIES
 cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
 cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
@@ -23,6 +15,14 @@ cb$img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks
 
 ## set woring dir
 setwd(cb$work_dir)
+
+source(file.path(getwd(),'R','amj_awareness_functions.R'))
+source(file.path(getwd(),'R','amj_cb_data_prep.R'))
+source(file.path(getwd(),'R','amj_cb_sic_codes.R'))
+source(file.path(getwd(),'R','amj_sdc_coop.R'))
+
+## CACHE ENVIRONMENT to keep when clearing tmp objects added here
+.ls <- ls()
 
 ## graph filename
 full.graph.file <- 'g_full.graphml'
@@ -96,21 +96,30 @@ for (i in 1:length(firms.todo)) {
   }
   nl.bak <- nl
   nl <- nl[which(sapply(nl, length)>0)]
-  names(nl) <- periods[2:length(periods)]
+  
+  if (length(nl) > 1) {
+    names(nl) <- periods[2:length(periods)]
+  }
   
   ## ---------- add LAGS ----------------
-  for (t in 2:length(nl)) { 
-    nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
+  if (length(nl) > 1) {
+    for (t in 2:length(nl)) { 
+      nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
+    }
   }
   
   ##--------------- GET TERGM NETS LIST -----------
   ## only nets with edges > 0
-  nets.all <- nl[2:length(nl)]
-  nets <- nets.all[ which(sapply(nets.all, getNetEcount) > 0) ]
+  if (length(nl) > 1) {
+    nets.all <- nl[2:length(nl)]
+  } else {
+    nets.all <- nl
+  }
+  nets <- nets.all[ which(sapply(nets.all, aaf$getNetEcount) > 0) ]
   #-------------------------------------------------
   
   ## CAREFUL TO OVERWRITE 
-  file.rds <- sprintf('amj_firm_nets_1yr_d%s_%s.rds',d,name_i)
+  file.rds <- sprintf('firm_nets/amj_RR_firm_nets_1yr_d%s_%s.rds',d,name_i)
   saveRDS(nets, file = file.rds)
   
 }

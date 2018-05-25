@@ -10,6 +10,14 @@
 library(stringr)
 library(stringi)
 library(stringdist)
+library(lubridate)
+
+## DIRECTORIES
+cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+
+## SET WORING DIR
+setwd(cb$work_dir)
 
 ## LOAD AND PREP CRUNCHBASE DATA IF NOT IN MEMORY
 if(!('cb' %in% ls())) 
@@ -17,11 +25,6 @@ if(!('cb' %in% ls()))
 
 ## CACHE ENVIRONMENT to keep when clearing tmp objects added here
 .ls <- ls()
-
-## DIRECTORIES
-cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
-setwd(cb$work_dir)
 
 ## CrunchBase-Compustat name mapping
 namemap.filename <- 'amj_cb_cs_name_map.csv'
@@ -93,6 +96,12 @@ sdc$company_uuid <- apply(sdc[,uuid.col.names],1,function(x){
 
 sdc <- sdc[,names(sdc)[which(!(names(sdc)%in%uuid.col.names))]]
 sdc <- sdc[order(sdc$coop_id, decreasing = F),]
+
+## reformat date strings to YYYY-MM-DD format
+sdc$date_effective <- as.character(mdy(sdc$date_effective))
+sdc$date_alliance_terminated <- as.character(mdy(sdc$date_alliance_terminated))
+sdc$date_expired <- as.character(mdy(sdc$date_expired))
+
 
 ## add SDC relations to environment exportable as: coop
 coop <- sdc

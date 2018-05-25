@@ -141,6 +141,132 @@ aaf$mmcfromMarketConcat <- function(x,y)
 }
 
 
+
+
+
+
+
+##
+# Returns the vector of firm-alliance relations
+# @see setCovariates(), .covMmc()
+# @param [dataframe] df   The firm-alliance dataframe
+# @param [boolean] drop   A flag to drop fields in the plyr::ddply() call
+# @param [dataframe] 
+# 
+##
+aaf$coopConcatDf <- function(df, drop=FALSE, ...)
+{
+  if( !('company_uuid' %in% names(df)))
+    stop('df must contain `company_uuid` column')
+  if( !('coop_id' %in% names(df)))
+    stop('df must contain `coop_id` column')
+  return(plyr::ddply(df, 'company_uuid', .progress = 'text', summarise,
+                     concat = paste(unique(coop_id),collapse = "|"),
+                     ...))
+}
+
+##
+# Returns the MMC value between two firms based on their firm branch regions
+# @see setCovariates(), .covMmc()
+# @param [character] x   The concatenated markets, eg, 'USA_CA|USA_NY|ARG_9'
+# @param [character] y   The concatenated markets, eg, 'USA_CA|USA_NY|ARG_9'
+# @return [float]
+##
+aaf$coopFromConcat <- function(x,y)
+{
+  if (is.na(x) | is.na(y))
+    return(0)
+  mx <- c(stringr::str_split(x, '[|]', simplify = T))
+  my <- c(stringr::str_split(y, '[|]', simplify = T))
+  if (length(mx)==0 | length(my)==0)
+    return(0)
+  nx <- sum(mx %in% my)   ## TODO CHECK THIS
+  ny <- sum(my %in% mx)   ## TODO CHECK THIS
+  return(min(nx,ny))
+}
+
+
+##
+# Returns current firm-firm alliance/jv count of active cooperative relations in current period
+# @see setCovariates()
+# @param [dataframe] br       
+# @param [character[]] firms  The vector of firm names (company_name_unique)
+# @param [integer] end        The ending year (excluded)
+# @return [matrix]
+##
+aaf$.cov.coop <- function(net, coop, company_uuids, end, ...)
+{
+  cols <- c('company_uuid','date_alliance_terminated','date_effective','date_expired')
+  for (col in cols){
+    if (!(col %in% names(coop))) stop(sprintf('coop dataframe missing attribute `%s`', col))
+  }
+  
+  g <- intergraph::asIgraph(net)
+  idx <- which(
+    coop$company_uuid %in% company_uuids
+    & coop$date_effective < end 
+    & (
+      is.na(coop$date_alliance_terminated) 
+      | coop$date_alliance_terminated >= end 
+      | is.na(coop$date_expired)
+      | coop$date_expired >= end
+    )
+  )
+  
+  cat('concatenating current cooperative relations...')
+  df <- aaf$coopConcatDf(coop[idx, ])
+  tmp <- data.frame(company_uuid=company_uuids, stringsAsFactors = F)
+  df.m <- merge(x=tmp, y=df, by = 'company_uuid', all.x=T, all.y=F)
+  cat('done.\n')
+  
+  cat('computing current cooperative relations outerproduct matrix...')
+  coop.outer <- outer(df.m$concat, df.m$concat, Vectorize(aaf$coopFromConcat))
+  cat('done.\n')
+  
+  return(as.matrix(coop.outer))
+}
+
+##
+# Returns past firm-firm alliance/jv count of PAST cooperative relations (not still active)
+# @see setCovariates()
+# @param [dataframe] br       
+# @param [character[]] firms  The vector of firm names (company_name_unique)
+# @param [integer] end        The ending year (excluded)
+# @return [matrix]
+##
+aaf$.cov.coopPast <- function(net, coop, company_uuids, start, ...)
+{
+  cols <- c('company_uuid','date_alliance_terminated','date_effective','date_expired')
+  for (col in cols){
+    if (!(col %in% names(coop))) stop(sprintf('coop dataframe missing attribute `%s`', col))
+  }
+  
+  g <- intergraph::asIgraph(net)
+  idx <- which(
+    coop$company_uuid %in% company_uuids
+    & coop$date_effective < start 
+    & (
+      is.na(coop$date_alliance_terminated) 
+      | coop$date_alliance_terminated < start 
+      | is.na(coop$date_expired)
+      | coop$date_expired < start
+    )
+  )
+  
+  cat('concatenating past cooperative relations...')
+  df <- aaf$coopConcatDf(coop[idx, ])
+  tmp <- data.frame(company_uuid=company_uuids, stringsAsFactors = F)
+  df.m <- merge(x=tmp, y=df, by = 'company_uuid', all.x=T, all.y=F)
+  cat('done.\n')
+  
+  cat('computing past cooperative relations outerproduct matrix...')
+  coop.outer <- outer(df.m$concat, df.m$concat, Vectorize(aaf$coopFromConcat))
+  cat('done.\n')
+  
+  return(as.matrix(coop.outer))
+}
+
+
 ##
 # Returns age covariate
 # @see setCovariates()
@@ -308,53 +434,8 @@ aaf$.cov.generalistIndex <- function(net)
   return(net)
 }
 
-## 
-# Assigns 
-# @see setCovariates(), generalistIndex()
-# @param [network] net       The network object 
-# @return [network] 
-## 
-aaf$.cov.coop <- function(net, coop, start, end)
-{
-  g <- intergraph::asIgraph(net)
-  idx <- which(
-    coop$date_effective < end 
-    & (
-      is.na(coop$date_alliance_terminated) 
-      | coop$date_alliance_terminated >= end 
-      | is.na(coop$date_expired)
-      | coop$date_expired >= end
-    )
-  )
-  coop.sub <- coop[idx, ]
-  
-  
-  
-  
 
-  return(net)
-}
 
-## 
-# Assigns 
-# @see setCovariates(), generalistIndex()
-# @param [network] net       The network object 
-# @return [network] 
-## 
-aaf$.cov.coopPast <- function(net, coop, start)
-{
-  g <- intergraph::asIgraph(net)
-  idx <- which(
-    coop$date_effective < start 
-    & (coop$date_alliance_terminated < start | coop$date_expired < start)
-  )
-  coop.sub <- coop[idx, ]
-  
-  
-  
-  
-  return(net)
-}
 
 ##
 # Set network covariates
@@ -379,7 +460,7 @@ aaf$setCovariates <- function(net, start, end,
     
     if ('age' %in% covlist) 
     {
-      if (verbose) cat('\ncomputing age ...')
+      if (verbose) cat('computing age ...')
       net %v% 'age' <- aaf$.cov.age(net, end)
       if (verbose) cat('done\n')
     }
@@ -398,7 +479,7 @@ aaf$setCovariates <- function(net, start, end,
     if ('ipo_status' %in% covlist) 
     {
       if (verbose) cat('computing IPO status contact...')
-      net %v% 'ips_status' <- aaf$.cov.ipo(net, ipo, end) 
+      net %v% 'ipo_status' <- aaf$.cov.ipo(net, ipo, end) 
       if (verbose) cat('done\n')
     }
     if ('constraint' %in% covlist) 
@@ -428,8 +509,20 @@ aaf$setCovariates <- function(net, start, end,
     if ('coop' %in% covlist) 
     {
       if (verbose) cat('computing Cooperative relations (alliance/JV)...')
-      net %n% 'coop' <- aaf$.cov.coop(net, coop, start, end)  ## returns the updated network
-      net %n% 'coop_past' <- aaf$.cov.coopPast(net, coop, start)  ## returns the updated network
+      t1 <- sprintf('%s-01-01',start)
+      t2 <- sprintf('%s-12-31',start)
+      #
+      mat.coop <- aaf$.cov.coop(net, coop, V(g)$company_uuid, t2)  ## returns the updated network
+      mat.coop.bin <- mat.coop
+      mat.coop.bin[mat.coop.bin >= 1] <- 1
+      net %n% 'coop' <- mat.coop
+      net %n% 'coop_bin' <- mat.coop.bin
+      #
+      mat.coop.past <- aaf$.cov.coopPast(net, coop, V(g)$company_uuid, t1)  ## returns the updated network
+      mat.coop.past.bin <- mat.coop.past
+      mat.coop.past.bin[mat.coop.past.bin >= 1] <- 1
+      net %n% 'coop_past' <- mat.coop.past
+      net %n% 'coop_past_bin' <- mat.coop.past.bin
       if (verbose) cat('done\n')
     }
     
@@ -566,7 +659,7 @@ aaf$makePdNetwork <- function(net, start, end,
                           vertClosedAttr='closed_year',
                           vertAcquiredAttr='acquired_year')
 {
-  cat('\ncollecting edges and vertices to remove...')
+  cat('collecting edges and vertices to remove...')
   vertAttrs <- network::list.vertex.attributes(net)
   edgeAttrs <- network::list.edge.attributes(net)
   inactiveEdges <- c(); inactiveVertsEdges <- c(); inactiveVerts <- c()
@@ -607,7 +700,7 @@ aaf$makePdNetwork <- function(net, start, end,
   inactiveEdges <- unique(c(inactiveEdges, inactiveVertsEdges))
   ##------------- DELTE EDGES & VERTICES --------------------------------------
   net <- network::delete.edges(net, inactiveEdges)
-  net <- network::delete.vertices(net, inactiveVerts)
+  # net <- network::delete.vertices(net, inactiveVerts) ## causes ERROR in btergm()
   ## remove isolates
   if (isolates.remove) {
     g <- asIgraph(net)
@@ -699,3 +792,14 @@ aaf$makePdGraph <- function(g, start, end,
 }
 
 
+##
+#
+##
+aaf$getNetEcount <- function(net, symmetric=TRUE, upper.tri.diag=FALSE)
+{
+  if(symmetric)  {
+    return(sum(net[upper.tri(net, diag = upper.tri.diag)]))
+  } else {
+    return(sum(net[,]))
+  }
+}
