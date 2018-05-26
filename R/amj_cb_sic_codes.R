@@ -12,18 +12,19 @@ library(stringi)
 library(stringdist)
 
 ## DIRECTORIES
-cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
 
 ## SET WORKING DIR
-setwd(cb$work_dir)
+setwd(work_dir)
 
 ## LOAD AND PREP CRUNCHBASE DATA IF NOT IN MEMORY
 if(!('cb' %in% ls())) 
   source(file.path(getwd(),'R','amj_cb_data_prep.R'))
 
 ## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
+## excluding directories ending in `_dir`
+.ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
 ## CrunchBase-Compustat name mapping
 namemap.filename <- 'amj_cb_cs_name_map.csv'
@@ -60,10 +61,12 @@ tmp <- cb$namemap.ck[,c('cb_uuid','cb_name','cs_name','cs_gvkey','cs_cusip')]
 names(tmp) <- c('company_uuid','company_matched_name','company_compustat_name','company_gvkey','company_cusip')
 cb$co <- merge(x=cb$co, y=tmp, by.x='company_uuid', by.y='company_uuid', all.x=T, all.y=F)
 
-tmp <- cb$cs_names[,c('gvkey','sic')]
+tmp <- cs[,c('gvkey','sic')]
 names(tmp) <- c('gvkey','company_sic')
 cb$co <- merge(x=cb$co, y=tmp, by.x='company_gvkey', by.y='gvkey', all.x=T, all.y=F)
 
+## add compustat dataframe cs to environment exportable
+.ls <- c(.ls,'cs')
 
 
 ##===============================

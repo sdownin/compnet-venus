@@ -7,12 +7,12 @@
 library(igraph)
 
 ## DIRECTORIES
-cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
-cb$img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
+data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 
 ## set woring dir
-setwd(cb$work_dir)
+setwd(work_dir)
 
 source(file.path(getwd(),'R','amj_awareness_functions.R'))
 source(file.path(getwd(),'R','amj_cb_data_prep.R'))
@@ -21,7 +21,8 @@ source(file.path(getwd(),'R','amj_sdc_coop.R'))
 
 
 ## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
+## excluding directories ending in `_dir`
+.ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
 
 cat('\nmaking full graph...\n')

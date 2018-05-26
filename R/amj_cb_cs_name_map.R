@@ -12,18 +12,19 @@ library(stringi)
 library(stringdist)
 
 ## DIRECTORIES
-cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
 
 ## SET WORKING DIR
-setwd(cb$work_dir)
+setwd(work_dir)
 
 ## LOAD AND PREP CRUNCHBASE DATA IF NOT IN MEMORY
 if(!('cb' %in% ls())) 
   source(file.path(getwd(),'R','amj_cb_data_prep.R'))
 
 ## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
+## excluding directories ending in `_dir`
+.ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
 
 cat('\nloading SIC data...')

@@ -1,6 +1,6 @@
 ##########################################################################################
 #
-# AMJ 2018 SPECIAL ISSUE COMPETITION NETWORKS AND ACQUISITIONS ACTIVITY ANALYSIS
+# AMJ 2018 SPECIAL ISSUE COMPETITION NETWORKS AND AWARENESS
 #
 # @author   Stephen Downing <sdowning.bm02g@nctu.edu.tw>
 #
@@ -20,15 +20,16 @@ library(stringr, quietly = T)
 ##
 cb <- list()
 
-## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
-
 ## DIRECTORIES
-cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
 
 ## SET WORING DIR
-setwd(cb$work_dir)
+setwd(work_dir)
+
+## CACHE ENVIRONMENT to keep when clearing tmp objects added here
+## excluding directories ending in `_dir`
+.ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
 ##=================================
 ##  FUNCTIONS
@@ -166,25 +167,25 @@ cb$csv$inv_part    <- 'investment_partners.csv'
 ##----------------------------------
 cat('\nloading dataframes...')
 
-co        <- cb$readCsv(file.path(cb$data_dir, cb$csv$co))
-co_comp   <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_comp)) 
-co_cust   <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_cust)) 
-co_parent <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_parent))
-co_prod   <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_prod)) 
-co_acq    <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_acq)) 
-co_br     <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_br)) 
-co_rou    <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_rou)) 
-co_ipo    <- cb$readCsv(file.path(cb$data_dir, cb$csv$co_ipo)) 
-fund      <- cb$readCsv(file.path(cb$data_dir, cb$csv$fund)) 
-inv       <- cb$readCsv(file.path(cb$data_dir, cb$csv$inv)) 
-inv_rou   <- cb$readCsv(file.path(cb$data_dir, cb$csv$inv_rou)) 
-inv_part  <- cb$readCsv(file.path(cb$data_dir, cb$csv$inv_part))  
-# ev        <- cb$readCsv(file.path(cb$data_dir, cb$csv$ev))  
-# ev_rel    <- cb$readCsv(file.path(cb$data_dir, cb$csv$ev_rel))  
-# categ     <- cb$readCsv(file.path(cb$data_dir, cb$csv$categ))  
-# job       <- cb$readCsv(file.path(cb$data_dir, cb$csv$jobs))  
-# ppl       <- cb$readCsv(file.path(cb$data_dir, cb$csv$ppl))  
-# ppl_desc  <- cb$readCsv(file.path(cb$data_dir, cb$csv$ppl_desc))  
+co        <- cb$readCsv(file.path(data_dir, cb$csv$co))
+co_comp   <- cb$readCsv(file.path(data_dir, cb$csv$co_comp)) 
+co_cust   <- cb$readCsv(file.path(data_dir, cb$csv$co_cust)) 
+co_parent <- cb$readCsv(file.path(data_dir, cb$csv$co_parent))
+co_prod   <- cb$readCsv(file.path(data_dir, cb$csv$co_prod)) 
+co_acq    <- cb$readCsv(file.path(data_dir, cb$csv$co_acq)) 
+co_br     <- cb$readCsv(file.path(data_dir, cb$csv$co_br)) 
+co_rou    <- cb$readCsv(file.path(data_dir, cb$csv$co_rou)) 
+co_ipo    <- cb$readCsv(file.path(data_dir, cb$csv$co_ipo)) 
+fund      <- cb$readCsv(file.path(data_dir, cb$csv$fund)) 
+inv       <- cb$readCsv(file.path(data_dir, cb$csv$inv)) 
+inv_rou   <- cb$readCsv(file.path(data_dir, cb$csv$inv_rou)) 
+inv_part  <- cb$readCsv(file.path(data_dir, cb$csv$inv_part))  
+# ev        <- cb$readCsv(file.path(data_dir, cb$csv$ev))  
+# ev_rel    <- cb$readCsv(file.path(data_dir, cb$csv$ev_rel))  
+# categ     <- cb$readCsv(file.path(data_dir, cb$csv$categ))  
+# job       <- cb$readCsv(file.path(data_dir, cb$csv$jobs))  
+# ppl       <- cb$readCsv(file.path(data_dir, cb$csv$ppl))  
+# ppl_desc  <- cb$readCsv(file.path(data_dir, cb$csv$ppl_desc))  
 
 
 cat('done.\n')

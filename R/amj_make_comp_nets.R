@@ -9,12 +9,12 @@ library(igraph)
 library(intergraph)
 
 ## DIRECTORIES
-cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
-cb$img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
+data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
+work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 
 ## set woring dir
-setwd(cb$work_dir)
+setwd(work_dir)
 
 source(file.path(getwd(),'R','amj_awareness_functions.R'))
 source(file.path(getwd(),'R','amj_cb_data_prep.R'))
@@ -22,7 +22,8 @@ source(file.path(getwd(),'R','amj_cb_sic_codes.R'))
 source(file.path(getwd(),'R','amj_sdc_coop.R'))
 
 ## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
+## excluding directories ending in `_dir`
+.ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
 ## graph filename
 full.graph.file <- 'g_full.graphml'
@@ -36,7 +37,7 @@ if ( !(full.graph.file %in% dir()) ) {
 
 
 ## add full network vertex IDs for acquirer|acquiree
-## to identify unique  vertex over time after node collapsing
+## to identify unique  vertex over time after node collapsing network
 if (!('acquirer_vid' %in% names(cb$co_acq))) {
   tmp <- data.frame(acquirer_vid=as.integer(V(g.full)), acquirer_uuid=V(g.full)$company_uuid)
   cb$co_acq <- merge(cb$co_acq, tmp, by='acquirer_uuid')
@@ -48,12 +49,12 @@ if (!('acquiree_vid' %in% names(cb$co_acq))) {
 
 
 ## set firms to create networks (focal firm or replication study focal firms)
-firms.todo <- c('qualtrics') 
+firms.todo <- c('facebook') 
 
 ## -- settings --
 d <- 3
 yrpd <- 1
-startYr <- 2006
+startYr <- 2005
 endYr <- 2017  ## dropping first for memory term; actual dates 2007-2016
 ## --------------  
 
@@ -67,7 +68,13 @@ for (i in 1:length(firms.todo)) {
   g.base <- g.full  
   
   ## focal firm ego network sample
-  g.d.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.full)[V(g.full)$name==name_i], order = d, mode = 'all')[[1]]
+  g.d.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.base)[V(g.base)$name==name_i], order = d, mode = 'all')[[1]]
+  
+  ## subset to firms with employees count > 10
+  idx.employee <- which( !(V(g.d.sub)$employee_count %in% c('1-10','NA','-')) )
+  g.d.sub <- igraph::induced.subgraph(g.d.sub, vids = V(g.d.sub)[idx.employee])
+  
+  ## convert to network object
   net.d.sub <- asNetwork(g.d.sub)
   net <- net.d.sub
   net %n% 'ego' <- name_i
@@ -75,7 +82,7 @@ for (i in 1:length(firms.todo)) {
   ##-------process pre-start-year acquisitions----------
   acqs.pd <- cb$co_acq[cb$co_acq$acquired_on <= sprintf('%d-12-31',startYr-1), ]
   g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, verbose = T)
-  net.d.sub <- asNetwork
+  net.d.sub <- asNetwork(g.d.sub)
   
   ##------------Network Time Period List--------------------
   nl <- list()
@@ -86,13 +93,16 @@ for (i in 1:length(firms.todo)) {
     ## 1. Node Collapse acquisitions within period
     acqs.pd <- cb$co_acq[cb$co_acq$acquired_on >= t1 & cb$co_acq$acquired_on <= t2, ]
     g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, verbose = T)
-    net.d.sub <- asNetwork(g.d.sub)
     ## 2. Subset Period Network
-    net.d.sub <- aaf$makePdNetwork(net.d.sub, periods[t-1], periods[t], isolates.remove = F) 
-    ## 3. Set Covariates for updated Period Network
-    nl[[t]] <- aaf$setCovariates(net.d.sub, periods[t-1], periods[t],
+    nl[[t]] <- aaf$makePdNetwork(asNetwork(g.d.sub), periods[t-1], periods[t], isolates.remove = F) 
+    # ## 3. Set Covariates for updated Period Network
+    nl[[t]] <- aaf$setCovariates(nl[[t]], periods[t-1], periods[t],
                                  acq=cb$co_acq,br=cb$co_br,rou=cb$co_rou,ipo=cb$co_ipo,
                                  coop=coop)
+    if (vcount(g.d.sub) > 1000) {
+      file.rds <- sprintf('firm_nets_rnr/%s_d%d_y%s.rds',name_i,d,periods[t-1])
+      saveRDS(nl[[t]], file = file.rds)
+    }
   }
   
   ## ----drop null and skipped periods----
@@ -103,12 +113,12 @@ for (i in 1:length(firms.todo)) {
     names(nl) <- periods[2:length(periods)]
   }
   
-  ## ---------- add LAGS ----------------
-  if (length(nl) > 1) {
-    for (t in 2:length(nl)) { 
-      nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
-    }
-  }
+  # ## ---------- add LAGS ----------------
+  # if (length(nl) > 1) {
+  #   for (t in 2:length(nl)) { 
+  #     nl[[t]] %n% 'DV_lag' <- nl[[t-1]][,]
+  #   }
+  # }
   
   ##--------------- GET TERGM NETS LIST -----------
   ## only nets with edges > 0
@@ -127,10 +137,34 @@ for (i in 1:length(firms.todo)) {
 }
 
 
+## get focal firm distances to specific firms over time
+gs = lapply(nets,asIgraph)
+g = gs[[length(gs)]]
+co.idx <- which(
+  grepl('content and publishing',V(g.full)$category_group_list) 
+  & !(V(g.full)$employee_count %in% c('NA','-','1-10','11-50','51-100'))
+)
+co.names <- V(g.full)$name[co.idx]
+ds1 = sapply(gs[1:10],function(g)igraph::distances(g, v = which(V(g)$vertex.names=='facebook'),
+                                            to = V(g)[V(g)$vertex.names %in% co.names]))
+ds2 = t(igraph::distances(gs[[11]], 
+                        v = which(V(gs[[11]])$vertex.names=='facebook'),
+                        to = which(V(gs[[11]])$vertex.names %in% co.names)))
+ds = cbind(ds1,ds2)
+colnames(ds) <- names(gs)
+rownames(ds) <- V(gs[[2]])$vertex.names[V(gs[[2]])$vertex.names %in% co.names]
+
+row.names(ds) = V(g)$vertex.names[V(g)$vertex.names %in% co.names]
+print(ds)
+
+igraph::distances(g.full, V(g.full)[V(g.full)$name=='facebook'],V(g.full)[V(g.full)$name=='hearstcorporation'])
+
+## get cb category coverage
+cgl = unique(c(str_split(V(g)$category_group_list,'[|]',simplify = T)))
+cl = unique(c(str_split(V(g)$category_list,'[|]',simplify = T)))
+
+
 # load('netrisk_dynamic_firm_nets.RData')
-
-
-
 
 # # ADD CONSTRAINT NODE PROPERTY
 # for (t in 1:length(nets)) {

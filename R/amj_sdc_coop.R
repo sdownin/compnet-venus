@@ -13,18 +13,19 @@ library(stringdist)
 library(lubridate)
 
 ## DIRECTORIES
-cb$data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-cb$work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
+data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2/SDC_data"
+work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2"
 
 ## SET WORING DIR
-setwd(cb$work_dir)
+setwd(work_dir)
 
 ## LOAD AND PREP CRUNCHBASE DATA IF NOT IN MEMORY
 if(!('cb' %in% ls())) 
   source(file.path(getwd(),'R','amj_cb_data_prep.R'))
 
 ## CACHE ENVIRONMENT to keep when clearing tmp objects added here
-.ls <- ls()
+## excluding directory variables ending in `_dir`
+.ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
 ## CrunchBase-Compustat name mapping
 namemap.filename <- 'amj_cb_cs_name_map.csv'
@@ -47,47 +48,66 @@ cat('\nloading SDC cooperative relations data...')
 ##===============================
 ## Functions
 ##-------------------------------
-
+## none
 
 
 
 
 ##===============================
-## SDC cooperative relations 
+## SDC COOPERATIVE RELATIONS DATA
+##  - after preprocessing by 
+##     split_sdc_relations.py script
 ##-------------------------------
 
-sdc <- cb$readCsv('SDC_data/awareness_583_software_2008-2018_SIC_report_cusip_7-SPLIT1527140852.csv')
+## SET REQUIRED COLUMNS IN SDC DATAFRAMES 
+## TO BE USED IN MATCHING AGAINST CRUNCHBASE COMPANIES
+req.cols <- c(
+  'participant_parent_cusip',
+  'parti_cusip',
+  'ultimate_parent_cusip',
+  'participant_ultimate_parent_cusip'
+)
+
+## LOAD SDC DATAFRAMES
+sdc.files <- dir(data_dir)[grep('.*SPLIT[\\d]{9,11}.csv$', dir(data_dir), perl = T)]
+.ldf <- list()
+.cols <- c()
+for (sdc.file in sdc.files) {
+  .ldf[[sdc.file]] <- cb$readCsv(file.path(data_dir, sdc.file))
+  ## keep only intersection of columns from all 
+  if(length(.cols)==0) {
+    .cols <- names(.ldf[[sdc.file]])
+  } else {
+    .cols <- intersect(.cols, names(.ldf[[sdc.file]]))
+  }
+}
+
+## combine all sdc files
+sdc <- data.frame()
+for (key in names(.ldf)) {
+  sdc <- rbind(sdc, .ldf[[key]][,.cols])
+}
+
+
 # cusip.cols <- names(sdc)[grep('cusip',names(sdc))]
 
 ## COMPUSTAT CUSIP CODE SUBSTRING 6 to MATHCH
 cb$co$company_cusip_6 <- substr(cb$co$company_cusip, 1, 6)
 
-
 ## use only the crunchbase companies that have a matched cusip
 tmp.co <- cb$co[!is.na(cb$co$company_cusip_6),c('company_uuid','company_cusip_6')]
 
-names(tmp.co)[1] <- c('company_uuid_from_participant_parent_cusip')
-# tmp.sdc <- sdc[,c('participant_parent_cusip','id')]
-sdc <- merge(x=sdc, y=tmp.co, by.x='participant_parent_cusip', by.y='company_cusip_6', all.x=T, all.y=F)
+## MERGE IN CRUNCHBASE COMPANY UUIDs FROM ALL CUSIP COLUMNS LISTED ABOVE
+uuid.col.names <- c()
+for (i in 1:length(req.cols)) {
+  req.col <- req.cols[i]
+  req.col.uuid <- sprintf('company_uuid_from_%s',req.col)
+  uuid.col.names <- c(uuid.col.names, req.col.uuid)
+  names(tmp.co)[1] <- req.col.uuid
+  sdc <- merge(x=sdc, y=tmp.co, by.x=req.col, by.y='company_cusip_6', all.x=T, all.y=F)
+}
 
-names(tmp.co)[1] <- c('company_uuid_from_parti_cusip')
-# tmp.sdc <- sdc[,c('parti_cusip','id')]
-sdc <- merge(x=sdc, y=tmp.co, by.x='parti_cusip', by.y='company_cusip_6', all.x=T, all.y=F)
-
-names(tmp.co)[1] <- c('company_uuid_from_ultimate_parent_cusip')
-# tmp.sdc <- sdc[,c('ultimate_parent_cusip','id')]
-sdc <- merge(x=sdc, y=tmp.co, by.x='ultimate_parent_cusip', by.y='company_cusip_6', all.x=T, all.y=F)
-
-names(tmp.co)[1] <- c('company_uuid_from_participant_ultimate_parent_cusip')
-# tmp.sdc <- sdc[,c('participant_ultimate_parent_cusip','id')]
-sdc <- merge(x=sdc, y=tmp.co, by.x='participant_ultimate_parent_cusip', by.y='company_cusip_6', all.x=T, all.y=F)
-
-
-uuid.col.names <- c('company_uuid_from_participant_parent_cusip',
-                    'company_uuid_from_parti_cusip',
-                    'company_uuid_from_ultimate_parent_cusip',
-                    'company_uuid_from_participant_ultimate_parent_cusip')
-
+## REDUCE ALL CB UUIDS TO ONE company_uuid COLUMN
 sdc$company_uuid <- apply(sdc[,uuid.col.names],1,function(x){
     xna <- na.omit(x)
     if (length(xna)==0) return(NA)
