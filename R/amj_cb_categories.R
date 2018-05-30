@@ -14,7 +14,15 @@ source(file.path(getwd(),'R','amj_awareness_functions.R'))
 full.graph.file <- 'g_full.graphml'
 
 ## focal firm nets
-nets <- readRDS('firm_nets_rnr/qualtrics_d3-prev.rds')
+nets <- readRDS('firm_nets_rnr/hearstcorporation_d3.rds')
+gs <- list()
+for (yr in names(nets)) {
+  gs[[yr]] <- asIgraph(nets[[yr]])
+  nets[[yr]] = NULL
+  gc()
+}
+
+sapply(gs,vcount)
 
 ## use latest year
 net <- nets[[length(nets)]]

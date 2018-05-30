@@ -28,11 +28,11 @@ source(file.path(getwd(),'R','amj_sdc_coop.R'))
 ## graph filename
 full.graph.file <- 'g_full.graphml'
 
-## make full graph if  not exists in working directory
-if ( !(full.graph.file %in% dir()) ) {
-  source(file.path(getwd(),'R','amj_make_full_graph.R')) 
-} else {
+## load full graph, else make full graph if not exists in working directory
+if (full.graph.file %in% dir()) {
   g.full <- read.graph(full.graph.file, format='graphml')
+} else {
+  source(file.path(getwd(),'R','amj_make_full_graph.R')) 
 }
 
 
@@ -48,8 +48,13 @@ if (!('acquiree_vid' %in% names(cb$co_acq))) {
 }
 
 
+
+
 ## set firms to create networks (focal firm or replication study focal firms)
-firms.todo <- c('facebook') 
+firms.todo <- c('qualtrics')
+# firms.todo <- c('facebook')
+# firms.todo <- c('fox-business-network','cnnmoney','bloomberg',
+#                 'hearstcorporation','newscorporation')
 
 ## -- settings --
 d <- 3
@@ -58,8 +63,12 @@ startYr <- 2005
 endYr <- 2017  ## dropping first for memory term; actual dates 2007-2016
 ## --------------  
 
+
+##
 ## run main network period creation loop
+##
 for (i in 1:length(firms.todo)) {
+# for (i in 1:2) {
 
   name_i <- firms.todo[i]
   cat(sprintf('\n---------%s----------\n',name_i))
@@ -70,10 +79,6 @@ for (i in 1:length(firms.todo)) {
   ## focal firm ego network sample
   g.d.sub <- igraph::make_ego_graph(graph = g.base, nodes = V(g.base)[V(g.base)$name==name_i], order = d, mode = 'all')[[1]]
   
-  ## subset to firms with employees count > 10
-  idx.employee <- which( !(V(g.d.sub)$employee_count %in% c('1-10','NA','-')) )
-  g.d.sub <- igraph::induced.subgraph(g.d.sub, vids = V(g.d.sub)[idx.employee])
-  
   ## convert to network object
   net.d.sub <- asNetwork(g.d.sub)
   net <- net.d.sub
@@ -83,9 +88,16 @@ for (i in 1:length(firms.todo)) {
   acqs.pd <- cb$co_acq[cb$co_acq$acquired_on <= sprintf('%d-12-31',startYr-1), ]
   g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, verbose = T)
   net.d.sub <- asNetwork(g.d.sub)
+  cat(sprintf('v = %d, e = %d\n',vcount(g.d.sub),ecount(g.d.sub)))
+  
+  # ## subset to firms with employees count > 10
+  # idx.employee <- which( !(V(g.d.sub)$employee_count %in% c('NA','-','1-10')) )
+  # g.d.sub <- igraph::induced.subgraph(g.d.sub, vids = V(g.d.sub)[idx.employee])
+  # cat(sprintf('filtered >10 employee count: v = %d, e = %d\n',vcount(g.d.sub),ecount(g.d.sub)))
   
   ##------------Network Time Period List--------------------
   nl <- list()
+  
   for (t in 2:length(periods)) {
     cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
     t1 <- sprintf('%d-01-01',periods[t-1])
@@ -95,7 +107,7 @@ for (i in 1:length(firms.todo)) {
     g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, verbose = T)
     ## 2. Subset Period Network
     nl[[t]] <- aaf$makePdNetwork(asNetwork(g.d.sub), periods[t-1], periods[t], isolates.remove = F) 
-    # ## 3. Set Covariates for updated Period Network
+    ## 3. Set Covariates for updated Period Network
     nl[[t]] <- aaf$setCovariates(nl[[t]], periods[t-1], periods[t],
                                  acq=cb$co_acq,br=cb$co_br,rou=cb$co_rou,ipo=cb$co_ipo,
                                  coop=coop)
@@ -128,6 +140,8 @@ for (i in 1:length(firms.todo)) {
     nets.all <- nl
   }
   nets <- nets.all[ which(sapply(nets.all, aaf$getNetEcount) > 0) ]
+  ## record network sizes
+  write.csv(sapply(nets,function(x)length(x$val)), file = sprintf('firm_nets_rnr/%s_d%s.csv',name_i,d))
   #-------------------------------------------------
   
   ## CAREFUL TO OVERWRITE 
@@ -137,25 +151,39 @@ for (i in 1:length(firms.todo)) {
 }
 
 
+
+
+
+
+
 ## get focal firm distances to specific firms over time
-gs = lapply(nets,asIgraph)
+net.yrs <- 2007:2016
+gs <- list()
+for (yr in net.yrs) {
+  gs[[as.character(yr)]] <- asIgraph(readRDS(file.path('firm_nets_rnr',sprintf('facebook_d3_y%d.rds',yr))))
+}
+
+
 g = gs[[length(gs)]]
+
 co.idx <- which(
   grepl('content and publishing',V(g.full)$category_group_list) 
   & !(V(g.full)$employee_count %in% c('NA','-','1-10','11-50','51-100'))
 )
-co.names <- V(g.full)$name[co.idx]
-ds1 = sapply(gs[1:10],function(g)igraph::distances(g, v = which(V(g)$vertex.names=='facebook'),
+co.names <- c(V(g.full)$name[co.idx],'amazon','aws')
+ds = sapply(gs[2:10],function(g)igraph::distances(g, v = which(V(g)$vertex.names=='facebook'),
                                             to = V(g)[V(g)$vertex.names %in% co.names]))
-ds2 = t(igraph::distances(gs[[11]], 
-                        v = which(V(gs[[11]])$vertex.names=='facebook'),
-                        to = which(V(gs[[11]])$vertex.names %in% co.names)))
-ds = cbind(ds1,ds2)
-colnames(ds) <- names(gs)
+# ds2 = t(igraph::distances(gs[[11]], 
+#                         v = which(V(gs[[11]])$vertex.names=='facebook'),
+#                         to = which(V(gs[[11]])$vertex.names %in% co.names)))
+# ds = cbind(ds1,ds2)
+# colnames(ds) <- names(gs)
 rownames(ds) <- V(gs[[2]])$vertex.names[V(gs[[2]])$vertex.names %in% co.names]
 
 row.names(ds) = V(g)$vertex.names[V(g)$vertex.names %in% co.names]
 print(ds)
+
+write.csv(ds, "facebook_news_dist_2008-2016_d3.csv")
 
 igraph::distances(g.full, V(g.full)[V(g.full)$name=='facebook'],V(g.full)[V(g.full)$name=='hearstcorporation'])
 

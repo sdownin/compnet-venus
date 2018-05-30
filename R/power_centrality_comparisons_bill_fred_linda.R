@@ -82,14 +82,35 @@ font <- 17
 legcex <- 1
 nodeNames <- c('Bill','Fred','Linda')
 layoutFunction <- layout.kamada.kawai
-beta <- '0.1'
+#
+beta <- '-0.4'
 plot.igraph(gx, layout=layoutFunction,
             vertex.size = map(df.pow[,beta]),
             vertex.label.cex = map(df.pow[,beta],min = .8,max = 1.6),
-            main=expression('Adverse Power Centrality ('*beta*' = -0.1)'),
+            main=sprintf('Power Centrality (beta = %s)',beta),
             vertex.color=sapply(rownames(df.pow),function(name)ifelse(name %in% nodeNames, 'pink', 'gray')),
             vertex.label.color=sapply(rownames(df.pow),function(name)ifelse(name %in% nodeNames, 'darkred','black')),
             vertex.label.font=font)
 
 
-
+### comparison
+par(mfrow=c(1,2), mar=c(0,0,3,0))
+nodes <- c('Fred',as.character(4:15))
+gx2 <- igraph::induced.subgraph(gx, V(gx)[V(gx)$name %in% nodes])
+df.pow2 <- df.pow[row.names(df.pow) %in% nodes,]
+beta <- '0.4'
+plot.igraph(gx2, layout=layoutFunction,
+            vertex.size = map(df.pow2[,beta]),
+            vertex.label.cex = map(df.pow2[,beta],min = .8,max = 1.6),
+            main=sprintf('Cooperative Power Centrality\n(beta = %s)',beta),
+            vertex.color=sapply(rownames(df.pow2),function(name)ifelse(name %in% nodeNames, 'pink', 'gray')),
+            vertex.label.color=sapply(rownames(df.pow2),function(name)ifelse(name %in% nodeNames, 'darkred','black')),
+            vertex.label.font=font)
+beta <- '-0.4'
+plot.igraph(gx2, layout=layoutFunction,
+            vertex.size = map(df.pow2[,beta]),
+            vertex.label.cex = map(df.pow2[,beta],min = .8,max = 1.6),
+            main=sprintf('Adversarial Power Centrality\n(beta = %s)',beta),
+            vertex.color=sapply(rownames(df.pow2),function(name)ifelse(name %in% nodeNames, 'pink', 'gray')),
+            vertex.label.color=sapply(rownames(df.pow2),function(name)ifelse(name %in% nodeNames, 'darkred','black')),
+            vertex.label.font=font)

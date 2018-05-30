@@ -101,6 +101,23 @@ aaf$generalistIndex <- function(g, memberships)
 }
 
 ##
+# Computes the Number of competitors' clusters as proxy for Jobs To BE Done
+# for an igraph with given cluster memberships
+# values bounded between 0 and K (for K clusters in the memberships)
+# @param [igraph] g   The igraph object
+# @param [int[]] memberships  The vector of integers representing cluster memberships
+# @return [float[]] The generalist index vector [float[]]
+##
+aaf$jobsToBeDone <- function(g, memberships)
+{
+  if (class(g) != 'igraph') stop("g must be an igraph object")
+  adj <- igraph::get.adjacency(g, sparse = T)
+  return(apply(adj, 1, function(x){
+    length(unique(memberships[which(x==1)])) ## cluster memberships of competitors (which cols==1) for this node (row x)
+  }))
+}
+
+##
 # Returns the vector of firm-branch regions, each concatenated as a character string (separated by pipes "|")
 # @see setCovariates(), .covMmc()
 # @param [dataframe] df   The firm-branch dataframe
@@ -166,10 +183,10 @@ aaf$coopConcatDf <- function(df, drop=FALSE, ...)
 }
 
 ##
-# Returns the MMC value between two firms based on their firm branch regions
+# Returns the cooperative relations between two firms 
 # @see setCovariates(), .covMmc()
-# @param [character] x   The concatenated markets, eg, 'USA_CA|USA_NY|ARG_9'
-# @param [character] y   The concatenated markets, eg, 'USA_CA|USA_NY|ARG_9'
+# @param [character] x   The concatenated relations 
+# @param [character] y   The concatenated relations
 # @return [float]
 ##
 aaf$coopFromConcat <- function(x,y)
@@ -431,6 +448,13 @@ aaf$.cov.generalistIndex <- function(net)
   net %v% 'genidx_fastgreedy'  <- aaf$generalistIndex(g, net %v% 'com_fastgreedy' )
   net %v% 'genidx_edgebetween' <- aaf$generalistIndex(g, net %v% 'com_edgebetween' )
   net %v% 'genidx_labelprop'   <- aaf$generalistIndex(g, net %v% 'com_labelprop' )
+  ## Count of competitor's niche clusters == 'Jobs to be done' proxy
+  net %v% 'njobs_multilevel'  <- aaf$jobsToBeDone(g, net %v% 'com_multilevel' )
+  net %v% 'njobs_infomap'     <- aaf$jobsToBeDone(g, net %v% 'com_infomap' )
+  net %v% 'njobs_walktrap'    <- aaf$jobsToBeDone(g, net %v% 'com_walktrap' )
+  net %v% 'njobs_fastgreedy'  <- aaf$jobsToBeDone(g, net %v% 'com_fastgreedy' )
+  net %v% 'njobs_edgebetween' <- aaf$jobsToBeDone(g, net %v% 'com_edgebetween' )
+  net %v% 'njobs_labelprop'   <- aaf$jobsToBeDone(g, net %v% 'com_labelprop' )
   return(net)
 }
 
