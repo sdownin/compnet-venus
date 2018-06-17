@@ -51,15 +51,15 @@ if (!('acquiree_vid' %in% names(cb$co_acq))) {
 
 
 ## set firms to create networks (focal firm or replication study focal firms)
-firms.todo <- c('qualtrics')
+# firms.todo <- c('qualtrics')
 # firms.todo <- c('facebook')
-# firms.todo <- c('fox-business-network','cnnmoney','bloomberg',
-#                 'hearstcorporation','newscorporation')
+firms.todo <- c('cnnmoney','fox-business-network','bloomberg',
+                'hearstcorporation','newscorporation')
 
 ## -- settings --
 d <- 3
 yrpd <- 1
-startYr <- 2005
+startYr <- 2013 # 2005
 endYr <- 2017  ## dropping first for memory term; actual dates 2007-2016
 ## --------------  
 
@@ -98,19 +98,20 @@ for (i in 1:length(firms.todo)) {
   ##------------Network Time Period List--------------------
   nl <- list()
   
-  for (t in 2:length(periods)) {
+  for (t in 2:length(periods)) 
+  {
     cat(sprintf('\nmaking period %s-%s:\n', periods[t-1],periods[t]))
-    t1 <- sprintf('%d-01-01',periods[t-1])
-    t2 <- sprintf('%d-12-31',periods[t-1])
+    t1 <- sprintf('%d-01-01',periods[t-1]) ## inclusive start date 'YYYY-MM-DD'
+    t2 <- sprintf('%d-12-31',periods[t-1]) ## inclusive end date 'YYYY-MM-DD'
     ## 1. Node Collapse acquisitions within period
     acqs.pd <- cb$co_acq[cb$co_acq$acquired_on >= t1 & cb$co_acq$acquired_on <= t2, ]
     g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, verbose = T)
     ## 2. Subset Period Network
     nl[[t]] <- aaf$makePdNetwork(asNetwork(g.d.sub), periods[t-1], periods[t], isolates.remove = F) 
-    ## 3. Set Covariates for updated Period Network
-    nl[[t]] <- aaf$setCovariates(nl[[t]], periods[t-1], periods[t],
-                                 acq=cb$co_acq,br=cb$co_br,rou=cb$co_rou,ipo=cb$co_ipo,
-                                 coop=coop)
+    # ## 3. Set Covariates for updated Period Network
+    # nl[[t]] <- aaf$setCovariates(nl[[t]], periods[t-1], periods[t],
+    #                              acq=cb$co_acq,br=cb$co_br,rou=cb$co_rou,ipo=cb$co_ipo,
+    #                              coop=coop)
     if (vcount(g.d.sub) > 1000) {
       file.rds <- sprintf('firm_nets_rnr/%s_d%d_y%s.rds',name_i,d,periods[t-1])
       saveRDS(nl[[t]], file = file.rds)

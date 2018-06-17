@@ -600,8 +600,8 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
       acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid'] ## acquiree's vids
       acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)] ## filter acquiree's vids to those in subgraph
       if (length(acqe.vids) > 0) { ##replace current g vid of acquiree with current graph vid of acquirer by orig.vid property
-        acqr.g.i <- as.integer( V(g)[ which(V(g)$orig.vid == acqr.i) ] )
-        acqe.g.vids <- sapply(acqe.vids, function(x)as.integer(V(g)[which(V(g)$orig.vid == x)]))
+        acqr.g.i <- which(V(g)$orig.vid == acqr.i)
+        acqe.g.vids <- sapply(acqe.vids, function(x)which(V(g)$orig.vid == x))
         acqMapping[  which( as.integer(V(g)) %in% acqe.g.vids ) ] <- as.integer(acqr.g.i)  ## assign acquirer's vid to value in acquiree's spots
       }
     }
@@ -638,10 +638,19 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
     ##---------------------- COLLAPSE NODES ---------------------------------
     if (verbose) cat('contracting vertices ')
     g.acq <- igraph::contract.vertices(g, acqMappingSub, vertex.attr.comb=vertex.attr.comb)
+    ## reassign name & attributes of acquired company to empty node (which was acquired)
+    g.attrs <- igraph::list.vertex.attributes(g)
+    g.acq.attrs <- igraph::list.vertex.attributes(g.acq)
+    vAttrs <- g.acq.attrs[g.acq.attrs %in% g.attrs]
+    for (vid in acqe.g.vids) {
+      for (attr in vAttrs) {
+        g.acq <- igraph::set.vertex.attribute(g.acq, attr, vid, igraph::get.vertex.attribute(g,attr,vid))
+      }
+    }
     
     ## remove nodes that were acquired (had no remaining edges : degree=0)
     if (verbose) cat('inducing subgraph ')
-    g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0))
+    # ##g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0)) ## ERROR: keep empty vertices for  same size TERGM panels
     V(g.acq)$name <- V(g.acq)$tmp.name
     V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
     
