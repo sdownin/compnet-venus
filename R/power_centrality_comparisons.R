@@ -40,20 +40,22 @@ g1 <- igraph::graph.data.frame(data.frame(
 ), directed=F)
 
 
+
 ##=============================================================
 ##            Power Centrality
 ##-------------------------------------------------------------
 ## compute power centralities for range of beta values
-betas <- c('-3'=-3,'-2'=-2,'-1.5'=-1.5,'-0.5'=-0.5,'0.5'=0.5,'1.5'=1.5,'2'=2,'3'=3)
+betas <- c('-.5'=-.5,'-.4'=-.4,'-.3'=-.3,'-.2'=-.2,'-.1'=-.1,
+           '0.1'=.1,'0.2'=.2,'0.3'=.3,'0.4'=.4,'0.5'=.5)
 df.pow <- as.data.frame(sapply(betas, function(x)power(g1, x)))
 print(df.pow)
 
 ## check centrality
 a <- 1.1962  ## approximated, computed implicitly so that [sum of squares of centralities] = N
-b <- -1.5
+b <- -0.5
 Y <- igraph::as_adjacency_matrix(g1, sparse=F)
-I <- diag(nrow(adjmat))
-ones <- rep(1,nrow(adjmat))
+I <- diag(nrow(Y))
+ones <- rep(1,nrow(Y))
 pow.cent.manual <-  a * solve(I - b*Y) %*% (Y %*% ones)
 print(pow.cent.manual)
 
@@ -84,7 +86,7 @@ ggplot(df.pow.l, aes(node, variable)) +
 ##            Plot Network with Power Centrality
 ##-------------------------------------------------------------
 ## save plot to file
-filename <- file.path(img_dir, sprintf('power_centrality_compare_7.png'))
+filename <- file.path(img_dir, sprintf('power_centrality_compare_8.png'))
 png(filename,height=5.5,width=9,units='in',res=250)
     ##--------------- begin plot --------------------------------------
     par(mfrow=c(2,3))
@@ -97,22 +99,22 @@ png(filename,height=5.5,width=9,units='in',res=250)
     layoutFunction <- layout.kamada.kawai
     ##---------------------------------- DISTANT NETWORK EFFECT ----------------------------------
     ###### ADVERSARIAL NETWORK 
-    beta <- '-1.5'
+    beta <- '-.5'
     par(mar=c(0,0,1.2,0)); set.seed(SEED)
     plot.igraph(g1,  layout=layoutFunction,
                 vertex.size = map(df.pow[,beta]), 
                 vertex.label.cex = map(df.pow[,beta],min = .8,max = 1.6),
-                main=expression('Adversarial Power Centrality ('*beta*' = -1.5)'),
+                main=expression('Adversarial Power Centrality ('*beta*' = -.5)'),
                 vertex.color=sapply(rownames(df.pow),function(name)ifelse(name %in% c('i','j','k'), 'pink', 'gray')), 
                 vertex.label.color=sapply(rownames(df.pow),function(name)ifelse(name %in% c('i','j','k'), 'darkred', 'black')),
                 vertex.label.font=font)
     ####### COLLABORATIVE NETWORK 
     par(mar=c(0,0,1.2,0)); set.seed(SEED)
-    beta <- '1.5'
+    beta <- '0.5'
     plot.igraph(g1, layout=layoutFunction,
                 vertex.size = map(df.pow[,beta]), 
                 vertex.label.cex = map(df.pow[,beta],min = .8,max = 1.6),
-                main=expression('Collaborative Power Centrality ('*beta*' = 1.5)'),
+                main=expression('Collaborative Power Centrality ('*beta*' = 0.5)'),
                 vertex.color=sapply(rownames(df.pow),function(name)ifelse(name %in% nodeNames, 'pink', 'gray')), 
                 vertex.label.color=sapply(rownames(df.pow),function(name)ifelse(name %in% nodeNames, 'darkred','black')),
                 vertex.label.font=font)
@@ -133,22 +135,22 @@ png(filename,height=5.5,width=9,units='in',res=250)
     legend('topright',legend=betaNames, title="Beta",fill=rep(colors,3), cex=legcex)
     ###---------------------------------- LOCAL NETWORK EFFECT ----------------------------------
     ###### ADVERSARIAL NETWORK 
-    beta <- '-0.5'
+    beta <- '-.3'
     par(mar=c(0,0,1.2,0)); set.seed(SEED)
     plot.igraph(g1,  layout=layoutFunction,
                 vertex.size = map(df.pow[,beta]), 
                 vertex.label.cex = map(df.pow[,beta],min = .8,max = 1.6),
-                main=expression('Adversarial Power Centrality ('*beta*' = -0.5)'),
+                main=expression('Adversarial Power Centrality ('*beta*' = -.3)'),
                 vertex.color=sapply(rownames(df.pow),function(name)ifelse(name %in% nodeNames, 'pink', 'gray')), 
                 vertex.label.color=sapply(rownames(df.pow),function(name)ifelse(name %in% nodeNames, 'darkred', 'black')),
                 vertex.label.font=font)
     ####### COLLABORATIVE NETWORK 
     par(mar=c(0,0,1.2,0)); set.seed(SEED)
-    beta <- '0.5'
+    beta <- '0.3'
     plot.igraph(g1, layout=layoutFunction,
                 vertex.size = map(df.pow[,beta]), 
                 vertex.label.cex = map(df.pow[,beta],min = .8,max = 1.6),
-                main=expression('Collaborative Power Centrality ('*beta*' = 0.5)'),
+                main=expression('Collaborative Power Centrality ('*beta*' = 0.3)'),
                 vertex.color=sapply(rownames(df.pow),function(name)ifelse(name %in% nodeNames, 'pink', 'gray')), 
                 vertex.label.color=sapply(rownames(df.pow),function(name)ifelse(name %in% nodeNames, 'darkred','black')),
                 vertex.label.font=font)
