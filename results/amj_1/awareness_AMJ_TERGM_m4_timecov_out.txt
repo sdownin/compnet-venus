@@ -1,0 +1,74 @@
+
+
+##------ Wed Mar 14 00:24:39 2018 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 4 cores
+
+
+##------ Mon Apr  2 18:48:56 2018 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 4 cores
+                  t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)        583 583 583 583 583 583
+nets (col)        583 583 583 583 583 583
+mmc (row)         583 583 583 583 583 583
+mmc (col)         583 583 583 583 583 583
+memory (row)      583 583 583 583 583 583
+memory (col)      583 583 583 583 583 583
+timecov (row)     583 583 583 583 583 583
+timecov (col)     583 583 583 583 583 583
+timecov.pow (row) 583 583 583 583 583 583
+timecov.pow (col) 583 583 583 583 583 583
+timecov.mmc (row) 583 583 583 583 583 583
+timecov.mmc (col) 583 583 583 583 583 583
+                  t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)        583 583 583 583 583 583
+nets (col)        583 583 583 583 583 583
+mmc (row)         583 583 583 583 583 583
+mmc (col)         583 583 583 583 583 583
+memory (row)      583 583 583 583 583 583
+memory (col)      583 583 583 583 583 583
+timecov (row)     583 583 583 583 583 583
+timecov (col)     583 583 583 583 583 583
+timecov.pow (row) 583 583 583 583 583 583
+timecov.pow (col) 583 583 583 583 583 583
+timecov.mmc (row) 583 583 583 583 583 583
+timecov.mmc (col) 583 583 583 583 583 583
+finished successfully.
+
+##------ Wed Mar 14 12:48:12 2018 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 4 cores
+                  t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)        583 583 583 583 583 583
+nets (col)        583 583 583 583 583 583
+mmc (row)         583 583 583 583 583 583
+mmc (col)         583 583 583 583 583 583
+memory (row)      583 583 583 583 583 583
+memory (col)      583 583 583 583 583 583
+timecov (row)     583 583 583 583 583 583
+timecov (col)     583 583 583 583 583 583
+timecov.pow (row) 583 583 583 583 583 583
+timecov.pow (col) 583 583 583 583 583 583
+timecov.mmc (row) 583 583 583 583 583 583
+timecov.mmc (col) 583 583 583 583 583 583
+                  t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)        583 583 583 583 583 583
+nets (col)        583 583 583 583 583 583
+mmc (row)         583 583 583 583 583 583
+mmc (col)         583 583 583 583 583 583
+memory (row)      583 583 583 583 583 583
+memory (col)      583 583 583 583 583 583
+timecov (row)     583 583 583 583 583 583
+timecov (col)     583 583 583 583 583 583
+timecov.pow (row) 583 583 583 583 583 583
+timecov.pow (col) 583 583 583 583 583 583
+timecov.mmc (row) 583 583 583 583 583 583
+timecov.mmc (col) 583 583 583 583 583 583
+finished successfully.

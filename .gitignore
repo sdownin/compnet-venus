@@ -5,13 +5,13 @@
 *.xls
 *.jpg
 *.jpeg
-*.csv
-*.zip
-*.tar
-*.gz
-*.bz
+*.csv*
+*.zip*
+*.tar*
+*.gz*
+*.bz*
 *.pdf
-*.tmp
+*.tmp*
 *.ppt
 *.pptx
 *.RData
@@ -26,6 +26,7 @@
 *.luu
 *.rhes
 *.shess
+*.swp*
 glmmadmb/*
 
 # CPython bitcode cache
