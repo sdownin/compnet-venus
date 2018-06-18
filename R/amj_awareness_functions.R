@@ -238,9 +238,12 @@ aaf$.cov.coop <- function(net, coop, company_uuids, end, ...)
   
   cat('computing current cooperative relations outerproduct matrix...')
   coop.outer <- outer(df.m$concat, df.m$concat, Vectorize(aaf$coopFromConcat))
+  coop.outer.m <- as.matrix(coop.outer)
+  ## remove diagonal total (firm can't  have self-alliance)
+  diag(coop.outer.m) <- 0
   cat('done.\n')
   
-  return(as.matrix(coop.outer))
+  return(coop.outer.m)
 }
 
 ##
@@ -278,9 +281,12 @@ aaf$.cov.coopPast <- function(net, coop, company_uuids, start, ...)
   
   cat('computing past cooperative relations outerproduct matrix...')
   coop.outer <- outer(df.m$concat, df.m$concat, Vectorize(aaf$coopFromConcat))
+  coop.outer.m <- as.matrix(coop.outer)
+  ## remove diagonal total (firm can't  have self-alliance)
+  diag(coop.outer.m) <- 0
   cat('done.\n')
   
-  return(as.matrix(coop.outer))
+  return(coop.outer.m)
 }
 
 
@@ -570,7 +576,7 @@ aaf$setCovariates <- function(net, start, end,
 # @param [bool] verbose             A flag to echo stutus updates
 # @return [igraph] 
 ##
-aaf$nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
+aaf$nodeCollapseGraph <- function(g, acquisitions, remove.isolates=FALSE, verbose=FALSE)
 {
   if (class(g) != 'igraph') stop("g must be an igraph object")
   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
@@ -648,9 +654,11 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, verbose = FALSE)
       }
     }
     
-    ## remove nodes that were acquired (had no remaining edges : degree=0)
-    if (verbose) cat('inducing subgraph ')
-    # ##g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0)) ## ERROR: keep empty vertices for  same size TERGM panels
+    ## remove nodes that were acquired (had no remaining edges : degree=0) if flag is TRUE
+    if (remove.isolates) {
+      if (verbose) cat('removing isolates... ')
+      g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0)) ## ERROR: keep empty vertices for  same size TERGM panels
+    }
     V(g.acq)$name <- V(g.acq)$tmp.name
     V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
     
