@@ -55,8 +55,8 @@ if (!('acquiree_vid' %in% names(cb$co_acq))) {
 
 
 ## set firms to create networks (focal firm or replication study focal firms)
-firms.todo <- c('qualtrics')
-firms.todo <- c('abroad101','checkmarket','clarabridge','cloudcherry',
+firms.todo <- c('qualtrics',
+                'abroad101','checkmarket','clarabridge','cloudcherry',
                 'confirmit','customergauge','cx-index','empathica',
                 'feedback-lite','first-mile-geo','getfeedback',
                 'inqwise','leaderamp', 'medallia','myfeelback',
@@ -75,7 +75,7 @@ d <- 3
 yrpd <- 1
 startYr <- 2005
 endYr <- 2017            ## dropping first for memory term; actual dates 2007-2016
-lg.cutoff <- 1000        ## large network size cutoff to save periods seprately 
+lg.cutoff <- 1100        ## large network size cutoff to save periods seprately 
 force.overwrite <- FALSE ## if network files in directory should be overwritten
 ## --------------  
 

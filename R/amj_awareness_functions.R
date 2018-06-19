@@ -322,14 +322,19 @@ aaf$.cov.mmc <- function(br, firms, end, ...)
     if (!(col %in% names(br))) stop(sprintf('br dataframe missing attribute `%s`', col))
   }
   brsub <- br[which(br$company_name_unique %in% firms & br$created_year < end), ]
-  cat('concatenating firm branch markets...\n')
-  df <- aaf$mmcMarketsDf(brsub, ...)
-  tmp <- data.frame(company_name_unique=firms,stringsAsFactors = F)
-  df.m <- merge(x=tmp, y=df, by = 'company_name_unique', all.x=T, all.y=F)
-  cat('computing MMC outer product matrix...')
-  mmc <- outer(df.m$concat, df.m$concat, Vectorize(aaf$mmcfromMarketConcat))
+  if (nrow(brsub)==0) {
+    cat('no firm branches in period. creating empty mmc matrix...')
+    mmc <- matrix(0, nrow=length(firms), ncol=length(firms))
+  } else {
+    cat('concatenating firm branch markets...\n')
+    df <- aaf$mmcMarketsDf(brsub, ...)
+    tmp <- data.frame(company_name_unique=firms,stringsAsFactors = F)
+    df.m <- merge(x=tmp, y=df, by = 'company_name_unique', all.x=T, all.y=F)
+    cat('computing MMC outer product matrix...')
+    mmc <- as.matrix(outer(df.m$concat, df.m$concat, Vectorize(aaf$mmcfromMarketConcat)))
+  }
   cat('done.\n')
-  return(as.matrix(mmc))
+  return(mmc)
 }
 
 ##
