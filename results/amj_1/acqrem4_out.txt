@@ -1,0 +1,59 @@
+
+
+##------ Tue Jan  9 19:04:52 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+
+
+##------ Tue Jan  9 19:04:01 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+
+
+##------ Tue Jan  9 19:37:48 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+
+
+##------ Thu Dec 21 01:55:45 2017 ------##
+
+Computing preliminary statistics
+Fitting model
+
+
+##------ Tue Jan  9 20:18:20 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+
+
+##------ Wed Jan 10 07:00:03 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+
+
+##------ Wed Jan 10 05:23:09 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+            Estimate     Std.Err  Z value  Pr(>|z|)    
+NODSnd    0.36002878  5.83087719   0.0617  0.950766    
+CovSnd.1  4.71440627  0.68631496   6.8692 6.458e-12 ***
+CovSnd.2 -0.80460774  0.13398757  -6.0051 1.912e-09 ***
+CovSnd.3  0.19795319  0.04719756   4.1941 2.739e-05 ***
+CovSnd.4 -0.00591829  0.00440012  -1.3450  0.178616    
+CovSnd.5 -0.01062937  0.00025201 -42.1780 < 2.2e-16 ***
+CovSnd.6 -0.50808266  0.16770350  -3.0296  0.002448 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 7952.188 on 238 degrees of freedom
+	Chi-square: 249.9754 on 6 degrees of freedom, asymptotic p-value 0 
+AIC: 7966.188 AICC: 7966.662 BIC: 7990.668 
+finished successfully.

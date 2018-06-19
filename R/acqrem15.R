@@ -3,7 +3,7 @@ library(relevent)
 library(informR)
 library(texreg)
 
-mod <- '3n1'
+mod <- 15
 
 data_dir <- '/home/sdowning/data'
 results_dir <- '/home/sdowning/compnet/results'
@@ -28,17 +28,33 @@ el <- data.frame(
   stringsAsFactors = F
 )
 
-effects <- c('NODSnd', 'CovSnd') # CovRec NODSnd
-##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,    deg,          pow.n4,  
-##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
-## [11] pow.3,       pow.4,        betweenness, constraint,   founded_year
-## [16] is.public    eig
-cov.idx <- c(3,4,  8, 15,16)
+effects <- c('NODSnd', 'CovSnd', 'CovEvent') # CovRec NODSnd
+
+## SENDER COVARIATES
+##  [1] mmc.sum,     mmc.sum.sq,   			num.mkts,    deg,          	pow.n4,  
+##  [6] pow.n3,      pow.n2,       			pow.n1,      pow.1,        	pow.2,
+## [11] pow.3,       pow.4,        			betweenness, constraint,   	age,
+## [16] is.public,   (mmc.sum.sq*pow.n1), 	eig
+
+cov.idx <- c(1,2,3,4,  7, 15,16, 17)
+for(i in 1:length(ar.cov[ , 1,1] ) ) {
+    ar.cov[ i, 17, ] <- ar.cov[ i, 2, ] * ar.cov[ i, 7, ]
+}
 ar.cov.na0 <- ar.cov[ , cov.idx, ]
 ar.cov.na0[is.na(ar.cov.na0)] <- 0
+
 ##
-covar <- list(CovSnd=ar.cov.na0)
-##
+## EVENT COVARIATES
+##  [1] age difference,     ownership status homophily,		Inv.dist,    (Inv.dist * mmc.sum.sq),  
+##  ar.cov.rec
+cov.evt.idx <- c(3,4)
+ar.cov.rec0 <- ar.cov.rec[ , cov.evt.idx, , ]
+ar.cov.rec0[is.na(ar.cov.rec0)] <- 0
+
+## covariate list
+covar <- list(CovSnd=ar.cov.na0, CovEvent=ar.cov.rec0)
+
+## fit model
 fit <- rem.dyad(edgelist = el, n = nrow(df.verts), effects = effects, ordinal = F, 
                 covar = covar, fit.method = "BPM", gof=F, hessian = T, verbose = T)
 summary(fit)

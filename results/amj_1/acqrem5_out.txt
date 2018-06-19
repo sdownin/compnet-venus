@@ -1,0 +1,57 @@
+
+
+##------ Tue Jan  9 19:02:44 2018 ------##
+
+computing MMC target location interaction array...
+
+##------ Tue Jan  9 19:19:43 2018 ------##
+
+computing MMC target location interaction array...
+
+##------ Fri Dec 15 08:06:39 2017 ------##
+
+computing MMC target location interaction array...
+
+##------ Thu Dec 21 01:26:12 2017 ------##
+
+computing MMC target location interaction array...done.
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+              Estimate     Std.Err   Z value Pr(>|z|)    
+CovSnd.1   -116.835290    0.712403 -164.0016  < 2e-16 ***
+CovSnd.2     39.146161    0.247908  157.9061  < 2e-16 ***
+CovSnd.3     25.982573    0.096787  268.4512  < 2e-16 ***
+CovSnd.4    -10.207311    0.020081 -508.3141  < 2e-16 ***
+CovSnd.5     -4.422633    0.077453  -57.1006  < 2e-16 ***
+CovEvent.1    0.293587    0.127958    2.2944  0.02177 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 3035.517 on 93 degrees of freedom
+Residual deviance: 15967005 on 88 degrees of freedom
+	Chi-square: -15963969 on 5 degrees of freedom, asymptotic p-value 1 
+AIC: 15967017 AICC: 15967018 BIC: 15967032 
+finished successfully.
+
+##------ Thu Dec 21 10:45:08 2017 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+              Estimate     Std.Err    Z value  Pr(>|z|)    
+CovSnd.1   -6.4122e+01  2.3975e-01  -267.4489 < 2.2e-16 ***
+CovSnd.2   -4.4821e+01  5.2945e-02  -846.5688 < 2.2e-16 ***
+CovSnd.3    1.1177e+02          NA         NA        NA    
+CovSnd.4   -9.9156e+00  7.5171e-03 -1319.0639 < 2.2e-16 ***
+CovSnd.5    2.2830e-01  3.5835e-02     6.3709 1.879e-10 ***
+CovEvent.1 -1.8645e-02  3.5586e-06 -5239.3486 < 2.2e-16 ***
+CovEvent.2 -1.4407e+01  2.7655e-01   -52.0963 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 1857973541 on 238 degrees of freedom
+	Chi-square: -1857965338 on 6 degrees of freedom, asymptotic p-value 1 
+AIC: 1857973555 AICC: 1857973555 BIC: 1857973579 
+finished successfully.

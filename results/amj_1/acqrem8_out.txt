@@ -1,0 +1,47 @@
+
+
+##------ Tue Jan  9 19:27:09 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+            Estimate     Std.Err  Z value  Pr(>|z|)    
+NODSnd   -2.7586e+03          NA       NA        NA    
+CovSnd.1 -9.5977e+00  8.8604e-01 -10.8322 < 2.2e-16 ***
+CovSnd.2  3.4809e+00  4.2073e-01   8.2736  2.22e-16 ***
+CovSnd.3 -8.3632e-02  1.2859e-01  -0.6504    0.5154    
+CovSnd.4 -2.0361e-01  9.4664e-03 -21.5090 < 2.2e-16 ***
+CovSnd.5  3.4573e-02  4.6623e-02   0.7415    0.4584    
+CovSnd.6 -4.1082e+01  8.8429e-01 -46.4581 < 2.2e-16 ***
+CovRec.1 -1.1351e+01  1.9711e-01 -57.5901 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 3035.517 on 93 degrees of freedom
+Residual deviance: 11105896 on 86 degrees of freedom
+	Chi-square: -11102860 on 7 degrees of freedom, asymptotic p-value 1 
+AIC: 11105912 AICC: 11105913 BIC: 11105932 
+finished successfully.
+
+##------ Tue Jan  9 23:14:03 2018 ------##
+
+Computing preliminary statistics
+Fitting model
+Relational Event Model (Temporal Likelihood)
+
+            Estimate     Std.Err   Z value  Pr(>|z|)    
+NODSnd    1.2130e-01  4.8436e+00    0.0250  0.980021    
+CovSnd.1  1.2564e+00  2.3342e-01    5.3825 7.346e-08 ***
+CovSnd.2 -1.8698e-01  7.6603e-02   -2.4410  0.014648 *  
+CovSnd.3  2.4220e-01  5.9003e-02    4.1049 4.044e-05 ***
+CovSnd.4 -1.4302e-02  4.7581e-03   -3.0059  0.002648 ** 
+CovSnd.5  7.0706e-02  1.3278e-02    5.3252 1.008e-07 ***
+CovSnd.6 -9.2902e-03  6.9477e-05 -133.7153 < 2.2e-16 ***
+CovSnd.7  1.5612e+00  2.5684e-01    6.0784 1.214e-09 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Null deviance: 8202.163 on 244 degrees of freedom
+Residual deviance: 7546.61 on 237 degrees of freedom
+	Chi-square: 655.5529 on 7 degrees of freedom, asymptotic p-value 0 
+AIC: 7562.61 AICC: 7563.223 BIC: 7590.587 
+finished successfully.
