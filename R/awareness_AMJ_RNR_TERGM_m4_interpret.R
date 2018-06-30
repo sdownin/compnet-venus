@@ -168,7 +168,7 @@ ggplot(idf3) + aes(x = d_cat, y = log(p), color=Diversification, pch=Diversifica
   scale_color_manual(values=colors2) +
   ylab("Conditional Ln Probability of Competitive Encounter") +
   xlab("Competitive Distance") + 
-  ylim(-6.1,1.5) +
+  ylim(-6.5,1.5) +
   theme_classic() +  theme(legend.position="top")
 ## plot H2 Interaction with distance
 ggplot(idf3) + aes(x = d_cat, y = log(p), color=`Competitive Asymmetry`, pch=`Competitive Asymmetry`) +
@@ -177,7 +177,7 @@ ggplot(idf3) + aes(x = d_cat, y = log(p), color=`Competitive Asymmetry`, pch=`Co
   scale_color_manual(values=colors2) +
   ylab("Conditional Ln Probability of Competitive Encounter") +
   xlab("Competitive Distance") + 
-  ylim(-6.1,1.5) +
+  ylim(-6.5,1.5) +
   theme_classic() + theme(legend.position="top")
 
 
@@ -258,8 +258,46 @@ ggplot(idf3) + aes(x = d_cat, y = log(p), color=`Competitive Asymmetry`, pch=`Co
 
 
 ##==========================================
-## ALL OBSERVATIONS Median Ribbon line:  H1
+## ALL OBSERVATIONS Median  line:  Diversification & Competitive Asymmetry -- 2 lines
 ##------------------------------------------
+## H1
+idfh1 <- plyr::ddply(.data = idf3, .variables = c('d_cat','Diversification'), summarise,
+                     p_l95=quantile(p,.025),
+                     p_u95=quantile(p,.975),
+                     p_mean=mean(p), 
+                     p_median=median(p) )
+dodge.width <- 0
+ggplot(idfh1) + aes(x=as.integer(d_cat), y=log(p_median), color=Diversification, pch=Diversification) +
+  geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
+  geom_line(lwd=1.3, position = position_dodge(width = dodge.width)) +
+  # geom_ribbon(aes(ymin=log(p_l95), ymax=log(p_u95), x=as.integer(d_cat)), alpha = 0.1) +
+  scale_color_manual(values=colors4) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Competitive Distance") + 
+  # ylim(-6.1,1.5) +
+  theme_classic() + theme(legend.position="top")
+## H2
+idfh2 <- plyr::ddply(.data = idf3, .variables = c('d_cat','`Competitive Asymmetry`'), summarise,
+                     p_l95=quantile(p,.025),
+                     p_u95=quantile(p,.975),
+                     p_mean=mean(p), 
+                     p_median=median(p) )
+dodge.width <- 0
+ggplot(idfh2) + aes(x=as.integer(d_cat), y=log(p_median), color=`Competitive Asymmetry`, pch=`Competitive Asymmetry`) +
+  geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
+  geom_line(lwd=1.3, position = position_dodge(width = dodge.width)) +
+  # geom_ribbon(aes(ymin=log(p_l95), ymax=log(p_u95), x=as.integer(d_cat)), alpha = 0.1) +
+  scale_color_manual(values=colors4) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Competitive Distance") + 
+  # ylim(-6.1,1.5) +
+  theme_classic() + theme(legend.position="top")
+
+
+##==========================================
+## ALL OBSERVATIONS Median  line:  H1 & H2 -- 4 lines
+##------------------------------------------
+## H1
 idfh1 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h1'), summarise,
                      p_l95=quantile(p,.025),
                      p_u95=quantile(p,.975),
@@ -275,11 +313,7 @@ ggplot(idfh1) + aes(x=as.integer(d_cat), y=log(p_median), color=h1, pch=h1) +
   xlab("Competitive Distance") + 
   # ylim(-6.1,1.5) +
   theme_classic() + theme(legend.position="top")
-
-
-##==========================================
-## ALL OBSERVATIONS Median Ribbon line:  H2
-##------------------------------------------
+## H2
 idfh2 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h2'), summarise,
                      p_l95=quantile(p,.025),
                      p_u95=quantile(p,.975),
@@ -295,6 +329,7 @@ ggplot(idfh2) + aes(x=as.integer(d_cat), y=log(p_median), color=h2, pch=h2) +
   xlab("Competitive Distance") + 
   # ylim(-6.1,1.5) +
   theme_classic() + theme(legend.position="top")
+
 
 
 
