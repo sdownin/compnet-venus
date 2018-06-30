@@ -15,12 +15,12 @@ img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/en
 setwd(work_dir)
 
 name_i <- 'qualtrics'
-d <- 2
+d <- 3
 
 nets.all <- readRDS(sprintf('firm_nets_rnr/%s_d%s.rds',name_i,d))
 
-
-nets <- nets.all[7:(length(nets.all)-1)]
+lna <- length(nets.all)
+nets <- nets.all[(lna-3):lna]
 
 
 mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
@@ -52,7 +52,7 @@ m_x <- 'm4'
 ##
 # SET RESAMPLES
 ##
-R <- 30
+R <- 20
 
 
 ## RUN TERGM
@@ -85,7 +85,7 @@ screenreg(list(glm=glfit,tergm=fits), ci.force = T, digits=3)
 
 
 fitm <- mtergm(get(m_x))
-
+plot(mcmc.diagnostics(fitm@ergm))
 
 screenreg(list(glm=glfit,btergm=fits,mtergm=fitm), digits=3)
 

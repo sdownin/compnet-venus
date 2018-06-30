@@ -60,7 +60,7 @@ firms.todo <- c('qualtrics',
                 'confirmit','customergauge','cx-index','empathica',
                 'feedback-lite','first-mile-geo','getfeedback',
                 'inqwise','leaderamp', 'medallia','myfeelback',
-                'promoter-io','satmetrix','smg',
+                'promoter-io','satmetrix',
                 'snap-surveys-ltd','super-simple-survey','survata',
                 'surveygizmo','surveymonkey',
                 'surveyrock','typeform','userate','verint','voice-polls')
@@ -71,7 +71,7 @@ firms.todo <- c('qualtrics',
 #                 'hearstcorporation','newscorporation')
 
 ## -- settings --
-d <- 3
+d <- 4
 yrpd <- 1
 startYr <- 2005
 endYr <- 2017            ## dropping first for memory term; actual dates 2007-2016
