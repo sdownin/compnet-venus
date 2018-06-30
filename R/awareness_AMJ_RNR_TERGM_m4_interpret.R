@@ -334,108 +334,79 @@ ggplot(idfh2) + aes(x=as.integer(d_cat), y=log(p_median), color=h2, pch=h2) +
 
 
 
+##=============================================================
+##
+##  TEMPORAL TREND -- AWARENESS TRAJECTORY
+##
+##--------------------------------------------------------------
 
-
-
-
-ggplot(aes(x=t, y=p, color=as.factor(j)), data=idf) + 
-  geom_line() + 
-  geom_point() + 
-  scale_y_log10() +
-  theme(legend.position="none")
-
-
-
-##########################################################################
-
-
-## LONG DF MULTI_PERIOD PLOT
-dfl <- data.frame(firm_i=NA, i=NA, j=NA, year=NA, d=NA, p=NA)
-years <- c('2011','2012','2013','2014','2015','2016')
-for (x in 1:6) {
-  p <- paste0('t',x)
-  d <- paste0('d',x)
-  yr <- years[x]
-  tmp <- df4.pij[,c('firm_i', 'i', 'j', d, p)]
-  tmp$year <- yr
-  names(tmp) <- c('firm_i', 'i', 'j', 'd', 'p', 'year')
-  dfl <- rbind(dfl, tmp)
-}
-dfl$d0 <- dfl$d
-dfl$d <- sapply(dfl$d,function(x)ifelse(as.character(x) %in% c('1','2','3','4'), x, '5+'))
-dfl <- na.omit(dfl)
-dfl$year <- as.factor(dfl$year)
-dfl$d <- as.factor(dfl$d)
-dfl$i <- as.factor(dfl$i)
-
-dfl2 <-
-  dfl[dfl$d != 0 & dfl$d !='0', ] %>%
-  group_by(d) %>%
-  mutate(outlier = log10(p) > median(log10(p)) + IQR(log10(p)) * 2, 
-         low.otl = log10(p) < median(log10(p)) - IQR(log10(p)) * 2,
-         aware = p > quantile(p, .785),
-         period= ifelse(year %in% c('2014','2015','2016'),'2014-16','2011-13'),
-         Period= ifelse(year %in% c('2015','2016'),'2015-16',
-                        ifelse(year %in% c('2013','2014'),'2013-14','2011-12'))) %>%
+## mutate group-period factors
+tdf <-
+  idf[idf$d != 0 & idf$d !='0', ] %>%
+  group_by(year) %>%
+  mutate(
+    p_log = log(p),
+    p_log_z = (log(p) - mean(log(p))) / sd(log(p))
+  ) %>% 
   ungroup
-dfl2$period <- factor(dfl2$period, levels = c("2014-16", "2011-13"))
-dfl2$aware.all <- sapply(dfl2$p, function(x) x > 0.00596)
-
-
-dfl2 <- dfl2[ dfl2$year != "2016" | dfl2$d != Inf, ]
-
-## SUBSET (not grouped) JITERRED OUTLIERS **************************
-dfl3 <- dfl2[dfl2$year %in% c('2011','2012','2013','2014','2015','2016'), ]
-dfl3 <- dfl3[ dfl3$d != Inf | dfl3$year != '2016' ,]
-ggplot(dfl3) + aes(x = d, y = p) +
-  geom_point(pch=16, col=rgb(0.105, 0.247, 0.074), 
-             data=function(x)dplyr::filter_(x, ~ outlier),
-             alpha=.9, lwd=2, position = 'jitter') +
-  scale_fill_manual(values=c("#999999", "#ffffff", 'steelblue')) +
-  scale_y_log10() + 
-  ylab("Conditional Probability of Competitive Encounter") +
-  xlab("Competitive Distance") + 
-  # ggtitle("Competitive Distance and Competition Formation (2011-2016)") +
-  theme_bw()
-ggsave('qualtrics_microinter_pij_by_distances_outliers_2_opaque.png', 
-       width = 5.5, height=5.5, units = 'in', dpi=200)
-
-## NEW PLOT AWARENESS SET
-dfl3 <- dfl2[dfl2$year %in% c('2011','2012','2013','2014','2015','2016'), ]
-dfl3 <- dfl3[ dfl3$d != Inf | dfl3$year != '2016' ,]
-ggplot(dfl3) + aes(x = d, y = p) +
-  geom_point(pch=16, col='darkred', alpha=.8, lwd=2, position = 'jitter',
-             data=function(x)dplyr::filter_(x, ~ (aware.all ))) +
-  scale_fill_manual(values=c("#999999", "#ffffff", 'steelblue')) +
-  scale_y_log10(c(0.099,1.001)) + 
-  ylab("Conditional Probability of Competitive Encounter") +
-  xlab("Competitive Distance (i,j)") + 
-  # ggtitle("Competitive Distance and Competition Formation (2011-2016)") +
-  theme_bw()
-ggsave('qualtrics_microinter_pij_by_distances_outliers_2_opaque_5-8Inf.png', 
-       width = 5.5, height=5.5, units = 'in', dpi=200)
-
-
-## NEW PLOT AWARENESS SET
-dfl3 <- dfl2[dfl2$year %in% c('2011','2012','2013','2014','2015','2016'), ]
-dfl3 <- dfl3[ dfl3$d != Inf | dfl3$year != '2016' ,]
-set.seed(269957)
-ggplot(dfl3) + aes(x = d, y = log(p)) +
-  # geom_point(pch=16, col='darkred', alpha=.8, lwd=2, position = 'jitter',
-  #            data=function(x)dplyr::filter_(x, ~ (aware.all ))) +
-  geom_jitter(width = 0.3, height = 0, pch=16, col='red', alpha=.8, lwd=2,
-              data=function(x)dplyr::filter_(x, ~ (aware.all & !low.otl))) +
-  scale_fill_manual(values=c("#999999", "#ffffff", 'steelblue')) +
-  ylab("Conditional Ln Probability of Competitive Encounter") +
-  xlab("Competitive Distance") + 
-  ylim(-5.2,1.5) +
-  # coord_trans(y="log10") +
-  theme_bw() 
-ggsave('qualtrics_microinter_pij_by_distances_outliers_3_logprob_5plus.png', 
-       width = 5.5, height=5.5, units = 'in', dpi=200)
-
-##########################################################################
-
+mcis <- plyr::ddply(.data = idf3, .variables = c('year'), summarise,
+                    i=v.focal,
+                    j=9999,
+                    j.name='MEDIAN',
+                    p_log_l95=quantile(log(p),.025),
+                    p_log_u95=quantile(log(p),.975),
+                    # p_log_mean=mean(log(p)), 
+                    p_log=median(log(p))
+                    )
+mcis$year <- as.integer(as.character(mcis$year))
+tdf$year <- as.integer(as.character(tdf$year))
+# sub.j.name <- tdf$j.name[tdf$year %in% c('2008','2012','2016') & tdf$p_log_z > 1.69 & tdf$d != 1 & tdf$d < Inf]
+# grp <- 61
+# j.idx <- 1:6 + 6 * grp
+# print(j.idx)
+## K means cluster
+qt <- quantile(tdf$p[tdf$year=='2016'], c(.85,.98))
+mid.names <- as.character(tdf$j.name[tdf$p > qt[1] & tdf$p < qt[2] & tdf$year=='2016'])
+g <- asIgraph(nets[[t+1]])
+plotNames <- c(
+  # 'clarabridge',
+  # 'parature', 'oktopost',  'adobe',
+   # 'lithiumtechnologies','astute',
+   # 'social-solutions','socialsmack','socialtoo',
+   # 'hootsuite','sprinklr','satmetrix','sap','hybris',
+  'ibm', # 'oracle', 
+  'salesforce',
+  # 'freshdesk',
+  'delighted', #'promoter-io',
+  'statwing',
+  'medallia',
+  # 'customergauge',
+  # 'allegiance',
+  'palantir-technologies',
+   # 'jive-software','mindjet','igloo',   'cisco','google','zimbra',
+   # 'brandwatch',
+  # 'brand-embassy'
+  # 'crimson-hexagon'
+  # 'mindshare-technologies',
+  # 'nielsen',
+  # 'nielsenconnect',
+  # 'nielsen-online',
+   'surveyrock' # 'surveypal' #,
+  # 'alteryx' #'answertoit'
+   # 'cloudcherry'
+  )
+j.idx <- which(V(g)$vertex.names %in% plotNames)
+sub.j.name <- unique(as.character(tdf$j.name[tdf$j %in% j.idx]))
+tdf.sub <- tdf[tdf$j.name %in% sub.j.name, ]
+leg.title <- "Potential / Current\nRival"
+ggplot(tdf.sub) + aes(x=year,y=p_log) + 
+  geom_ribbon(aes(ymin=p_log_l95, ymax=p_log_u95, x=year, linetype=NA), col='gray', alpha = 0.1, data=mcis) +
+  geom_line(aes(y=p_log, x=year), data=mcis, color='gray', lwd=2, lty=2) + 
+  geom_point(aes(color=j.name, pch=j.name), lwd=2.5) + 
+  geom_line(aes(color=j.name), lwd=1.1) + 
+  ylab('Conditoinal Ln Probabilitiy of Competitive Encounter') +
+  theme_classic() + 
+  guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
 
 
 
