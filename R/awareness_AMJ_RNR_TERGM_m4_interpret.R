@@ -29,6 +29,15 @@ nPeriods <- 11
 m_x <- 'm4'
 ##----------------------------------------
 
+## FUNCTIONS FOR NAs REMOVED
+.med <- function(x){return(median(x, na.rm=TRUE))}
+.min <- function(x){return(min(x, na.rm=TRUE))}
+.max <- function(x){return(max(x, na.rm=TRUE))}
+.avg <- function(x){return(mean(x, na.rm=TRUE))}
+.std <- function(x){return(sd(x, na.rm=TRUE))}
+.qtl <- function(x, probs){return(quantile(x, probs=probs, na.rm=TRUE))}
+.iqr <- function(x){return(IQR(x, na.rm=TRUE))}
+
 ## results
 fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', 
                      results_dir, name_i, nPeriods, d, R, m_x)
@@ -123,8 +132,18 @@ for (row in 1:nrow(idf)) {
   if(row %% 300 == 0) cat(sprintf('row %s\n',row))  
 }
 
+## remove probabilities and covariates (set NA) for Inf distance (firm's not in component that pd)
+idf$p[idf$d==Inf] <- NA
+idf$genidx_multilevel[idf$d==Inf] <- NA
+idf$njobs_multilevel[idf$d==Inf] <- NA
+idf$cent_pow_n0_4[idf$d==Inf] <- NA
+idf$absdiff_pow_n0_4[idf$d==Inf] <- NA
+
 ## distance category
-idf$d_cat <- as.factor(sapply(idf$d,function(x)ifelse(as.character(x) %in% c('1','2','3','4'), as.character(x), '5+')))
+idf$d_cat <- as.factor(sapply(idf$d,function(x){
+  xstr <- as.character(x)
+  ifelse(xstr %in% c('1','2','3','4'), xstr, ifelse(x==Inf, NA, '5+'))
+  }))
 idf$i <- as.factor(idf$i)
 idf$year <- as.factor(idf$year)
 
@@ -136,13 +155,25 @@ idf2 <-
   idf[idf$d != 0 & idf$d !='0', ] %>%
   group_by(d) %>%
   mutate(
-    outlier = log10(p) > median(log10(p)) + IQR(log10(p)) * 2, 
-    low.otl = log10(p) < median(log10(p)) - IQR(log10(p)) * 2,
-    aware = p > quantile(p, .5),
-    h1 = ifelse(genidx_multilevel >= quantile(genidx_multilevel,.75), 'Q4', ifelse(genidx_multilevel >= quantile(genidx_multilevel,.5), 'Q3', ifelse(genidx_multilevel >= quantile(genidx_multilevel,.25), 'Q2','Q1'))),
-    Diversification = ifelse(genidx_multilevel >= quantile(genidx_multilevel,.5), 'High', 'Low'),
-    `Competitive Asymmetry` = ifelse(absdiff_pow_n0_4 >= quantile(absdiff_pow_n0_4,.5), 'High', 'Low'),
-    h2 = ifelse(absdiff_pow_n0_4 >= quantile(absdiff_pow_n0_4,.75), 'Q4', ifelse(absdiff_pow_n0_4 >= quantile(absdiff_pow_n0_4,.5), 'Q3', ifelse(absdiff_pow_n0_4 >= quantile(absdiff_pow_n0_4,.25), 'Q2','Q1')))
+    outlier = log10(p) > .med(log10(p)) + .iqr(log10(p)) * 2, 
+    low.otl = log10(p) < .med(log10(p)) - .iqr(log10(p)) * 2,
+    aware = p > .qtl(p, .5),
+    Diversification = ifelse(is.na(genidx_multilevel), NA, 
+                             ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.5), 'High', 
+                                    'Low')),
+    `Competitive Asymmetry` = ifelse(is.na(absdiff_pow_n0_4), NA, 
+                                     ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.5), 'High',
+                                            'Low')),
+    h1 = ifelse(is.na(genidx_multilevel), NA, 
+                ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.75), 'Q4', 
+                       ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.5), 'Q3', 
+                              ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.25), 'Q2',
+                                     'Q1')))),
+    h2 = ifelse(is.na(absdiff_pow_n0_4), NA, 
+                      ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.75), 'Q4', 
+                             ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.5), 'Q3', 
+                                    ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.25), 'Q2',
+                                           'Q1'))))
   ) %>% 
   ungroup
 ## add aware.all boolean
@@ -151,6 +182,7 @@ idf2$aware.all <- sapply(idf2$p, function(x) x > aware.all.cutoff)
 ## manual colors
 colors2 <- c( "#333333", '#aaaaaa')
 colors4 <- c( '#222222', '#aaaaaa', '#555555', '#888888')
+colors5 <- c( '#111111', '#333333','#555555', '#777777','#999999')
 
 ## Data for hypotheses interaction plots
 idf3 <- idf2[idf2$year %in% c('2007','2008','2009','2010','2011','2012','2013','2014','2015','2016'), ]
@@ -262,10 +294,10 @@ ggplot(idf3) + aes(x = d_cat, y = log(p), color=`Competitive Asymmetry`, pch=`Co
 ##------------------------------------------
 ## H1
 idfh1 <- plyr::ddply(.data = idf3, .variables = c('d_cat','Diversification'), summarise,
-                     p_l95=quantile(p,.025),
-                     p_u95=quantile(p,.975),
-                     p_mean=mean(p), 
-                     p_median=median(p) )
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
 dodge.width <- 0
 ggplot(idfh1) + aes(x=as.integer(d_cat), y=log(p_median), color=Diversification, pch=Diversification) +
   geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
@@ -278,10 +310,10 @@ ggplot(idfh1) + aes(x=as.integer(d_cat), y=log(p_median), color=Diversification,
   theme_classic() + theme(legend.position="top")
 ## H2
 idfh2 <- plyr::ddply(.data = idf3, .variables = c('d_cat','`Competitive Asymmetry`'), summarise,
-                     p_l95=quantile(p,.025),
-                     p_u95=quantile(p,.975),
-                     p_mean=mean(p), 
-                     p_median=median(p) )
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
 dodge.width <- 0
 ggplot(idfh2) + aes(x=as.integer(d_cat), y=log(p_median), color=`Competitive Asymmetry`, pch=`Competitive Asymmetry`) +
   geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
@@ -299,10 +331,10 @@ ggplot(idfh2) + aes(x=as.integer(d_cat), y=log(p_median), color=`Competitive Asy
 ##------------------------------------------
 ## H1
 idfh1 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h1'), summarise,
-                     p_l95=quantile(p,.025),
-                     p_u95=quantile(p,.975),
-                     p_mean=mean(p), 
-                     p_median=median(p) )
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
 dodge.width <- 0
 ggplot(idfh1) + aes(x=as.integer(d_cat), y=log(p_median), color=h1, pch=h1) +
   geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
@@ -315,10 +347,10 @@ ggplot(idfh1) + aes(x=as.integer(d_cat), y=log(p_median), color=h1, pch=h1) +
   theme_classic() + theme(legend.position="top")
 ## H2
 idfh2 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h2'), summarise,
-                     p_l95=quantile(p,.025),
-                     p_u95=quantile(p,.975),
-                     p_mean=mean(p), 
-                     p_median=median(p) )
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
 dodge.width <- 0
 ggplot(idfh2) + aes(x=as.integer(d_cat), y=log(p_median), color=h2, pch=h2) +
   geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
@@ -329,6 +361,148 @@ ggplot(idfh2) + aes(x=as.integer(d_cat), y=log(p_median), color=h2, pch=h2) +
   xlab("Competitive Distance") + 
   # ylim(-6.1,1.5) +
   theme_classic() + theme(legend.position="top")
+
+
+
+
+
+
+##==========================================
+## Prob X Covariate: ALL OBSERVATIONS Median line -- DISTANCE INTERACTION -- ALL
+##------------------------------------------
+leg.title <- "Competitive Distance"
+## H1
+idfh1 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h1'), summarise,
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
+idfh1$Q <- as.integer(str_sub(idfh1$h1,2,2))
+dodge.width <- 0
+ggplot(idfh1) + aes(x=Q, y=log(p_median), color=d_cat, pch=d_cat) +
+  geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
+  geom_line(lwd=1.3, position = position_dodge(width = dodge.width)) +
+  # geom_ribbon(aes(ymin=log(p_l95), ymax=log(p_u95), x=as.integer(d_cat)), alpha = 0.1) +
+  scale_color_manual(values=colors5) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Diversification Quartile (H1)") + 
+  # ylim(-6.1,1.5) +
+  theme_classic() + theme(legend.position="top") +
+  guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
+## H2
+idfh2 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h2'), summarise,
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
+idfh2$Q <- as.integer(str_sub(idfh2$h2,2,2))
+dodge.width <- 0
+ggplot(idfh2) + aes(x=Q, y=log(p_median), color=d_cat, pch=d_cat) +
+  geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
+  geom_line(lwd=1.3, position = position_dodge(width = dodge.width)) +
+  # geom_ribbon(aes(ymin=log(p_l95), ymax=log(p_u95), x=as.integer(d_cat)), alpha = 0.1) +
+  scale_color_manual(values=colors5) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Competitive Asymmetry Quartile (H2)") + 
+  # ylim(-6.1,1.5) +
+  theme_classic() + theme(legend.position="top") + 
+  guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
+
+
+
+##==========================================
+## Prob X Covariate: ALL OBSERVATIONS Median line -- DISTANCE INTERACTION -- NON-RIVALS (D > 1)
+##------------------------------------------
+leg.title <- "Competitive Distance (not current rivals)"
+## H1
+idfh1 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h1'), summarise,
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
+idfh1$Q <- as.integer(str_sub(idfh1$h1,2,2))
+idfh1 <- idfh1[idfh1$d_cat != '1', ]
+idfh1$d_cat <- droplevels(idfh1$d_cat)
+dodge.width <- 0
+ggplot(idfh1) + aes(x=Q, y=log(p_median), color=d_cat, pch=d_cat) +
+  geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
+  geom_line(lwd=1.3, position = position_dodge(width = dodge.width)) +
+  # geom_ribbon(aes(ymin=log(p_l95), ymax=log(p_u95), x=as.integer(d_cat)), alpha = 0.1) +
+  scale_color_manual(values=colors5) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Diversification Quartile (H1)") + 
+  # ylim(-6.1,1.5) +
+  theme_classic() + theme(legend.position="top") +
+  guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
+## H2
+idfh2 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h2'), summarise,
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
+idfh2$Q <- as.integer(str_sub(idfh2$h2,2,2))
+idfh2 <- idfh2[idfh2$d_cat != '1', ]
+idfh2$d_cat <- droplevels(idfh2$d_cat)
+dodge.width <- 0
+ggplot(idfh2) + aes(x=Q, y=log(p_median), color=d_cat, pch=d_cat) +
+  geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
+  geom_line(lwd=1.3, position = position_dodge(width = dodge.width)) +
+  # geom_ribbon(aes(ymin=log(p_l95), ymax=log(p_u95), x=as.integer(d_cat)), alpha = 0.1) +
+  scale_color_manual(values=colors5) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Competitive Asymmetry Quartile (H2)") + 
+  # ylim(-6.1,1.5) +
+  theme_classic() + theme(legend.position="top") + 
+  guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
+
+
+
+
+##==========================================
+## Prob X Covariate: ALL OBSERVATIONS Median line -- DISTANCE INTERACTION -- UNEXPECTED INDIRECT COMPETITORS (D > 2)
+##------------------------------------------
+leg.title <- "Competitive Distance (unexpected indirect competitors)"
+## H1
+idfh1 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h1'), summarise,
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
+idfh1$Q <- as.integer(str_sub(idfh1$h1,2,2))
+idfh1 <- idfh1[ !idfh1$d_cat  %in% c('1','2'), ]
+idfh1$d_cat <- droplevels(idfh1$d_cat)
+dodge.width <- 0
+ggplot(idfh1) + aes(x=Q, y=log(p_median), color=d_cat, pch=d_cat) +
+  geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
+  geom_line(lwd=1.3, position = position_dodge(width = dodge.width)) +
+  # geom_ribbon(aes(ymin=log(p_l95), ymax=log(p_u95), x=as.integer(d_cat)), alpha = 0.1) +
+  scale_color_manual(values=colors5) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Diversification Quartile (H1)") + 
+  # ylim(-6.1,1.5) +
+  theme_classic() + theme(legend.position="top") +
+  guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
+## H2
+idfh2 <- plyr::ddply(.data = idf3, .variables = c('d_cat','h2'), summarise,
+                     p_l95=.qtl(p,.025),
+                     p_u95=.qtl(p,.975),
+                     p_mean=.avg(p), 
+                     p_median=.med(p) )
+idfh2$Q <- as.integer(str_sub(idfh2$h2,2,2))
+idfh2 <- idfh2[ !idfh2$d_cat %in% c('1','2'), ]
+idfh2$d_cat <- droplevels(idfh2$d_cat)
+dodge.width <- 0
+ggplot(idfh2) + aes(x=Q, y=log(p_median), color=d_cat, pch=d_cat) +
+  geom_point(lwd=4, position = position_dodge(width = dodge.width)) +
+  geom_line(lwd=1.3, position = position_dodge(width = dodge.width)) +
+  # geom_ribbon(aes(ymin=log(p_l95), ymax=log(p_u95), x=as.integer(d_cat)), alpha = 0.1) +
+  scale_color_manual(values=colors5) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Competitive Asymmetry Quartile (H2)") + 
+  # ylim(-6.1,1.5) +
+  theme_classic() + theme(legend.position="top") + 
+  guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
+
 
 
 
@@ -349,14 +523,17 @@ tdf <-
     p_log_z = (log(p) - mean(log(p))) / sd(log(p))
   ) %>% 
   ungroup
+
 mcis <- plyr::ddply(.data = idf3, .variables = c('year'), summarise,
                     i=v.focal,
                     j=9999,
                     j.name='MEDIAN',
-                    p_log_l95=quantile(log(p),.025),
-                    p_log_u95=quantile(log(p),.975),
+                    p_log_l95=.qtl(log(p),.025),
+                    p_log_u95=.qtl(log(p),.975),
+                    p_log_l75=.qtl(log(p),.125),
+                    p_log_u75=.qtl(log(p),.875),
                     # p_log_mean=mean(log(p)), 
-                    p_log=median(log(p))
+                    p_log=.med(log(p))
                     )
 mcis$year <- as.integer(as.character(mcis$year))
 tdf$year <- as.integer(as.character(tdf$year))
@@ -365,43 +542,31 @@ tdf$year <- as.integer(as.character(tdf$year))
 # j.idx <- 1:6 + 6 * grp
 # print(j.idx)
 ## K means cluster
-qt <- quantile(tdf$p[tdf$year=='2016'], c(.85,.98))
-mid.names <- as.character(tdf$j.name[tdf$p > qt[1] & tdf$p < qt[2] & tdf$year=='2016'])
+
 g <- asIgraph(nets[[t+1]])
-plotNames <- c(
-  # 'clarabridge',
-  # 'parature', 'oktopost',  'adobe',
-   # 'lithiumtechnologies','astute',
-   # 'social-solutions','socialsmack','socialtoo',
-   # 'hootsuite','sprinklr','satmetrix','sap','hybris',
-  'ibm', # 'oracle', 
-  'salesforce',
-  # 'freshdesk',
-  'delighted', #'promoter-io',
-  'statwing',
-  'medallia',
-  # 'customergauge',
-  # 'allegiance',
+
+yrtest <- '2016'
+qt <- .qtl(tdf$p[tdf$year==yrtest], c(.86,.90))
+mid.names <- as.character(tdf$j.name[!is.na(tdf$p) & tdf$p > qt[1] & tdf$p < qt[2] & tdf$year==yrtest])
+print(mid.names)
+
+plotNames <- c(  # 'clarabridge',# 'adobe', # 'hootsuite','sprinklr',  # 'satmetrix',#'sap','hybris',
   'palantir-technologies',
-   # 'jive-software','mindjet','igloo',   'cisco','google','zimbra',
-   # 'brandwatch',
-  # 'brand-embassy'
-  # 'crimson-hexagon'
-  # 'mindshare-technologies',
-  # 'nielsen',
-  # 'nielsenconnect',
-  # 'nielsen-online',
-   'surveyrock' # 'surveypal' #,
-  # 'alteryx' #'answertoit'
-   # 'cloudcherry'
+  'ibm', # 'oracle'  # 'salesforce', 'freshdesk',
+  'delighted', 
+  'promoter-io',
+  # 'ideascale', #'askyourtargetmarket',
+  'medallia',  'kampyle'  #'surveyrock'#,  'qriously'
   )
+# plotNames <- mid.names
 j.idx <- which(V(g)$vertex.names %in% plotNames)
 sub.j.name <- unique(as.character(tdf$j.name[tdf$j %in% j.idx]))
 tdf.sub <- tdf[tdf$j.name %in% sub.j.name, ]
 leg.title <- "Potential / Current\nRival"
 ggplot(tdf.sub) + aes(x=year,y=p_log) + 
-  geom_ribbon(aes(ymin=p_log_l95, ymax=p_log_u95, x=year, linetype=NA), col='gray', alpha = 0.1, data=mcis) +
-  geom_line(aes(y=p_log, x=year), data=mcis, color='gray', lwd=2, lty=2) + 
+  geom_ribbon(aes(ymin=p_log_l95, ymax=p_log_u95, x=year, linetype=NA), col='black', alpha = 0.085, data=mcis) +
+  geom_ribbon(aes(ymin=p_log_l75, ymax=p_log_u75, x=year, linetype=NA), col='black', alpha = 0.11, data=mcis) +
+  geom_line(aes(y=p_log, x=year), data=mcis, color='darkgray', lwd=2, lty=2) + 
   geom_point(aes(color=j.name, pch=j.name), lwd=2.5) + 
   geom_line(aes(color=j.name), lwd=1.1) + 
   ylab('Conditoinal Ln Probabilitiy of Competitive Encounter') +
