@@ -3,7 +3,7 @@
 # amj_awareness_functions.R
 #
 # Notes:
-#  - loads list object `aaf`
+#  @export list `aaf`
 ##
 
 library(igraph)
@@ -849,3 +849,65 @@ aaf$getNetEcount <- function(net, symmetric=TRUE, upper.tri.diag=FALSE)
     return(sum(net[,]))
   }
 }
+
+##
+#
+##
+
+
+##
+# Plot hostility profile firms
+#  - must add vertex property ("prob") to graph argument
+##
+aaf$plotCompNetColPredict <- function(gs, focal.firm=NA, cutoff=.9, 
+                                      probAttrName='prob',
+                                      competitors=NA,
+                                      label.scale=NA, vertex.scale=NA, 
+                                      rcolors=c('gray'),
+                                      layout.algo=layout.fruchterman.reingold, 
+                                      margins=NA, seed=1111,  ...) 
+{
+  gs <- igraph::induced.subgraph(gs, vids = V(gs)[which(igraph::degree(gs)>0)])
+  if(all(is.na(margins)))
+    margins <- c(.01,.01,.01,.01)
+  ## 
+  par(mar=margins)
+  d <- igraph::degree(gs)
+  vertshape <- rep('circle',vcount(gs))
+  vertcol <-  'white'#rgb(.9,.9,.9,.4)
+  ## HANDLE SAME COLORS FOR COMPETITORS
+  probs <- igraph::get.vertex.attribute(gs, probAttrName)
+  logprobs <- log(probs)
+  col2 <- c(NA, 'red')  ## (low,  high)
+  # vertcol <- ifelse(logprobs > quantile(logprobs,cutoff), col2[2], col2[1] )
+  vertcol <- ifelse(logprobs > log(cutoff), col2[2], col2[1] )
+  vertcol[V(gs)$vertex.names==focal.firm] <- 'blue' ##rgb(.05,.05,.17,0)
+  vertcol[V(gs)$name==focal.firm] <- 'blue' ##rgb(.05,.05,.17,0)
+  ## shape
+  high.aware.idx <- which(logprobs > quantile(logprobs,cutoff))
+  V(gs)$shape <- 'circle'
+  V(gs)$shape[V(gs)$name == focal.firm] <- 'square'
+  V(gs)$shape[V(gs)$vertex.names == focal.firm] <- 'square'
+  ##label
+  vertex.label <- ''
+  
+  if(is.na(vertex.scale)) vertex.scale <- 100 * (1/vcount(gs)^.5)
+  if(is.na(label.scale))  label.scale <- 13 * (1/vcount(gs)^.5)
+  ## size
+  V(gs)$vertex.size <- vertex.scale
+  V(gs)$vertex.size[which(V(gs)$name == focal.firm)] <- 1.5 * vertex.scale
+  ##
+  set.seed(seed)
+  plot.igraph(gs
+              , layout=layout.algo
+              , vertex.size=V(gs)$vertex.size
+              , vertex.color=vertcol
+              , vertex.label=vertex.label
+              , vertex.label.cex=label.scale
+              , vertex.label.color='black'
+              , vertex.label.font = 2
+              , vertex.label.family = 'sans'
+              , vertex.shape = V(gs)$shape)
+}
+
+

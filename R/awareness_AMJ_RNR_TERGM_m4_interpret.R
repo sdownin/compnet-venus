@@ -23,6 +23,7 @@ setwd(work_dir)
 
 ## -----------Model Results Settings-----
 name_i <- 'qualtrics'
+firm_i <- name_i
 d <- 3
 R <- 500
 nPeriods <- 11
@@ -95,23 +96,31 @@ v.focal <- as.integer( V(g)[V(g)$vertex.names==name_i] )
 ## competitor interpretation loop
 interp.df.file <- sprintf('%s/interpret_winlocal_%s_pd%s_d%s_R%s_%s.csv', 
                      results_dir, name_i, nPeriods, d, R, m_x)
-idf <- data.frame()
-for (j in 1:vcount(g)) {
-  cat(sprintf('%s:  %s\n',j,V(g)$vertex.names[j]))
-  j.name <- V(g)$vertex.names[j]
-  if (j == v.focal) {
-    probs <- rep(0, time.steps)
-  } else {
-    probs <- btergm::interpret(fits, type='tie', i=v.focal, j=j)
+
+if (file.exists(interp.df.file)) {
+  ## READ IN PREDICTED PROBS
+  idf <- read.csv(interp.df.file)
+} else {
+  idf <- data.frame()
+  for (j in 1:vcount(g)) {
+    cat(sprintf('%s:  %s\n',j,V(g)$vertex.names[j]))
+    j.name <- V(g)$vertex.names[j]
+    if (j == v.focal) {
+      probs <- rep(0, time.steps)
+    } else {
+      probs <- btergm::interpret(fits, type='tie', i=v.focal, j=j)
+    }
+    for (t in 1:length(probs)) {
+      d <- igraph::distances(gs[[t+1]], v = v.focal, to = j)[1,1]
+      tmp <- data.frame(i=v.focal, j=j, i.name=name_i, j.name=j.name, t=t, d=d, p=probs[t])
+      idf <- rbind(idf, tmp)
+    }
+    if (j %% 10 == 0)  write.csv(x = idf, file = interp.df.file)
   }
-  for (t in 1:length(probs)) {
-    d <- igraph::distances(gs[[t+1]], v = v.focal, to = j)[1,1]
-    tmp <- data.frame(i=v.focal, j=j, i.name=name_i, j.name=j.name, t=t, d=d, p=probs[t])
-    idf <- rbind(idf, tmp)
-  }
-  if (j %% 10 == 0)  write.csv(x = idf, file = interp.df.file)
+  write.csv(x = idf, file = interp.df.file)
 }
-write.csv(x = idf, file = interp.df.file)
+
+
 
 ## add covariates
 idf$genidx_multilevel <- NA
@@ -148,7 +157,7 @@ idf$i <- as.factor(idf$i)
 idf$year <- as.factor(idf$year)
 
 ## aware.all.cutoff
-aware.all.cutoff <- 0.00205
+aware.all.cutoff <- 0.001
 
 ## mutate group-period factors
 idf2 <-
@@ -157,7 +166,8 @@ idf2 <-
   mutate(
     outlier = log10(p) > .med(log10(p)) + .iqr(log10(p)) * 2, 
     low.otl = log10(p) < .med(log10(p)) - .iqr(log10(p)) * 2,
-    aware = p > .qtl(p, .5),
+    aware.med = p > .qtl(p, .5),
+    aware.cutoff = p > aware.all.cutoff,
     Diversification = ifelse(is.na(genidx_multilevel), NA, 
                              ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.5), 'High', 
                                     'Low')),
@@ -180,13 +190,36 @@ idf2 <-
 idf2$aware.all <- sapply(idf2$p, function(x) x > aware.all.cutoff)
 
 ## manual colors
+colors2rw <- c('black','red')
 colors2 <- c( "#333333", '#aaaaaa')
 colors4 <- c( '#222222', '#aaaaaa', '#555555', '#888888')
 colors5 <- c( '#111111', '#333333','#555555', '#777777','#999999')
 
+
 ## Data for hypotheses interaction plots
-idf3 <- idf2[idf2$year %in% c('2007','2008','2009','2010','2011','2012','2013','2014','2015','2016'), ]
+# idf3 <- idf2[idf2$year %in% c('2007','2008','2009','2010','2011','2012','2013','2014','2015','2016'), ]
+idf3 <- idf2[idf2$year %in% c('2007','2016'), ]
+#
 idf3 <- idf3[ idf3$d != Inf | idf3$year != '2016', ]
+
+##====================================================
+## Hostility Profile (awareness set) Scatter Facet plot
+##----------------------------------------------------
+set.seed(269951)
+dodge.width <- 0
+##
+ggplot(idf3) + aes(x = d_cat, y = log(p), color=aware.all, pch=aware.all) +
+  geom_point(position=position_jitterdodge(dodge.width=dodge.width), lwd=2.5,
+             data=function(x)dplyr::filter_(x, ~ !low.otl)) +
+  scale_color_manual(values=colors2rw) +
+  scale_shape_manual(values=c(1,16)) +
+  facet_wrap(~ year) +
+  ylab("Conditional Ln Probability of Competitive Encounter") +
+  xlab("Competitive Distance") + 
+  ylim(-10.5,1.5) +
+  geom_hline(yintercept = log(aware.all.cutoff), lty=3) +
+  theme_bw() +  theme(legend.position='none')
+
 
 ##====================================================
 ## Hostility Profile (awareness set) Scatter Facet plot
@@ -198,18 +231,20 @@ ggplot(idf3) + aes(x = d_cat, y = log(p), color=Diversification, pch=Diversifica
   geom_point(position=position_jitterdodge(dodge.width=dodge.width), lwd=2.5,
              data=function(x)dplyr::filter_(x, ~ (aware.all & !low.otl))) +
   scale_color_manual(values=colors2) +
+  facet_wrap(~ year) +
   ylab("Conditional Ln Probability of Competitive Encounter") +
   xlab("Competitive Distance") + 
-  ylim(-6.5,1.5) +
+  ylim(-10.5,1.5) +
   theme_classic() +  theme(legend.position="top")
 ## plot H2 Interaction with distance
 ggplot(idf3) + aes(x = d_cat, y = log(p), color=`Competitive Asymmetry`, pch=`Competitive Asymmetry`) +
   geom_point(position=position_jitterdodge(dodge.width=dodge.width), lwd=2.5,
              data=function(x)dplyr::filter_(x, ~ (aware.all & !low.otl))) +
   scale_color_manual(values=colors2) +
+  facet_wrap(~ year) +
   ylab("Conditional Ln Probability of Competitive Encounter") +
   xlab("Competitive Distance") + 
-  ylim(-6.5,1.5) +
+  ylim(-10,1.5) +
   theme_classic() + theme(legend.position="top")
 
 
@@ -567,11 +602,50 @@ ggplot(tdf.sub) + aes(x=year,y=p_log) +
   geom_ribbon(aes(ymin=p_log_l95, ymax=p_log_u95, x=year, linetype=NA), col='black', alpha = 0.085, data=mcis) +
   geom_ribbon(aes(ymin=p_log_l75, ymax=p_log_u75, x=year, linetype=NA), col='black', alpha = 0.11, data=mcis) +
   geom_line(aes(y=p_log, x=year), data=mcis, color='darkgray', lwd=2, lty=2) + 
-  geom_point(aes(color=j.name, pch=j.name), lwd=2.5) + 
+  geom_point(aes(color=j.name, pch=j.name), lwd=3.5) + 
   geom_line(aes(color=j.name), lwd=1.1) + 
   ylab('Conditoinal Ln Probabilitiy of Competitive Encounter') +
-  theme_classic() + 
+  theme_classic() + theme(legend.position="top") + 
   guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
+
+
+
+## STL DECOMPOSITION DATAFRAME
+idf3.sub <- idf3[ , c('j.name','year','p','t')]
+jnu <- unique(idf3.sub$j.name)
+idf3.stl <- data.frame()
+for (i in 1:length(jnu)) {
+  x <- idf3.sub[idf3.sub$j.name==jnu[i],]
+  ps <- x$p
+  tmp <- data.frame(j.name=jnu[i],
+                    t1=ps[1],t2=ps[2],t3=ps[3],t4=ps[4],t5=ps[5],
+                    t6=ps[6],t7=ps[7],t8=ps[8],t9=ps[9],t10=ps[10])
+  idf3.stl <- rbind(idf3.stl, tmp)
+}
+## STL
+cols <- names(idf3.stl)[2:ncol(idf3.stl)]
+stl(idf3$p, s.window = 'periodic', na.action='na.rm')
+
+
+j.all <- unique(idf2$j)
+j.na <- unique(idf2$j[is.na(idf2$p)])
+j.nona <- j.all[ !j.all %in% j.na]
+idf2.na.p <- idf2$p[ !idf2$j %in% j.na]
+ts1 <- ts(idf2.na.p, frequency=10,  start=c(1,1), names=j.nona)
+ts1.stl <- stl(ts1, s.window = 'periodic')
+plot(ts1.stl)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

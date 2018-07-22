@@ -16,24 +16,21 @@ img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/en
 ## set woring dir
 setwd(work_dir)
 
-source(file.path(getwd(),'R','amj_awareness_functions.R'))
-source(file.path(getwd(),'R','amj_cb_data_prep.R'))
-source(file.path(getwd(),'R','amj_cb_sic_codes.R'))
-source(file.path(getwd(),'R','amj_sdc_coop.R'))
+source(file.path(getwd(),'R','amj_make_full_graph.R')) 
 
 ## CACHE ENVIRONMENT to keep when clearing tmp objects added here
 ## excluding directories ending in `_dir`
 .ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
 ## graph filename
-full.graph.file <- 'g_full.graphml'
-
-## load full graph, else make full graph if not exists in working directory
-if (full.graph.file %in% dir()) {
-  g.full <- read.graph(full.graph.file, format='graphml')
-} else {
-  source(file.path(getwd(),'R','amj_make_full_graph.R')) 
-}
+# full.graph.file <- 'g_full.graphml'
+# 
+# ## load full graph, else make full graph if not exists in working directory
+# if (full.graph.file %in% dir()) {
+#   g.full <- read.graph(full.graph.file, format='graphml')
+# } else {
+#   source(file.path(getwd(),'R','amj_make_full_graph.R')) 
+# }
 
 
 ## add full network vertex IDs for acquirer|acquiree
@@ -71,7 +68,7 @@ firms.todo <- c('qualtrics',
 #                 'hearstcorporation','newscorporation')
 
 ## -- settings --
-d <- 4
+d <- 3
 yrpd <- 1
 startYr <- 2005
 endYr <- 2017            ## dropping first for memory term; actual dates 2007-2016

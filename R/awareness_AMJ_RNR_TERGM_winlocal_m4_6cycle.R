@@ -41,24 +41,22 @@ m1 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) +
   nodecov("genidx_multilevel") + 
   nodecov("cent_pow_n0_4")  
 
-m4 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) + 
+m4_5_6cycle_nogwd <-   nets ~ edges + gwesp(0, fixed = T) + #gwdegree(0, fixed=T) + 
   nodematch("ipo_status", diff = F) + 
   nodematch("state_code", diff = F) + 
   nodecov("age") + absdiff("age") + 
   edgecov(mmc) + 
   edgecov(cpa) +
-  ##edgecov(cpc) + 
-  ##edgecov(cpp) +
   memory(type = "stability", lag = 1) + 
   nodecov("genidx_multilevel") + 
-  nodecov("cent_pow_n0_4") + absdiff("cent_pow_n0_4") + 
-  cycle(3) + cycle(4) + cycle(5) 
+  nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") + 
+  cycle(3) + cycle(4) + cycle(5)  + cycle(6) 
 
 ################################ end models#######################
 
 
 # models <- list(m4=m4)
-models <- list(m1=m1)
+models <- list(m4_5_6cycle_nogwd=m4_5_6cycle_nogwd)
 
 ##
 # SET RESAMPLES
