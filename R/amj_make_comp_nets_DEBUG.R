@@ -22,17 +22,6 @@ source(file.path(getwd(),'R','amj_make_full_graph.R'))
 ## excluding directories ending in `_dir`
 .ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
-# graph filename
-full.graph.file <- 'g_full.graphml'
-
-## load full graph, else make full graph if not exists in working directory
-if (full.graph.file %in% dir()) {
-  g.full <- read.graph(full.graph.file, format='graphml')
-} else {
-  source(file.path(getwd(),'R','amj_make_full_graph.R'))
-}
-
-
 ## add full network vertex IDs for acquirer|acquiree
 ## to identify unique  vertex over time after node collapsing network
 if (!('acquirer_vid' %in% names(cb$co_acq))) {
@@ -52,8 +41,8 @@ if (!('acquiree_vid' %in% names(cb$co_acq))) {
 
 
 ## set firms to create networks (focal firm or replication study focal firms)
-firms.todo <- c('cloudcherry','qualtrics',
-                'abroad101','checkmarket','clarabridge','cloudcherry',
+firms.todo <- c('qualtrics','cloudcherry',
+                'abroad101','checkmarket','clarabridge',
                 'confirmit','customergauge','cx-index','empathica',
                 'feedback-lite','first-mile-geo','getfeedback',
                 'inqwise','leaderamp', 'medallia','myfeelback',
@@ -70,7 +59,7 @@ firms.todo <- c('cloudcherry','qualtrics',
 ## -- settings --
 d <- 3
 yrpd <- 1
-startYr <- 2010  ## 2005
+startYr <- 2005
 endYr <- 2017            ## dropping first for memory term; actual dates 2007-2016
 lg.cutoff <- 1100        ## large network size cutoff to save periods seprately 
 force.overwrite <- FALSE ## if network files in directory should be overwritten
@@ -80,7 +69,7 @@ force.overwrite <- FALSE ## if network files in directory should be overwritten
 ##
 ## run main network period creation loop
 ##
-for (i in 1:length(firms.todo)) {
+for (i in 1:2) {
 # for (i in 1:2) {
 
   name_i <- firms.todo[i]
@@ -99,7 +88,7 @@ for (i in 1:length(firms.todo)) {
   
   ##-------process pre-start-year acquisitions----------
   acqs.pd <- cb$co_acq[cb$co_acq$acquired_on <= sprintf('%d-12-31',startYr-1), ]
-  g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, remove.isolates=T, verbose = T) ### ************
+  g.d.sub <- aaf$nodeCollapseGraph(g.d.sub, acqs.pd, remove.isolates=T, verbose = T)
   net.d.sub <- asNetwork(g.d.sub)
   cat(sprintf('v = %d, e = %d\n',vcount(g.d.sub),ecount(g.d.sub)))
   
@@ -119,7 +108,7 @@ for (i in 1:length(firms.todo)) {
     t2 <- sprintf('%d-12-31',periods[t-1]) ## inclusive end date 'YYYY-MM-DD'
     
     ## check if period network file exists (skip if not force overwrite)
-    file.rds <- sprintf('firm_nets_rnr/%s_d%d_y%s.rds',name_i,d,periods[t-1])
+    file.rds <- sprintf('firm_nets_rnr_DEBUG/%s_d%d_y%s.rds',name_i,d,periods[t-1])
     if (!force.overwrite & file.exists(file.rds)) {
       cat(sprintf('file exists: %s\nskipping.\n', file.rds))
       next
@@ -133,7 +122,7 @@ for (i in 1:length(firms.todo)) {
     nl[[t]] <- aaf$makePdNetwork(asNetwork(g.d.sub), periods[t-1], periods[t], isolates.remove = F) 
     
     ## 3. Set Covariates for updated Period Network
-    nl[[t]] <- aaf$setCovariates(nl[[t]], periods[t-1], periods[t], covlist=c('mmc'),
+    nl[[t]] <- aaf$setCovariates(nl[[t]], periods[t-1], periods[t],
                                  acq=cb$co_acq,br=cb$co_br,rou=cb$co_rou,ipo=cb$co_ipo,
                                  coop=coop)
     
@@ -142,7 +131,7 @@ for (i in 1:length(firms.todo)) {
       saveRDS(nl[[t]], file = file.rds)
       nv <- length(nl[[t]]$val)
       names(nv)[1] <- as.character(periods[t-1])
-      write.csv(nv, file = sprintf('firm_nets_rnr/%s_d%s.csv',name_i,d),append = TRUE)
+      write.csv(nv, file = sprintf('firm_nets_rnr_DEBUG/%s_d%s.csv',name_i,d),append = TRUE)
       nl[[t]] <- NULL ## remove from memory
     }
     
@@ -175,12 +164,12 @@ for (i in 1:length(firms.todo)) {
     }
     nets <- nets.all[ which(sapply(nets.all, aaf$getNetEcount) > 0) ]
     ## record network sizes
-    write.csv(sapply(nets,function(x)length(x$val)), file = sprintf('firm_nets_rnr/%s_d%s.csv',name_i,d))
+    write.csv(sapply(nets,function(x)length(x$val)), file = sprintf('firm_nets_rnr_DEBUG/%s_d%s.csv',name_i,d))
     
     #-------------------------------------------------
     
     ## CAREFUL TO OVERWRITE 
-    file.rds <- sprintf('firm_nets_rnr/%s_d%d.rds',name_i,d)
+    file.rds <- sprintf('firm_nets_rnr_DEBUG/%s_d%d.rds',name_i,d)
     saveRDS(nets, file = file.rds)
   }
   
@@ -216,7 +205,7 @@ for (i in 1:length(firms.todo)) {
 net.yrs <- 2007:2016
 gs <- list()
 for (yr in net.yrs) {
-  gs[[as.character(yr)]] <- asIgraph(readRDS(file.path('firm_nets_rnr',sprintf('facebook_d3_y%d.rds',yr))))
+  gs[[as.character(yr)]] <- asIgraph(readRDS(file.path('firm_nets_rnr_DEBUG',sprintf('facebook_d3_y%d.rds',yr))))
 }
 
 

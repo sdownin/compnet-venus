@@ -100,11 +100,16 @@ tmp.co <- cb$co[!is.na(cb$co$company_cusip_6),c('company_uuid','company_cusip_6'
 ## MERGE IN CRUNCHBASE COMPANY UUIDs FROM ALL CUSIP COLUMNS LISTED ABOVE
 uuid.col.names <- c()
 for (i in 1:length(req.cols)) {
+  cat(sprintf('SDC coop relations in col `%s` ',req.cols[i]))
   req.col <- req.cols[i]
-  req.col.uuid <- sprintf('company_uuid_from_%s',req.col)
-  uuid.col.names <- c(uuid.col.names, req.col.uuid)
-  names(tmp.co)[1] <- req.col.uuid
-  sdc <- merge(x=sdc, y=tmp.co, by.x=req.col, by.y='company_cusip_6', all.x=T, all.y=F)
+  if (req.col %in% names(sdc)) {
+    req.col.uuid <- sprintf('company_uuid_from_%s',req.col)
+    uuid.col.names <- c(uuid.col.names, req.col.uuid)
+    names(tmp.co)[1] <- req.col.uuid
+    sdc <- merge(x=sdc, y=tmp.co, by.x=req.col, by.y='company_cusip_6', all.x=T, all.y=F)
+  } else {
+    cat('skipping ')
+  }
 }
 
 ## REDUCE ALL CB UUIDS TO ONE company_uuid COLUMN

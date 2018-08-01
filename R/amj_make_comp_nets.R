@@ -22,17 +22,6 @@ source(file.path(getwd(),'R','amj_make_full_graph.R'))
 ## excluding directories ending in `_dir`
 .ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
-## graph filename
-# full.graph.file <- 'g_full.graphml'
-# 
-# ## load full graph, else make full graph if not exists in working directory
-# if (full.graph.file %in% dir()) {
-#   g.full <- read.graph(full.graph.file, format='graphml')
-# } else {
-#   source(file.path(getwd(),'R','amj_make_full_graph.R')) 
-# }
-
-
 ## add full network vertex IDs for acquirer|acquiree
 ## to identify unique  vertex over time after node collapsing network
 if (!('acquirer_vid' %in% names(cb$co_acq))) {
@@ -52,8 +41,8 @@ if (!('acquiree_vid' %in% names(cb$co_acq))) {
 
 
 ## set firms to create networks (focal firm or replication study focal firms)
-firms.todo <- c('qualtrics',
-                'abroad101','checkmarket','clarabridge','cloudcherry',
+firms.todo <- c('qualtrics','cloudcherry',
+                'abroad101','checkmarket','clarabridge',
                 'confirmit','customergauge','cx-index','empathica',
                 'feedback-lite','first-mile-geo','getfeedback',
                 'inqwise','leaderamp', 'medallia','myfeelback',

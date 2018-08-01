@@ -628,26 +628,32 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, remove.isolates=FALSE, verbos
       V(g)$acquired_vids[acquirer.vid] <- paste(V(g)$acquired_vids[acquirer.vid], target.vid, collapse = "|")
       V(g)$acquired_company_name_unique[acquirer.vid] <- paste(V(g)$acquired_company_name_unique[acquirer.vid], target.vid, collapse = "|")
       V(g)$acquired_company_uuid[acquirer.vid] <- paste(V(g)$acquired_company_uuid[acquirer.vid], target.vid, collapse = "|")
-      
-      ##-------------- 2. ADD TARGETS EDGES TO ACQUIRER ----------------------------------------
-      edgeAttrs <- list(weight=rep(1, target.deg), 
-                        relation_began_on=rep(x$acquired_on, target.deg), 
-                        relation_ended_on=rep(NA, target.deg))
-      g <- igraph::add.edges(g, edges.c, attr = edgeAttrs)
-      
+    
       ##-------------- 3. REMOVE TARGETS EDGES ----------------------------------------
       ## NOTE: firm nodes with degree(v)==0 are "removed" from the network by definition
       ##       but still in the data structure for ERGM estimation.
       ##       (Theoretically this function would not work for studying 
       ##        a monopoly with no indirect competitors)
       ## edge ids involving the neighbors of the target -- TO DELETE
-      target.nbr.eids <- which( 
-        (
-          (el[,1] %in% target.vid) | (el[,2] %in% target.vid)
-        )
-      )
+      target.nbr.eids <- which((el[,1] %in% target.vid) | (el[,2] %in% target.vid))
+
+      ## cache edge weights to transfer below
+      target.nbr.edge.weights <- as.numeric(igraph::get.edge.attribute(g, 'weight', target.nbr.eids))
+      
       ## delete edges 
       g <- igraph::delete.edges(g, target.nbr.eids)
+      
+      ##-------------- 4. ADD TARGETS EDGES TO ACQUIRER ----------------------------------------
+      edgeAttrs <- list(weight=target.nbr.edge.weights, 
+                        relation_began_on=rep(x$acquired_on, target.deg), 
+                        relation_ended_on=rep(NA, target.deg))
+      g <- igraph::add.edges(g, edges.c, attr = edgeAttrs)
+      
+      ##--------------- 4. SIMPLIFY DUPLICATE EDGES ----------------------------------
+      ## contract edges
+      if (verbose) cat('simplifying edges ')
+      edge.attr.comb = list(weight="sum",relation_began_on="max",relation_ended_on="min")
+      g <- igraph::simplify(g, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
       
       ##-------------- end ----------------------------------------
     }
@@ -657,116 +663,6 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, remove.isolates=FALSE, verbos
   cat('done.\n')
   return(g)
 }
-
-# 
-# ##
-# #
-# # ORIGINAL VERSION OF FUNCTION -- POSSIBLE ERROR -- DEBUGGING IN function nodeCollapseGraph()
-# #
-# # Update Graph collapsing nodes by acquisitions mapping
-# # NOTE: add 'weight' and 'acquisitions' attributes to graph before start
-# # @param [igraph] g                 The igraph object 
-# # @param [dataframe] acquisitions   The dataframe of acquisitions
-# # @param [bool] verbose             A flag to echo stutus updates
-# # @return [igraph] 
-# ##
-# aaf$nodeCollapseContractGraph <- function(g, acquisitions, remove.isolates=FALSE, verbose=FALSE)
-# {
-#   if (class(g) != 'igraph') stop("g must be an igraph object")
-#   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
-#   if (!('acquirer_vid' %in% names(acquisitions))) stop("acquirer_vid must be set in acquisitions dataframe")
-#   if (!('acquiree_vid' %in% names(acquisitions))) stop("acquiree_vid must be set in acquisitions dataframe")
-#   
-#   ##--------------------- Acquisitions Mapping --------------------------
-#   ## acqs = c(1,4,3,3,1,4,...)
-#   ## {acquired} index --> {acquirer} acqs[index]  WHEN BOTH IN NETWORK
-#   acqs.sub <- acquisitions[which(acquisitions$acquirer_vid %in% V(g)$orig.vid
-#                                  & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
-#   cat(sprintf('processing acquisitions: %s ...', nrow(acqs.sub)))
-#   
-#   if (nrow(acqs.sub) == 0) 
-#   {
-#     
-#     g.acq.s <- g
-#     
-#   } else {
-#     
-#     # acqMapping <- V(g)$orig.vid
-#     acqMapping <- as.integer( V(g) )
-#     if (verbose) cat('updating acq mapping i: ')
-#     for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
-#       if (verbose) cat(sprintf(" %s ",i))
-#       acqr.i <- unique(acqs.sub$acquirer_vid)[i] ##  acquirer vid
-#       acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid'] ## acquiree's vids
-#       acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)] ## filter acquiree's vids to those in subgraph
-#       if (length(acqe.vids) > 0) { ##replace current g vid of acquiree with current graph vid of acquirer by orig.vid property
-#         acqr.g.i <- which(V(g)$orig.vid == acqr.i)
-#         acqe.g.vids <- sapply(acqe.vids, function(x)which(V(g)$orig.vid == x))
-#         acqMapping[  which( as.integer(V(g)) %in% acqe.g.vids ) ] <- as.integer(acqr.g.i)  ## assign acquirer's vid to value in acquiree's spots
-#       }
-#     }
-#     
-#     if (verbose) cat('reindexing mapping ')
-#     ## change orig.vid to current subgraph vids (reindexing)
-#     # acqMappingSub <- sapply(1:length(acqMapping), function(i){ 
-#     #   if (verbose & (i %% 500 == 0)) cat(sprintf(" %s ",i))
-#     #   x <- acqMapping[i]
-#     #   return( as.integer(V(g)[which(x==V(g)$orig.vid)]) )
-#     # })
-#     acqMappingSub <- acqMapping ## no need to reindex here bc already using current subgraph vids
-#     if (verbose) cat('finished reindexing  ')
-#     
-#     ##-------------- CONFIG GRAPH ATTRIBUTES COMBINATIONS ---------------------
-#     ## build vertex attr comb list
-#     vertex.attr.comb <- list(weight=function(x)sum(x),
-#                              tmp.name=function(x)x[1],
-#                              tmp.orig.vid=function(x)x[1],
-#                              absorbed=function(x)paste(x,collapse="|") ) ## paste(x,collapse="|")
-#     attrs <- igraph::list.vertex.attributes(g)
-#     skipAttrs <- c('name','weight',names(vertex.attr.comb))
-#     if (verbose) cat('finished reindexing  ')
-#     for (attr in attrs[which(!(attrs %in% skipAttrs))]) {
-#       vertex.attr.comb[[attr]] <- function(x)paste(unique(x),collapse="|")
-#     }
-#     if (verbose) cat('finished adding attrs ')
-#     
-#     ## temporary attrs used to concat in mapping
-#     V(g)$absorbed <- V(g)$name
-#     V(g)$tmp.name <- V(g)$name[acqMappingSub]
-#     V(g)$tmp.orig.vid <- V(g)$orig.vid[acqMappingSub]
-#     
-#     ##---------------------- COLLAPSE NODES ---------------------------------
-#     if (verbose) cat('contracting vertices ')
-#     g.acq <- igraph::contract.vertices(g, acqMappingSub, vertex.attr.comb=vertex.attr.comb)
-#     ## reassign name & attributes of acquired company to empty node (which was acquired)
-#     g.attrs <- igraph::list.vertex.attributes(g)
-#     g.acq.attrs <- igraph::list.vertex.attributes(g.acq)
-#     vAttrs <- g.acq.attrs[g.acq.attrs %in% g.attrs]
-#     # for (vid in acqe.g.vids) {
-#     #   for (attr in vAttrs) {
-#     #     g.acq <- igraph::set.vertex.attribute(g.acq, attr, vid, igraph::get.vertex.attribute(g,attr,vid))
-#     #   }
-#     # }
-#     
-#     ## remove nodes that were acquired (had no remaining edges : degree=0) if flag is TRUE
-#     if (remove.isolates) {
-#       if (verbose) cat('removing isolates... ')
-#       g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0)) ## ERROR: keep empty vertices for  same size TERGM panels
-#     }
-#     V(g.acq)$name <- V(g.acq)$tmp.name
-#     V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
-#     
-#     ## contract edges
-#     if (verbose) cat('simplifying edges ')
-#     edge.attr.comb = list(weight="sum",relation_began_on="min",relation_ended_on="min")
-#     g.acq.s <- igraph::simplify(g.acq, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
-#     
-#   } 
-#   
-#   cat('done.\n')
-#   return(g.acq.s)
-# }
-
 
 ##
 # Makes period network 
@@ -998,3 +894,132 @@ aaf$plotCompNetColPredict <- function(gs, focal.firm=NA, cutoff=.9,
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 
+# ##
+# #
+# # ORIGINAL VERSION OF FUNCTION -- POSSIBLE ERROR -- DEBUGGING IN function nodeCollapseGraph()
+# #
+# # Update Graph collapsing nodes by acquisitions mapping
+# # NOTE: add 'weight' and 'acquisitions' attributes to graph before start
+# # @param [igraph] g                 The igraph object 
+# # @param [dataframe] acquisitions   The dataframe of acquisitions
+# # @param [bool] verbose             A flag to echo stutus updates
+# # @return [igraph] 
+# ##
+# aaf$nodeCollapseContractGraph <- function(g, acquisitions, remove.isolates=FALSE, verbose=FALSE)
+# {
+#   if (class(g) != 'igraph') stop("g must be an igraph object")
+#   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
+#   if (!('acquirer_vid' %in% names(acquisitions))) stop("acquirer_vid must be set in acquisitions dataframe")
+#   if (!('acquiree_vid' %in% names(acquisitions))) stop("acquiree_vid must be set in acquisitions dataframe")
+#   
+#   ##--------------------- Acquisitions Mapping --------------------------
+#   ## acqs = c(1,4,3,3,1,4,...)
+#   ## {acquired} index --> {acquirer} acqs[index]  WHEN BOTH IN NETWORK
+#   acqs.sub <- acquisitions[which(acquisitions$acquirer_vid %in% V(g)$orig.vid
+#                                  & acquisitions$acquiree_vid %in% V(g)$orig.vid ), ]
+#   cat(sprintf('processing acquisitions: %s ...', nrow(acqs.sub)))
+#   
+#   if (nrow(acqs.sub) == 0) 
+#   {
+#     
+#     g.acq.s <- g
+#     
+#   } else {
+#     
+#     # acqMapping <- V(g)$orig.vid
+#     acqMapping <- as.integer( V(g) )
+#     if (verbose) cat('updating acq mapping i: ')
+#     for(i in 1:length(unique(acqs.sub$acquirer_vid))) {
+#       if (verbose) cat(sprintf(" %s ",i))
+#       acqr.i <- unique(acqs.sub$acquirer_vid)[i] ##  acquirer vid
+#       acqe.sub.i <- acqs.sub[acqs.sub$acquirer_vid == acqr.i, 'acquiree_vid'] ## acquiree's vids
+#       acqe.vids <- acqe.sub.i[which(acqe.sub.i %in% V(g)$orig.vid)] ## filter acquiree's vids to those in subgraph
+#       if (length(acqe.vids) > 0) { ##replace current g vid of acquiree with current graph vid of acquirer by orig.vid property
+#         acqr.g.i <- which(V(g)$orig.vid == acqr.i)
+#         acqe.g.vids <- sapply(acqe.vids, function(x)which(V(g)$orig.vid == x))
+#         acqMapping[  which( as.integer(V(g)) %in% acqe.g.vids ) ] <- as.integer(acqr.g.i)  ## assign acquirer's vid to value in acquiree's spots
+#       }
+#     }
+#     
+#     if (verbose) cat('reindexing mapping ')
+#     ## change orig.vid to current subgraph vids (reindexing)
+#     # acqMappingSub <- sapply(1:length(acqMapping), function(i){ 
+#     #   if (verbose & (i %% 500 == 0)) cat(sprintf(" %s ",i))
+#     #   x <- acqMapping[i]
+#     #   return( as.integer(V(g)[which(x==V(g)$orig.vid)]) )
+#     # })
+#     acqMappingSub <- acqMapping ## no need to reindex here bc already using current subgraph vids
+#     if (verbose) cat('finished reindexing  ')
+#     
+#     ##-------------- CONFIG GRAPH ATTRIBUTES COMBINATIONS ---------------------
+#     ## build vertex attr comb list
+#     vertex.attr.comb <- list(weight=function(x)sum(x),
+#                              tmp.name=function(x)x[1],
+#                              tmp.orig.vid=function(x)x[1],
+#                              absorbed=function(x)paste(x,collapse="|") ) ## paste(x,collapse="|")
+#     attrs <- igraph::list.vertex.attributes(g)
+#     skipAttrs <- c('name','weight',names(vertex.attr.comb))
+#     if (verbose) cat('finished reindexing  ')
+#     for (attr in attrs[which(!(attrs %in% skipAttrs))]) {
+#       vertex.attr.comb[[attr]] <- function(x)paste(unique(x),collapse="|")
+#     }
+#     if (verbose) cat('finished adding attrs ')
+#     
+#     ## temporary attrs used to concat in mapping
+#     V(g)$absorbed <- V(g)$name
+#     V(g)$tmp.name <- V(g)$name[acqMappingSub]
+#     V(g)$tmp.orig.vid <- V(g)$orig.vid[acqMappingSub]
+#     
+#     ##---------------------- COLLAPSE NODES ---------------------------------
+#     if (verbose) cat('contracting vertices ')
+#     g.acq <- igraph::contract.vertices(g, acqMappingSub, vertex.attr.comb=vertex.attr.comb)
+#     ## reassign name & attributes of acquired company to empty node (which was acquired)
+#     g.attrs <- igraph::list.vertex.attributes(g)
+#     g.acq.attrs <- igraph::list.vertex.attributes(g.acq)
+#     vAttrs <- g.acq.attrs[g.acq.attrs %in% g.attrs]
+#     # for (vid in acqe.g.vids) {
+#     #   for (attr in vAttrs) {
+#     #     g.acq <- igraph::set.vertex.attribute(g.acq, attr, vid, igraph::get.vertex.attribute(g,attr,vid))
+#     #   }
+#     # }
+#     
+#     ## remove nodes that were acquired (had no remaining edges : degree=0) if flag is TRUE
+#     if (remove.isolates) {
+#       if (verbose) cat('removing isolates... ')
+#       g.acq <- igraph::induced.subgraph(g.acq,vids = which(igraph::degree(g.acq)>0)) ## ERROR: keep empty vertices for  same size TERGM panels
+#     }
+#     V(g.acq)$name <- V(g.acq)$tmp.name
+#     V(g.acq)$orig.vid <- V(g.acq)$tmp.orig.vid
+#     
+#     ## contract edges
+#     if (verbose) cat('simplifying edges ')
+#     edge.attr.comb = list(weight="sum",relation_began_on="max",relation_ended_on="min")
+#     g.acq.s <- igraph::simplify(g.acq, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
+#     
+#   } 
+#   
+#   cat('done.\n')
+#   return(g.acq.s)
+# }

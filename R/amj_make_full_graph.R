@@ -25,30 +25,41 @@ source(file.path(getwd(),'R','amj_sdc_coop.R'))
 .ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
 
-cat('\nmaking full graph...\n')
+# graph filename
+full.graph.file <- 'g_full.graphml'
 
-max.year <- 2016
+## load full graph, else make full graph if not exists in working directory
+if (full.graph.file %in% dir()) 
+{
+  g.full <- read.graph(full.graph.file, format='graphml')
+} else {
 
-## delete edges at or later than this date (the year after max.year)
-exclude.date <- sprintf('%d-01-01', max.year+1)
-
-## make graph
-g.full <- aaf$makeGraph(comp = cb$co_comp, vertdf = cb$co)
-
-## cut out confirmed dates >= 2016
-g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= max.year
-                                                                | is.na(V(g.full)$founded_year)
-                                                                | V(g.full)$founded_year=='' ) ] )
-g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= exclude.date)])
-
-## SIMPLIFY
-g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
-                           edge.attr.comb = list(weight='sum',
-                                                 relation_began_on='min',
-                                                 relation_ended_on='min'))
-
-## save graph file
-igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
+  cat('\nmaking full graph...\n')
+  
+  max.year <- 2016
+  
+  ## delete edges at or later than this date (the year after max.year)
+  exclude.date <- sprintf('%d-01-01', max.year+1)
+  
+  ## make graph
+  g.full <- aaf$makeGraph(comp = cb$co_comp, vertdf = cb$co)
+  
+  ## cut out confirmed dates >= 2016
+  g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= max.year
+                                                                  | is.na(V(g.full)$founded_year)
+                                                                  | V(g.full)$founded_year=='' ) ] )
+  g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= exclude.date)])
+  
+  ## SIMPLIFY
+  g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
+                             edge.attr.comb = list(weight='sum',
+                                                   relation_began_on='min',
+                                                   relation_ended_on='min'))
+  
+  ## save graph file
+  igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
+  
+}
 
 ## add graph to namespace exportable
 .ls <- c(.ls, 'g.full')
