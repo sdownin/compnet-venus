@@ -18,6 +18,9 @@ data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/co
 results_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2/amj_rnr_results"
 img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/envelopment/img"
 
+## set woring dir
+setwd(work_dir)
+
 source(file.path(getwd(),'R','amj_awareness_functions.R'))
 
 g.full.file <- 'g_full.graphml'
@@ -25,8 +28,6 @@ if (file.exists(g.full.file)) {
   g.full <- igraph::read.graph(g.full.file, format = 'graphml')
 }
 
-## set woring dir
-setwd(work_dir)
 
 ## -----------Model Results Settings-----
 name_i <- 'qualtrics'
@@ -362,7 +363,7 @@ ggplot(tdf.sub) + aes(x=year,y=p_log) +
   geom_line(aes(y=p_log, x=year), data=mcis, color='darkgray', lwd=2, lty=2) + 
   geom_point(aes(color=j.name, pch=j.name), lwd=3.5) + 
   geom_line(aes(color=j.name), lwd=1.1) + 
-  ylab('Conditoinal Ln Probabilitiy of Competitive Encounter') +
+  ylab('Conditional Ln Probabilitiy of Competitive Encounter') +
   theme_classic() + theme(legend.position="top") + 
   guides(color=guide_legend(leg.title),pch=guide_legend(leg.title))
 
