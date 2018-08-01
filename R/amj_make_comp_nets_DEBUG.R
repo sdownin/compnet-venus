@@ -22,16 +22,16 @@ source(file.path(getwd(),'R','amj_make_full_graph.R'))
 ## excluding directories ending in `_dir`
 .ls <- ls()[grep('(?<!_dir)$',ls(),perl = T)]
 
-## add full network vertex IDs for acquirer|acquiree
-## to identify unique  vertex over time after node collapsing network
-if (!('acquirer_vid' %in% names(cb$co_acq))) {
-  tmp <- data.frame(acquirer_vid=as.integer(V(g.full)), acquirer_uuid=V(g.full)$company_uuid)
-  cb$co_acq <- merge(cb$co_acq, tmp, by='acquirer_uuid')
-}
-if (!('acquiree_vid' %in% names(cb$co_acq))) {
-  tmp <- data.frame(acquiree_vid=as.integer(V(g.full)), acquiree_uuid=V(g.full)$company_uuid)
-  cb$co_acq <- merge(cb$co_acq, tmp, by='acquiree_uuid')
-}
+# ## add full network vertex IDs for acquirer|acquiree
+# ## to identify unique  vertex over time after node collapsing network
+# if (!('acquirer_vid' %in% names(cb$co_acq))) {
+#   tmp <- data.frame(acquirer_vid=as.integer(V(g.full)), acquirer_uuid=V(g.full)$company_uuid)
+#   cb$co_acq <- merge(cb$co_acq, tmp, by='acquirer_uuid')
+# }
+# if (!('acquiree_vid' %in% names(cb$co_acq))) {
+#   tmp <- data.frame(acquiree_vid=as.integer(V(g.full)), acquiree_uuid=V(g.full)$company_uuid)
+#   cb$co_acq <- merge(cb$co_acq, tmp, by='acquiree_uuid')
+# }
 
 
 
@@ -41,7 +41,7 @@ if (!('acquiree_vid' %in% names(cb$co_acq))) {
 
 
 ## set firms to create networks (focal firm or replication study focal firms)
-firms.todo <- c('qualtrics','cloudcherry',
+firms.todo <- c('cloudcherry','qualtrics',
                 'abroad101','checkmarket','clarabridge',
                 'confirmit','customergauge','cx-index','empathica',
                 'feedback-lite','first-mile-geo','getfeedback',

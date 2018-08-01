@@ -53,7 +53,7 @@ if (full.graph.file %in% dir())
   ## SIMPLIFY
   g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
                              edge.attr.comb = list(weight='sum',
-                                                   relation_began_on='min',
+                                                   relation_began_on='max',
                                                    relation_ended_on='min'))
   
   ## save graph file
@@ -61,12 +61,27 @@ if (full.graph.file %in% dir())
   
 }
 
-## add graph to namespace exportable
-.ls <- c(.ls, 'g.full')
+
+##============================================
+## ADD MANUAL UPDATES (EDGES | NODES)
+##--------------------------------------------
+## add Qualtrics - Medallia competitive relation
+vid1 <- which(V(g.full)$company_uuid=='2f6ed0df-e019-f0ad-10bc-d7eee4710103')  ## qualtrics
+vid2 <- which(V(g.full)$company_uuid=='405c6579-fce0-ff76-6870-aa0236bafde7')  ## medallia
+edgeAttrs <- list(weight=1, relation_began_on=max('2002-01-01'), relation_ended_on=NA)
+g.full <- igraph::add.edges(g.full, c(vid1,vid2), attr = edgeAttrs)
+## save graph file
+igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
+
+
+
+
 
 ##===============================
 ## CLEAR NAMESPACE 
 ##-------------------------------
+## add graph to namespace exportable
+.ls <- c(.ls, 'g.full')
 ## clear tmp objects in environment 
 ## from this script not to be exported
 ## when called from external script

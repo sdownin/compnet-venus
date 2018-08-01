@@ -586,9 +586,7 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, remove.isolates=FALSE, verbos
 {
   if (class(g) != 'igraph') stop("g must be an igraph object")
   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
-  if (!('acquirer_vid' %in% names(acquisitions))) stop("acquirer_vid must be set in acquisitions dataframe")
-  if (!('acquiree_vid' %in% names(acquisitions))) stop("acquiree_vid must be set in acquisitions dataframe")
-  
+
   ##--------------------- Acquisitions Mapping --------------------------
   ## acqs = c(1,4,3,3,1,4,...)
   ## {acquired} index --> {acquirer} acqs[index]  WHEN BOTH IN NETWORK
