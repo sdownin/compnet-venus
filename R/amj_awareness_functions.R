@@ -18,6 +18,54 @@ library(stringr)
 aaf <- list()
 
 
+##
+# Checks vector for general NA types (NULL, NA, 'NA', NaN) 
+#  NOTE does not check data.frame or list -- returns FALSE
+##
+.isNA <- function(x, check.string.na=TRUE) {
+  if (is.null(x))
+    return(TRUE)
+  uncheckable <- c('data.frame','list')
+  if (class(x) %in% uncheckable)
+    return(FALSE)
+  return(unname(unlist(sapply(x,function(i){
+    (is.null(i) | is.na(i) | is.nan(i) | (check.string.na & i== 'NA'))
+  }))))
+}
+
+
+##
+# Checks vector for NA or missing types (NULL, NA, 'NA', NaN) 
+#  NOTE does not check data.frame or list -- returns FALSE
+##
+.hasNA <- function(x, check.string.na=TRUE) {
+  if (is.null(x))
+    return(TRUE)
+  return(any(.isNA(x,check.string.na)))
+}
+
+##
+# SUM the non-NA values of X, else return a default value if none exist
+##
+.sumNA <- function(x, default=NA) {
+  return(ifelse(length(x[!.isNA(x)]) > 0, sum(x[!.isNA(x)]), default))
+}
+
+##
+# MIN the non-NA values of X, else return a default value if none exist
+##
+.minNA <- function(x, default=NA) {
+  return(ifelse(length(x[!.isNA(x)]) > 0, min(x[!.isNA(x)]), default))
+}
+
+##
+# MAX the non-NA values of X, else return a default value if none exist
+##
+.maxNA <- function(x, default=NA) {
+  return(ifelse(length(x[!.isNA(x)]) > 0, max(x[!.isNA(x)]), default))
+}
+
+
 
 ###
 # Create igraph from competitive relation in comp dataframe
@@ -598,12 +646,13 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, remove.isolates=FALSE, verbos
   {
     
     vAttrs = igraph::list.vertex.attributes(g)
-    for (attr in c('acquired_vids','acquired_company_name_unique','acquired_company_uuid')) {
+    for (attr in c('acquired_vids','acquired_name','acquired_uuid')) {
       if ( !(attr %in% vAttrs) ) {
         g <- igraph::set.vertex.attribute(g, attr, V(g), NA)
       }
     }
 
+    ##---------------- ACQUISITIONS LOOP---------------------------------------
     for (i in 1:nrow(acqs.sub))
     {
       x = acqs.sub[i, ]
@@ -613,19 +662,39 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, remove.isolates=FALSE, verbos
       ## target's neighbor's vids
       target.nbr.vids <- as.integer(igraph::neighbors(g, target.vid))
       target.deg <- length(target.nbr.vids)
-      ## string of edges with acquirer.vid after each target neighbor vid, ex: "56, 1098 ,335, 1098 ,383, 1098 ,384, 1098"
-      edge.str.parts <- c(paste(target.nbr.vids,collapse=sprintf(',%s,',acquirer.vid)), as.character(acquirer.vid))
-      edges.str <- paste(edge.str.parts, collapse=',')
-      # convert string to vector of edges; each pair of vids are one edge: c(1,2,1,3,3,4) is edges 1-2, 1-3, 3-4
-      edges.c <- as.integer(str_split(rev(edges.str), ',')[[1]])
-      ## edges (source,target) matrix
+      
+      ## create edge vector to add to graph for neighbors of target
+      if (target.deg == 0) {
+        edges.c <- NA  ## target had NO neighbors, so no edges to add
+      } else {
+        ## string of edges with acquirer.vid after each target neighbor vid, ex: "56, 1098 ,335, 1098 ,383, 1098 ,384, 1098"
+        edge.str.parts <- c(paste(target.nbr.vids,collapse=sprintf(',%s,',acquirer.vid)), as.character(acquirer.vid))
+        edges.str <- paste(edge.str.parts, collapse=',')
+        # convert string to vector of edges; each pair of vids are one edge: c(1,2,1,3,3,4) is edges 1-2, 1-3, 3-4
+        edges.c <- as.integer(str_split(rev(edges.str), ',')[[1]])
+        ## edges (source,target) matrix
+      }
+
       el <- igraph::ends(g, E(g), names=F)
       
       ##-------------- 1. TRACK ACQUISITION LIST  ---------------------------------------------
       ## track acquisitions
-      V(g)$acquired_vids[acquirer.vid] <- paste(V(g)$acquired_vids[acquirer.vid], target.vid, collapse = "|")
-      V(g)$acquired_company_name_unique[acquirer.vid] <- paste(V(g)$acquired_company_name_unique[acquirer.vid], target.vid, collapse = "|")
-      V(g)$acquired_company_uuid[acquirer.vid] <- paste(V(g)$acquired_company_uuid[acquirer.vid], target.vid, collapse = "|")
+      noAcq <- .isNA(V(g)$acquired_uuid[acquirer.vid])
+      V(g)$acquired_vids[acquirer.vid] <- if(noAcq){
+          target.vid
+        }else{
+          paste(V(g)$acquired_vids[acquirer.vid], target.vid, sep = "|")
+        }
+      V(g)$acquired_name[acquirer.vid] <- if(noAcq){
+          V(g)$name[target.vid]
+        }else{
+          paste(V(g)$acquired_name[acquirer.vid], V(g)$name[target.vid], sep = "|")
+        }
+      V(g)$acquired_uuid[acquirer.vid] <- if(noAcq){
+          V(g)$company_uuid[target.vid]
+        }else{
+          paste(V(g)$acquired_uuid[acquirer.vid], V(g)$company_uuid[target.vid], sep = "|")
+        }
     
       ##-------------- 3. REMOVE TARGETS EDGES ----------------------------------------
       ## NOTE: firm nodes with degree(v)==0 are "removed" from the network by definition
@@ -636,31 +705,41 @@ aaf$nodeCollapseGraph <- function(g, acquisitions, remove.isolates=FALSE, verbos
       target.nbr.eids <- which((el[,1] %in% target.vid) | (el[,2] %in% target.vid))
 
       ## cache edge weights to transfer below
-      target.nbr.edge.weights <- as.numeric(igraph::get.edge.attribute(g, 'weight', target.nbr.eids))
+      tmp.weights <- as.numeric(igraph::get.edge.attribute(g, 'weight', target.nbr.eids))
+      ## remove NAs from weights 
+      target.nbr.edge.weights <- unlist(sapply(tmp.weights, function(x) ifelse(is.numeric(x) & !.isNA(x), x, 1)))
       
       ## delete edges 
       g <- igraph::delete.edges(g, target.nbr.eids)
       
-      ##-------------- 4. ADD TARGETS EDGES TO ACQUIRER ----------------------------------------
-      edgeAttrs <- list(weight=target.nbr.edge.weights, 
-                        relation_began_on=rep(x$acquired_on, target.deg), 
-                        relation_ended_on=rep(NA, target.deg))
-      g <- igraph::add.edges(g, edges.c, attr = edgeAttrs)
-      
-      ##--------------- 4. SIMPLIFY DUPLICATE EDGES ----------------------------------
-      ## contract edges
-      if (verbose) cat('simplifying edges ')
-      edge.attr.comb = list(weight="sum",relation_began_on="max",relation_ended_on="min")
-      g <- igraph::simplify(g, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
-      
-      ##-------------- end ----------------------------------------
-    }
+      ##-------------- 4. TRANSFER TARGETS EDGES (IF ANY)  ----------------------------------------
+      if (target.deg > 0) 
+      {
+        ##-------------- add targets edges to acquirer -------------------
+        edgeAttrs <- list(weight=target.nbr.edge.weights, 
+                          relation_began_on=rep(x$acquired_on, target.deg), 
+                          relation_ended_on=rep(NA, target.deg))
+        g <- igraph::add.edges(g, edges.c, attr = edgeAttrs)      
 
-  } 
+        ##--------------- simplify duplicate edges ------------------------
+        ## contract edges
+        if (verbose) cat('\nsimplifying edges...')
+        edge.attr.comb = list(weight=function(x) .sumNA(x, 1), ## sum values that are not NA, else return 1
+                              relation_began_on=function(x) .maxNA(x, NA), ## max value of those that are not NA, else return NA
+                              relation_ended_on=function(x) .minNA(x, NA)) ## min value of those that are not NA, else return NA
+        # edge.attr.comb = list(weight="concat",relation_began_on="concat",relation_ended_on="concat")
+        g <- igraph::simplify(g, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
+        if (verbose) cat('done.')
+      } 
+      
+    } ## acquisition loop 
+    
+  } ## main 
   
-  cat('done.\n')
+  cat('\ndone.\n')
   return(g)
 }
+
 
 ##
 # Makes period network 

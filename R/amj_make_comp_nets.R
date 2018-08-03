@@ -28,7 +28,7 @@ source(file.path(getwd(),'R','amj_make_full_graph.R'))
 
 
 ## set firms to create networks (focal firm or replication study focal firms)
-firms.todo <- c('cloudcherry','qualtrics',
+firms.todo <- c('qualtrics','cloudcherry',
                 'abroad101','checkmarket','clarabridge',
                 'confirmit','customergauge','cx-index','empathica',
                 'feedback-lite','first-mile-geo','getfeedback',
@@ -44,7 +44,7 @@ firms.todo <- c('cloudcherry','qualtrics',
 #                 'hearstcorporation','newscorporation')
 
 ## -- settings --
-d <- 3
+d <- 4
 yrpd <- 1
 startYr <- 2005
 endYr <- 2017            ## dropping first for memory term; actual dates 2007-2016
@@ -56,8 +56,8 @@ force.overwrite <- FALSE ## if network files in directory should be overwritten
 ##
 ## run main network period creation loop
 ##
-for (i in 1:length(firms.todo)) {
-# for (i in 1:2) {
+# for (i in 1:length(firms.todo)) {
+for (i in 1:1) {
 
   name_i <- firms.todo[i]
   cat(sprintf('\n\n------------ %s -------------\n\n',name_i))
