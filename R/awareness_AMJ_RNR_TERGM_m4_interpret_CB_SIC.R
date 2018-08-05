@@ -48,7 +48,7 @@ m_x <- 'm4'
 .iqr <- function(x){return(IQR(x, na.rm=TRUE))}
 
 ## results
-fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', 
+fits.file <- sprintf('%s/fit_winlocal_v2__%s_pd%s_d%s_R%s_%s.rds', 
                      results_dir, name_i, nPeriods, d, R, m_x)
 fits <- readRDS(fits.file)
 
@@ -509,5 +509,28 @@ psicc
 ## 10 / (63/331) = X / (211/636)
 ## X = 10 * (211/636) / (63/331)
 ##   = 17.4 SIC codes estimated by CrunchBase CATEGORIES
+
+
+
+
+
+## CRUNCHBASE CATEGORY GROUPS
+## 10 SIC by public firms  --> 22/45 (48.9%) crunchbase category groups
+## X  SIC by ALL     firms --> 41/46  (89.1%) crunchbase category groups
+## 10 / (22/45) = X / (41/46)
+## X = 10 * (41/46) / (22/45)
+##   = 18.2 SIC codes estimated by CrunchBase CATEGORY GROUPS
+###
+## CRUNCHBASE CATEGORIES
+## 10 SIC by public firms  --> 63/331 (19.0%%) crunchbase categories
+## X  SIC by private firms --> 211/636  (33.2%) crunchbase categories
+## 10 / (63/331) = X / (211/636)
+## X = 10 * (211/636) / (63/331)
+##   = 17.4 SIC codes estimated by CrunchBase CATEGORIES
+
+
+
+
+
 
 

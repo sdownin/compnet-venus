@@ -44,7 +44,7 @@ firms.todo <- c('qualtrics','cloudcherry',
 #                 'hearstcorporation','newscorporation')
 
 ## -- settings --
-d <- 4
+d <- 3
 yrpd <- 1
 startYr <- 2005
 endYr <- 2017            ## dropping first for memory term; actual dates 2007-2016

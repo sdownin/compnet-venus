@@ -15,9 +15,6 @@ nets <- readRDS(data_file)
 
 nPeriods <- 11  ## 5
 
-
-if (!("fits" %in% ls())) fits <- list()
-if (!(firm_i %in% names(fits)) ) fits[[firm_i]] <- list()
 if (nPeriods < length(nets))   nets <- nets[(length(nets)-nPeriods+1):length(nets)] 
 
 cat("\n------------ estimating TERGM for:",firm_i,'--------------\n')
@@ -57,13 +54,13 @@ m4 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) +
 ################################ end models#######################
 
 
-# models <- list(m4=m4)
-models <- list(m1=m1)
+models <- list(m4=m4)
+# models <- list(m1=m1)
 
 ##
 # SET RESAMPLES
 ##
-R <- 200
+R <- 500
 
 
 ##
@@ -80,12 +77,12 @@ for (i in 1:length(models)) {
   
   if (!inherits(fit, "error")) {
     ## SAVE SERIALIZED
-    fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', 
+    fits.file <- sprintf('%s/fit_winlocal_v2__%s_pd%s_d%s_R%s_%s.rds', 
                          results_dir, firm_i, nPeriods, d, R, m_x)
     saveRDS(fit, file=fits.file)
     
     ## SAVE FORMATTED REGRESSION TABLE
-    html.file <- sprintf('%s/%s_tergm_results_winlocal_pd%s_d%s_R%s_%s.html',  
+    html.file <- sprintf('%s/%s_tergm_results_winlocal_v2__pd%s_d%s_R%s_%s.html',  
                          results_dir, firm_i, nPeriods, d, R, m_x)
     htmlreg(fit, digits = 3, file=html.file)
     
@@ -102,10 +99,10 @@ cat('finished successfully.')
 # fits <- list()
 # for (i in 1:4) {
 #   m_x <- paste0('m',i);
-#   fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', results_dir, firm_i, nPeriods, d, R, m_x)
+#   fits.file <- sprintf('%s/fit_winlocal_v2__%s_pd%s_d%s_R%s_%s.rds', results_dir, firm_i, nPeriods, d, R, m_x)
 #   fits[[m_x]] <- readRDS(fits.file)
 # }
-fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', results_dir, firm_i, nPeriods, d, R, 'm4')
+fits.file <- sprintf('%s/fit_winlocal_v2__%s_pd%s_d%s_R%s_%s.rds', results_dir, firm_i, nPeriods, d, R, 'm4')
 m4<- readRDS(fits.file)
 
 
@@ -130,7 +127,7 @@ for (i in 1:length(models)) {
   mod <- models[[m_x]]
   
   ## SAVE SERIALIZED
-  fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', 
+  fits.file <- sprintf('%s/fit_winlocal_v2__%s_pd%s_d%s_R%s_%s.rds', 
                        results_dir, firm_i, nPeriods, d, R, m_x)
   fit <- readRDS(file=fits.file)
   gc()
@@ -140,7 +137,7 @@ for (i in 1:length(models)) {
     , error = function(e)e
   )
   if (!inherits(gof, "error")) {
-    gof.file <- sprintf('%s/gof_auc_roc_winlocal_%s_pd%s_d%s_R%s_%s_nsim%s.rds', 
+    gof.file <- sprintf('%s/gof_auc_roc_winlocal_v2__%s_pd%s_d%s_R%s_%s_nsim%s.rds', 
                         results_dir, firm_i, nPeriods, d, R, m_x, nsim)
     saveRDS(gof, file=gof.file)
     print(gof)
