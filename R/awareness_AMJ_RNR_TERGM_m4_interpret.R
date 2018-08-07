@@ -25,7 +25,7 @@ setwd(work_dir)
 name_i <- 'qualtrics'
 firm_i <- name_i
 d <- 3
-R <- 500
+R <- 2000
 nPeriods <- 11
 m_x <- 'm4'
 ##----------------------------------------
@@ -40,8 +40,8 @@ m_x <- 'm4'
 .iqr <- function(x){return(IQR(x, na.rm=TRUE))}
 
 ## results
-fits.file <- sprintf('%s/fit_winlocal_%s_pd%s_d%s_R%s_%s.rds', 
-                     results_dir, name_i, nPeriods, d, R, m_x)
+fits.file <- sprintf('%s/fit_%s_pd%s_R%s_%s.rds', 
+                     results_dir, name_i, nPeriods, R, m_x)
 fits <- readRDS(fits.file)
 
 ##  network data
