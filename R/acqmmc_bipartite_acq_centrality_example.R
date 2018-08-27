@@ -9,9 +9,22 @@ plot2 <- function(gx, layout=layout.random, vertex.size=15, focal.firm=NA, fam='
   vAttrs = names(igraph::vertex.attributes(gx))
   vcolors <- sapply(V(gx)$type, function(x)ifelse(x, "SkyBlue2", "gray"))
   lcolors <-  sapply(V(gx)$type, function(x)ifelse(x, "darkblue", "black"))
+  fonts <- rep(1, vcount(gx))
+  framecols <- rep('black', vcount(gx))
+  framewidths <- rep(1, vcount(gx)) 
   if(!is.na(focal.firm)) {
     vcolors[V(gx)$name==focal.firm] <- 'darkblue'
     lcolors[V(gx)$name==focal.firm] <- 'white'
+  }
+  isBipartite <- length(unique(V(gx)$type)) > 1
+  if(!isBipartite) {
+    adjmat <- as_adjacency_matrix(gx, attr = 'weight', sparse = F)
+    ffidx <- which(V(gx)$name==focal.firm)
+    mmcidx <- unname(which(adjmat[ , ffidx] > 1))
+    framecols[mmcidx] <- 'darkred'
+    lcolors[mmcidx] <- 'darkred'
+    framewidths[mmcidx] <- 5
+    fonts[mmcidx] <- 4
   }
   set.seed(seed)
   plot(gx, 
@@ -26,9 +39,10 @@ plot2 <- function(gx, layout=layout.random, vertex.size=15, focal.firm=NA, fam='
        vertex.color = vcolors, 
        vertex.shape = sapply(1:vcount(gx),function(x)ifelse(V(gx)$type[x], "circle", "square")),
        vertex.size = vertex.size, 
-       vertex.frame.color="black", 
+       vertex.frame.color=framecols, 
+       vertex.frame.cex=framewidths, 
        vertex.label.family=fam,  # Font family of the label (e.g."Times", "Helvetica")
-       vertex.label.font=1,  # Font: 1 plain, 2 bold, 3, italic, 4 bold italic, 5 symbol
+       vertex.label.font=fonts,  # Font: 1 plain, 2 bold, 3, italic, 4 bold italic, 5 symbol
        vertex.label.color=lcolors,
        edge.color = "darkgrey", 
        edge.width = E(gx)$weight,
@@ -52,6 +66,8 @@ biAcq <- function(gi, acquirer, target, project=T)
 {
   if (project) {
     gi <- bipartite.projection(gi, remove.type = F)$proj2
+    V(gi)$type <- unlist(V(gi)$type)
+    V(gi)$name <- unlist(V(gi)$name)
   }
   
   tdf <- as_data_frame(gi, what='vertices')
@@ -138,9 +154,9 @@ df.pow <- function(gx, betas=c(-.3,-.2,-.1,-.01,0))
 .par = par()
 
 n1 <- 5
-n2 <- 10
+n2 <- 12
 focal.firm <- as.character(4)
-target.firm <- as.character(1)
+target.firm <- as.character(3)
 
 ## CREATE RANDOM BIPARTITE FIRM_MARKET
 set.seed(11111)
@@ -163,8 +179,12 @@ plot2(gx,
       focal.firm=focal.firm)
 par(mfrow=c(1,1))
 
-## PLOT UNIMODAL FIRM_FIRM
+## UNIMODAL FIRM_FIRM
 gx.ff <- bipartite.projection(gx, remove.type = F)$proj2
+V(gx.ff)$type <- unlist(V(gx.ff)$type)
+## UNIMODAL FIRM_FIRM ADJACENCY MATRIX
+print(as_adjacency_matrix(gx.ff, attr = 'weight', sparse = F))
+## PLOT FIRM_FIRM NETWORk
 vshapes <- sapply(V(gx.ff)$type,function(x)ifelse(x,'circle','square'))
 plot2(gx.ff, 
       layout=layout.fruchterman.reingold,
@@ -173,17 +193,16 @@ plot2(gx.ff,
       focal.firm=focal.firm
 )
 
-## UNIMODAL FIRM_FIRM ADJACENCY MATRIX
-print(as_adjacency_matrix(gx.ff, attr = 'weight', sparse = F))
-
 
 ## ACQUISITION UNIMODAL FIRM_FIRM
-gx2 <- biAcq(gx, focal.firm, target.firm, project = T)
-vshapes <- sapply(V(gx)$type,function(x)ifelse(x,'circle','square'))
-plot2(gx2, 
+gx2.ff <- biAcq(gx, focal.firm, target.firm, project = T)
+V(gx2.ff)$type <- unlist(V(gx2.ff)$type)
+V(gx2.ff)$name <- unlist(V(gx2.ff)$name)
+vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
+plot2(gx2.ff, 
       layout=layout.fruchterman.reingold,
       vertex.shape=vshapes,
-      vertex.size=1.1*mapTo(centPow(gx2, beta = -.1)),
+      vertex.size=1.1*mapTo(centPow(gx2.ff, beta = -.1)),
       focal.firm=focal.firm
 )
 
