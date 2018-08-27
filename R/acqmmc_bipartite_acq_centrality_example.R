@@ -4,7 +4,7 @@ library(Matrix)
 ##
 #
 ##
-plot2 <- function(gx, layout=layout.random, vertex.size=15, focal.firm=NA, fam='sans', seed=11111, ...)
+plot2 <- function(gx, layout=layout.random, vertex.size=15, focal.firm=NA, fam='sans', edge.curved=F, seed=11111, ...)
 {
   vAttrs = names(igraph::vertex.attributes(gx))
   vcolors <- sapply(V(gx)$type, function(x)ifelse(x, "SkyBlue2", "gray"))
@@ -40,12 +40,12 @@ plot2 <- function(gx, layout=layout.random, vertex.size=15, focal.firm=NA, fam='
        vertex.shape = sapply(1:vcount(gx),function(x)ifelse(V(gx)$type[x], "circle", "square")),
        vertex.size = vertex.size, 
        vertex.frame.color=framecols, 
-       vertex.frame.cex=framewidths, 
+       vertex.frame.width=framewidths, 
        vertex.label.family=fam,  # Font family of the label (e.g."Times", "Helvetica")
        vertex.label.font=fonts,  # Font: 1 plain, 2 bold, 3, italic, 4 bold italic, 5 symbol
        vertex.label.color=lcolors,
        edge.color = "darkgrey", 
-       edge.width = E(gx)$weight,
+       edge.width = E(gx)$weight^2,
        edge.labels = NA, 
        edge.lty=1, 
        margin=0,
@@ -55,6 +55,7 @@ plot2 <- function(gx, layout=layout.random, vertex.size=15, focal.firm=NA, fam='
        ylab = "",
        xlim=c(-1,1), 
        ylim=c(-1,1), 
+       edge.curved=edge.curved,
        ...)
 }
 
@@ -94,7 +95,7 @@ biAcq <- function(gi, acquirer, target, project=T)
   
   print(tdf)
 
-  return(gi.2)
+  return(list(df=tdf, g=gi.2))
 }
 
 ##
@@ -134,7 +135,7 @@ mapTo <- function(x,   #vector of degrees
   return(y)
 }
 
-centPow <- function(gx, beta=-0.2)
+centPow <- function(gx, beta=-0.1)
 {
   return(power_centrality(gx, exponent = beta))
 }
@@ -153,14 +154,28 @@ df.pow <- function(gx, betas=c(-.3,-.2,-.1,-.01,0))
 
 .par = par()
 
-n1 <- 5
+
+##==================================
+## FIRM-MARKET GRAPH
+##----------------------------------
+# ## Best SETTINGS
+# n1 <- 5
+# n2 <- 12
+# focal.firm <- as.character(4)
+# 
+# ## CREATE RANDOM BIPARTITE FIRM_MARKET
+# set.seed(11111)
+# gx=sample_bipartite(n1,n2,'gnp',.6)
+##
+##----------------------------------
+
+n1 <- 4
 n2 <- 12
 focal.firm <- as.character(4)
-target.firm <- as.character(3)
 
 ## CREATE RANDOM BIPARTITE FIRM_MARKET
-set.seed(11111)
-gx=sample_bipartite(n1,n2,'gnp',.6)
+set.seed(1133241)
+gx=sample_bipartite(n1,n2,'gnp',.70)
 V(gx)$name <- c(LETTERS[1:n1], 1:n2)
 E(gx)$weight <- 1
 
@@ -176,36 +191,221 @@ plot2(gx,
       layout=layout.kamada.kawai,
       vertex.shape=vshapes,
       vertex.size=18,
-      focal.firm=focal.firm)
+      focal.firm=focal.firm, edge.curved = F)
 par(mfrow=c(1,1))
 
 ## UNIMODAL FIRM_FIRM
 gx.ff <- bipartite.projection(gx, remove.type = F)$proj2
 V(gx.ff)$type <- unlist(V(gx.ff)$type)
 ## UNIMODAL FIRM_FIRM ADJACENCY MATRIX
-print(as_adjacency_matrix(gx.ff, attr = 'weight', sparse = F))
+adjmat <- as_adjacency_matrix(gx.ff, attr = 'weight', sparse = F)
+print(adjmat)
+## SUM MMC
+ffidx <- which(V(gx.ff)$name==focal.firm)
+mmcidx <- which(adjmat[, ffidx] > 1)
+print(sprintf("FOCAL FIRM %s SUM OF MMC: %s", focal.firm, sum(adjmat[mmcidx, ffidx])))
 ## PLOT FIRM_FIRM NETWORk
 vshapes <- sapply(V(gx.ff)$type,function(x)ifelse(x,'circle','square'))
 plot2(gx.ff, 
       layout=layout.fruchterman.reingold,
       vertex.shape=vshapes,
-      vertex.size=1.1*mapTo(centPow(gx.ff, beta = -.01)),
+      vertex.size= 18, ##1.1*mapTo(centPow(gx.ff, beta = -.01)),
       focal.firm=focal.firm
 )
 
 
-## ACQUISITION UNIMODAL FIRM_FIRM
-gx2.ff <- biAcq(gx, focal.firm, target.firm, project = T)
-V(gx2.ff)$type <- unlist(V(gx2.ff)$type)
-V(gx2.ff)$name <- unlist(V(gx2.ff)$name)
-vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
-plot2(gx2.ff, 
-      layout=layout.fruchterman.reingold,
-      vertex.shape=vshapes,
-      vertex.size=1.1*mapTo(centPow(gx2.ff, beta = -.1)),
-      focal.firm=focal.firm
-)
+##==================================
+##
+## ACQUISITION LOOP -- ALL OTHER FIRMS
+##
+##----------------------------------
+acq.df <- data.frame(name=unlist(V(gx.ff)$name), 
+                     mmc.dyads=NA, mmc.sum=NA, exposure=NA, 
+                     diff.mmc.dyads=NA, diff.mmc.sum=NA, diff.exposure=NA, 
+                     stringsAsFactors = F)
+## base adjacency matrix
+adjmat <- as_adjacency_matrix(gx.ff, attr = 'weight', sparse = F)
+## base mmc measures
+ffidx <- which(V(gx.ff)$name==focal.firm)
+mmcidx <- which(adjmat[, ffidx] > 1)
+mmc.dyads0 <- length(adjmat[mmcidx, ffidx])
+mmc.sum0 <- sum(adjmat[mmcidx, ffidx])
 
+for (i in 1:vcount(gx.ff)) {
+  target.firm <- as.character(i)
+  
+  if (target.firm != focal.firm) {
+    ## NODE COLLAPSE BIPARTITE GRAPH
+    tmp <- biAcq(gx, focal.firm, target.firm, project = T)
+    gx2.ff <- tmp$g
+    exposure.df <- tmp$df
+    V(gx2.ff)$type <- unlist(V(gx2.ff)$type)
+    V(gx2.ff)$name <- unlist(V(gx2.ff)$name)
+
+    ## ADJACENCY
+    adjmat <- as_adjacency_matrix(gx2.ff, attr = 'weight', sparse = F)
+    ## SUM MMC
+    ffidx <- which(V(gx2.ff)$name==focal.firm)
+    mmcidx <- which(adjmat[, ffidx] > 1)
+    mmc.dyads <- length(adjmat[mmcidx, ffidx])
+    mmc.sum <- sum(adjmat[mmcidx, ffidx])
+    ## Exposure centrality
+    exposure <- exposure.df[which(exposure.df$name==focal.firm), 'after']
+    exposure.diff <- exposure.df[which(exposure.df$name==focal.firm), 'delta']
+    ## dataframe
+    idx <- which(as.character(acq.df$name)==target.firm)
+    acq.df$mmc.dyads[idx] <- mmc.dyads
+    acq.df$mmc.sum[idx] <- mmc.sum
+    acq.df$exposure[idx] <- exposure
+    acq.df$diff.mmc.dyads[idx] <- mmc.dyads - mmc.dyads0
+    acq.df$diff.mmc.sum[idx] <- mmc.sum - mmc.sum0
+    acq.df$diff.exposure[idx] <- exposure.diff
+    ## PLOT
+    vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
+    dirname <- "C:\\Users\\T430\\Google Drive\\PhD\\Dissertation\\competition networks\\acquisitions"
+    pngfile <- sprintf("%s\\firm_firm_mmc_acquisition%s_1.png",dirname, target.firm)
+    png(pngfile, width = 5, height = 5, units = 'in', res = 250)
+      par(mar=c(.1,.1,.1,.1))
+      plot2(gx2.ff, 
+            layout=layout.fruchterman.reingold,
+            vertex.shape=vshapes,
+            vertex.size= 18, ##1.1*mapTo(centPow(gx2.ff, beta = -.1)),
+            focal.firm=focal.firm
+      )
+    dev.off()
+  }
+}
+
+print(acq.df)
+
+
+
+# 
+# ##==================================
+# ## ACQUISITION 3
+# ##----------------------------------
+# target.firm <- as.character(3)
+# ## ACQUISITION UNIMODAL FIRM_FIRM
+# gx2.ff <- biAcq(gx, focal.firm, target.firm, project = T)$g
+# V(gx2.ff)$type <- unlist(V(gx2.ff)$type)
+# V(gx2.ff)$name <- unlist(V(gx2.ff)$name)
+# ## ADJACENCY
+# adjmat <- as_adjacency_matrix(gx2.ff, attr = 'weight', sparse = F)
+# print(adjmat)
+# ## SUM MMC
+# ffidx <- which(V(gx2.ff)$name==focal.firm)
+# mmcidx <- which(adjmat[, ffidx] > 1)
+# print(sprintf("FOCAL FIRM %s SUM OF MMC: %s", focal.firm, sum(adjmat[mmcidx, ffidx])))
+# ## PLOT
+# vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
+# plot2(gx2.ff, 
+#       layout=layout.fruchterman.reingold,
+#       vertex.shape=vshapes,
+#       vertex.size= 18, ##1.1*mapTo(centPow(gx2.ff, beta = -.1)),
+#       focal.firm=focal.firm
+# )
+# 
+# ##==================================
+# ## ACQUISITION 6
+# ##----------------------------------
+# target.firm <- as.character(6)
+# ## ACQUISITION UNIMODAL FIRM_FIRM
+# gx2.ff <- biAcq(gx, focal.firm, target.firm, project = T)$g
+# V(gx2.ff)$type <- unlist(V(gx2.ff)$type)
+# V(gx2.ff)$name <- unlist(V(gx2.ff)$name)
+# ## ADJACENCY
+# adjmat <- as_adjacency_matrix(gx2.ff, attr = 'weight', sparse = F)
+# print(adjmat)
+# ## SUM MMC
+# ffidx <- which(V(gx2.ff)$name==focal.firm)
+# mmcidx <- which(adjmat[, ffidx] > 1)
+# print(sprintf("FOCAL FIRM %s SUM OF MMC: %s", focal.firm, sum(adjmat[mmcidx, ffidx])))
+# ## PLOT
+# vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
+# plot2(gx2.ff, 
+#       layout=layout.fruchterman.reingold,
+#       vertex.shape=vshapes,
+#       vertex.size= 18, ##1.1*mapTo(centPow(gx2.ff, beta = -.1)),
+#       focal.firm=focal.firm
+# )
+# 
+# ##==================================
+# ## ACQUISITION 2
+# ##----------------------------------
+# target.firm <- as.character(2)
+# ## ACQUISITION UNIMODAL FIRM_FIRM
+# gx2.ff <- biAcq(gx, focal.firm, target.firm, project = T)$g
+# V(gx2.ff)$type <- unlist(V(gx2.ff)$type)
+# V(gx2.ff)$name <- unlist(V(gx2.ff)$name)
+# ## ADJACENCY
+# adjmat <- as_adjacency_matrix(gx2.ff, attr = 'weight', sparse = F)
+# print(adjmat)
+# ## SUM MMC
+# ffidx <- which(V(gx2.ff)$name==focal.firm)
+# mmcidx <- which(adjmat[, ffidx] > 1)
+# print(sprintf("FOCAL FIRM %s SUM OF MMC: %s", focal.firm, sum(adjmat[mmcidx, ffidx])))
+# ## PLOT
+# vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
+# plot2(gx2.ff, 
+#       layout=layout.fruchterman.reingold,
+#       vertex.shape=vshapes,
+#       vertex.size= 18, ##1.1*mapTo(centPow(gx2.ff, beta = -.1)),
+#       focal.firm=focal.firm
+# )
+# 
+# ##==================================
+# ## ACQUISITION 5
+# ##----------------------------------
+# target.firm <- as.character(5)
+# ## ACQUISITION UNIMODAL FIRM_FIRM
+# gx2.ff <- biAcq(gx, focal.firm, target.firm, project = T)$g
+# V(gx2.ff)$type <- unlist(V(gx2.ff)$type)
+# V(gx2.ff)$name <- unlist(V(gx2.ff)$name)
+# ## ADJACENCY
+# adjmat <- as_adjacency_matrix(gx2.ff, attr = 'weight', sparse = F)
+# print(adjmat)
+# ## SUM MMC
+# ffidx <- which(V(gx2.ff)$name==focal.firm)
+# mmcidx <- which(adjmat[, ffidx] > 1)
+# print(sprintf("FOCAL FIRM %s SUM OF MMC: %s", focal.firm, sum(adjmat[mmcidx, ffidx])))
+# ## PLOT
+# vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
+# plot2(gx2.ff, 
+#       layout=layout.fruchterman.reingold,
+#       vertex.shape=vshapes,
+#       vertex.size= 18, ##1.1*mapTo(centPow(gx2.ff, beta = -.1)),
+#       focal.firm=focal.firm
+# )
+# 
+# ##==================================
+# ## ACQUISITION 10
+# ##----------------------------------
+# target.firm <- as.character(10)
+# ## ACQUISITION UNIMODAL FIRM_FIRM
+# gx2.ff <- biAcq(gx, focal.firm, target.firm, project = T)$g
+# V(gx2.ff)$type <- unlist(V(gx2.ff)$type)
+# V(gx2.ff)$name <- unlist(V(gx2.ff)$name)
+# ## ADJACENCY
+# adjmat <- as_adjacency_matrix(gx2.ff, attr = 'weight', sparse = F)
+# print(adjmat)
+# ## SUM MMC
+# ffidx <- which(V(gx2.ff)$name==focal.firm)
+# mmcidx <- which(adjmat[, ffidx] > 1)
+# print(sprintf("FOCAL FIRM %s SUM OF MMC: %s", focal.firm, sum(adjmat[mmcidx, ffidx])))
+# ## PLOT
+# vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
+# plot2(gx2.ff, 
+#       layout=layout.fruchterman.reingold,
+#       vertex.shape=vshapes,
+#       vertex.size= 18, ##1.1*mapTo(centPow(gx2.ff, beta = -.1)),
+#       focal.firm=focal.firm
+# )
+
+
+
+
+
+##----------- END ------------------
 
 as_adjacency_matrix(bipartite.projection(gx2)$proj2, attr = 'weight', sparse = F)
 
