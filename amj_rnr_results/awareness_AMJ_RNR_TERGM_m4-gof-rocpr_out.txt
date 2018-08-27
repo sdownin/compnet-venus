@@ -1,10 +1,11 @@
 
 
-##------ Tue Aug  7 08:00:09 2018 ------##
+##------ Tue Aug  7 18:28:48 2018 ------##
 
 
------------- estimating TERGM for: qualtrics --------------
-Using 16 cores
+
+##------ Tue Aug  7 23:22:11 2018 ------##
+
               t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
 nets (row)    574 574 574 574 574 574 574 574  574  574
 nets (col)    574 574 574 574 574 574 574 574  574  574
@@ -23,13 +24,11 @@ memory (row)  574 574 574 574 574 574 574 574  574  574
 memory (col)  574 574 574 574 574 574 574 574  574  574
 timecov (row) 574 574 574 574 574 574 574 574  574  574
 timecov (col) 574 574 574 574 574 574 574 574  574  574
+  Skipping this statistic for the following reason: Error in as.matrix(mat) != t(as.matrix(mat)): non-conformable arrays
 finished successfully.
 
-##------ Tue Aug  7 17:46:48 2018 ------##
+##------ Wed Aug  8 00:51:32 2018 ------##
 
-
------------- estimating TERGM for: qualtrics --------------
-Using 16 cores
               t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
 nets (row)    574 574 574 574 574 574 574 574  574  574
 nets (col)    574 574 574 574 574 574 574 574  574  574
@@ -48,4 +47,28 @@ memory (row)  574 574 574 574 574 574 574 574  574  574
 memory (col)  574 574 574 574 574 574 574 574  574  574
 timecov (row) 574 574 574 574 574 574 574 574  574  574
 timecov (col) 574 574 574 574 574 574 574 574  574  574
+  Skipping this statistic for the following reason: Error in as.matrix(mat) != t(as.matrix(mat)): non-conformable arrays
+finished successfully.
+
+##------ Wed Aug  8 02:12:11 2018 ------##
+
+              t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
+nets (row)    574 574 574 574 574 574 574 574  574  574
+nets (col)    574 574 574 574 574 574 574 574  574  574
+mmc (row)     574 574 574 574 574 574 574 574  574  574
+mmc (col)     574 574 574 574 574 574 574 574  574  574
+memory (row)  574 574 574 574 574 574 574 574  574  574
+memory (col)  574 574 574 574 574 574 574 574  574  574
+timecov (row) 574 574 574 574 574 574 574 574  574  574
+timecov (col) 574 574 574 574 574 574 574 574  574  574
+              t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
+nets (row)    574 574 574 574 574 574 574 574  574  574
+nets (col)    574 574 574 574 574 574 574 574  574  574
+mmc (row)     574 574 574 574 574 574 574 574  574  574
+mmc (col)     574 574 574 574 574 574 574 574  574  574
+memory (row)  574 574 574 574 574 574 574 574  574  574
+memory (col)  574 574 574 574 574 574 574 574  574  574
+timecov (row) 574 574 574 574 574 574 574 574  574  574
+timecov (col) 574 574 574 574 574 574 574 574  574  574
+  Skipping this statistic for the following reason: Error in as.matrix(mat) != t(as.matrix(mat)): non-conformable arrays
 finished successfully.

@@ -21,6 +21,9 @@ img_dir  <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/en
 ## set woring dir
 setwd(work_dir)
 
+## load awareness functions
+source(file.path(getwd(),'R','amj_awareness_functions.R')) 
+
 ## -----------Model Results Settings-----
 name_i <- 'qualtrics'
 firm_i <- name_i
@@ -42,22 +45,31 @@ m_x <- 'm4'
 ## results
 fits.file <- sprintf('%s/fit_%s_pd%s_R%s_%s.rds', 
                      results_dir, name_i, nPeriods, R, m_x)
-fits <- readRDS(fits.file)
+fits.all <- readRDS(fits.file)
+fits <- fits.all[[name_i]][[m_x]]
 
 ##  network data
 nets.file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
 nets <- readRDS(nets.file)
 
+## covars list
+mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
+cpc <- lapply(nets, function(net) as.matrix(net %n% 'coop'))
+cpp <- lapply(nets, function(net) as.matrix(net %n% 'coop_past'))
+cpa <- lapply(nets, function(net) as.matrix(net %n% 'coop') + as.matrix(net %n% 'coop_past') )
+
+
 ## create igraph lists
 gs <- lapply(nets, asIgraph)
 
 
-## visualize effects bootstrap distributions
+## visualize effects bootstrap normality
 effects <- names(fits@effects)
 par(mfrow=c(3,3))
 for (effect in effects) {
   qqnorm(fits@boot$t[,effect], main=effect)
 }
+## visualize effects bootstrap distributions
 par(mfrow=c(3,3))
 for (effect in effects) {
   x <- fits@boot$t[,effect]
@@ -93,10 +105,11 @@ v.focal <- as.integer( V(g)[V(g)$vertex.names==name_i] )
 # ## time columns
 # tcolnames <- names(idf)[grep(names(idf), pattern = 't\\d{1,3}', perl = T)]
 
-## competitor interpretation loop
-interp.df.file <- sprintf('%s/interpret_winlocal_%s_pd%s_d%s_R%s_%s.csv', 
+## competitor probability micro-interpretation  file
+interp.df.file <- sprintf('%s/interpret_%s_pd%s_d%s_R%s_%s.csv', 
                      results_dir, name_i, nPeriods, d, R, m_x)
 
+## main loop: competitor probability micro-interpretation
 if (file.exists(interp.df.file)) {
   ## READ IN PREDICTED PROBS
   idf <- read.csv(interp.df.file)
@@ -138,7 +151,7 @@ for (row in 1:nrow(idf)) {
   idf$njobs_multilevel[row] <- (nets[[t+1]] %v% 'njobs_multilevel')[j]
   idf$cent_pow_n0_4[row] <- (nets[[t+1]] %v% 'cent_pow_n0_4')[j]
   idf$absdiff_pow_n0_4[row] <- abs((nets[[t+1]] %v% 'cent_pow_n0_4')[j] - (nets[[t+1]] %v% 'cent_pow_n0_4')[i])
-  if(row %% 300 == 0) cat(sprintf('row %s\n',row))  
+  if(row %% 300 == 0) cat(sprintf('row %s\n',row))
 }
 
 ## remove probabilities and covariates (set NA) for Inf distance (firm's not in component that pd)
@@ -156,38 +169,30 @@ idf$d_cat <- as.factor(sapply(idf$d,function(x){
 idf$i <- as.factor(idf$i)
 idf$year <- as.factor(idf$year)
 
+## distance category
+idf$d_cat <- as.factor(sapply(idf$d,function(x){
+  xstr <- as.character(x)
+  ifelse(xstr %in% c('1','2','3','4'), xstr, ifelse(x==Inf, NA, '5+'))
+}))
+idf$i <- as.factor(idf$i)
+idf$year <- as.factor(idf$year)
+
 ## aware.all.cutoff
-aware.all.cutoff <- 0.001
+aware.frac <- .28
+xp <- idf$p[idf$year=='2016' & !is.na(idf$p)]
+aware.all.cutoff <- .qtl(xp, 1 - aware.frac)
 
 ## mutate group-period factors
 idf2 <-
   idf[idf$d != 0 & idf$d !='0', ] %>%
   group_by(d) %>%
   mutate(
-    outlier = log10(p) > .med(log10(p)) + .iqr(log10(p)) * 2, 
-    low.otl = log10(p) < .med(log10(p)) - .iqr(log10(p)) * 2,
+    outlier = p > .med(p) + .iqr(p) * 2, 
+    low.otl = p < .med(p) - .iqr(p) * 2,
     aware.med = p > .qtl(p, .5),
-    aware.cutoff = p > aware.all.cutoff,
-    Diversification = ifelse(is.na(genidx_multilevel), NA, 
-                             ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.5), 'High', 
-                                    'Low')),
-    `Competitive Asymmetry` = ifelse(is.na(absdiff_pow_n0_4), NA, 
-                                     ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.5), 'High',
-                                            'Low')),
-    h1 = ifelse(is.na(genidx_multilevel), NA, 
-                ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.75), 'Q4', 
-                       ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.5), 'Q3', 
-                              ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.25), 'Q2',
-                                     'Q1')))),
-    h2 = ifelse(is.na(absdiff_pow_n0_4), NA, 
-                      ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.75), 'Q4', 
-                             ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.5), 'Q3', 
-                                    ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.25), 'Q2',
-                                           'Q1'))))
+    aware.cutoff = p > aware.all.cutoff
   ) %>% 
   ungroup
-## add aware.all boolean
-idf2$aware.all <- sapply(idf2$p, function(x) x > aware.all.cutoff)
 
 ## manual colors
 colors2rw <- c('black','red')
@@ -198,9 +203,197 @@ colors5 <- c( '#111111', '#333333','#555555', '#777777','#999999')
 
 ## Data for hypotheses interaction plots
 # idf3 <- idf2[idf2$year %in% c('2007','2008','2009','2010','2011','2012','2013','2014','2015','2016'), ]
-idf3 <- idf2[idf2$year %in% c('2007','2016'), ]
-#
+
+##====================================================
+##
+## Hostility Profile (awareness set) Scatter Facet plot
+##  - EARLY -
+##
+##----------------------------------------------------
+## set years
+yrs <- as.character(2007:2016)
+for (yr in yrs) {
+  ## aware.all.cutoff
+  aware.frac <- ifelse(yr < '2013', .25, .35)
+  xp <- idf$p[idf$year==yr & !is.na(idf$p)]
+  aware.all.cutoff <- .qtl(xp, 1 - aware.frac)
+  ## mutate group-period factors
+  idf2 <-
+    idf[idf$d != 0 & idf$d !='0', ] %>%
+    group_by(d) %>%
+    mutate(
+      outlier = p > .med(p) + .iqr(p) * 2, 
+      low.otl = p < .med(p) - .iqr(p) * 2,
+      aware.med = p > .qtl(p, .5),
+      aware.cutoff = p > aware.all.cutoff
+    ) %>% 
+    ungroup
+  ##
+  idf3 <- idf2[idf2$year %in% yr, ]
+  # idf3 <- idf3[ idf3$d != Inf | idf3$year != '2016', ]
+  set.seed(269951)
+  dodge.width <- 0
+  ##
+  ggplot(idf3) + aes(x = d_cat, y = p, color=aware.cutoff, pch=aware.cutoff) +
+    geom_point(position=position_jitterdodge(dodge.width=dodge.width), lwd=2.5,
+               data=function(x)dplyr::filter_(x, ~ !low.otl)) +
+    scale_color_manual(values=colors2rw) +
+    scale_shape_manual(values=c(1,16)) +
+    facet_grid(year ~ .) +  # facet_wrap(~ year) +
+    xlab("Degree of Separation from Focal Firm") + 
+    scale_y_log10("Conditional Probability of Competitive Encounter", limits=c(2e-5, 40)) +
+    geom_hline(yintercept = aware.all.cutoff, lty=3) +
+    theme_classic() +  theme(legend.position='none')
+  fig3.scatter.name <- sprintf('interpret_%s_Fig3_scatter_cut_classic_%.4f_y%s.png', name_i, aware.all.cutoff, yr)
+  ggsave(filename = fig3.scatter.name, width = 5.5, height = 5.5, units = 'in', dpi = 250)
+}
+
+
+
+## 2 year factor plot ----------------------
+## set years
+yrs <- c('2010','2016')
+##
+idf3 <- idf2[idf2$year %in% yrs, ]
 idf3 <- idf3[ idf3$d != Inf | idf3$year != '2016', ]
+set.seed(269951)
+dodge.width <- 0
+##
+ggplot(idf3) + aes(x = d_cat, y = p, color=aware.cutoff, pch=aware.cutoff) +
+  geom_point(position=position_jitterdodge(dodge.width=dodge.width), lwd=2.5,
+             data=function(x)dplyr::filter_(x, ~ !low.otl)) +
+  scale_color_manual(values=colors2rw) +
+  scale_shape_manual(values=c(1,16)) +
+  facet_grid(year ~ .) +  # facet_wrap(~ year) +
+  xlab("Degree of Separation from Focal Firm") + 
+  scale_y_log10("Conditional Probability of Competitive Encounter", limits=c(2e-5, 40)) +
+  geom_hline(yintercept = aware.all.cutoff, lty=3) +
+  theme_classic() +  theme(legend.position='none')
+fig3.scatter.name <- sprintf('interpret_%s_Fig3_scatter_cut_classic_%.4f_y%s-%s.png', name_i, aware.all.cutoff, yrs[1],yrs[2])
+ggsave(filename = fig3.scatter.name, width = 4.5, height = 9, units = 'in', dpi = 250)
+
+
+
+
+##====================================================
+##
+##     AERIAL MAPS
+##
+##-----------------------------------------------------
+# quantile.cutoff <- .8
+# cutoff <- quantile(idf$p[idf$year==2016], quantile.cutoff, na.rm = T)
+for (year in 2007:2016) {
+  yr <- as.character(year)
+  #
+  aware.frac <- ifelse(yr < '2013', .25, .35)
+  xp <- idf$p[idf$year==yr & !is.na(idf$p)]
+  aware.all.cutoff <- .qtl(xp, 1 - aware.frac)
+  ## mutate group-period factors
+  idf2 <-
+    idf[idf$d != 0 & idf$d !='0', ] %>%
+    group_by(d) %>%
+    mutate(
+      outlier = p > .med(p) + .iqr(p) * 2, 
+      low.otl = p < .med(p) - .iqr(p) * 2,
+      aware.med = p > .qtl(p, .5),
+      aware.cutoff = p > aware.all.cutoff
+    ) %>% 
+    ungroup
+  ##
+  idf3 <- idf2[idf2$year %in% yr, ]
+  #
+  gLatest <- asIgraph(nets[[ which(names(nets)==as.character(year+1)) ]])
+  #
+  idf.sub <- idf[idf$year==as.character(year), ]
+  idf.sub[is.na(idf.sub$p), 'p'] <- 0
+  #
+  ## COMPUTE CUTOFF FRACTION FROM aware.all.cutoff SPECIFIED ABOVE
+  quantile.cutoff <- length(idf.sub$p[idf.sub$p >= aware.all.cutoff] ) / length(idf.sub$p)
+  #
+  aerial.map.name <- sprintf('interpret_%s_Fig3_aerial_map_cut%.4f_quant%s_y%s.png', name_i, aware.all.cutoff, round(100*quantile.cutoff), year)
+  png(aerial.map.name, height=7.5, width=7.5, units='in', res = 250)
+  par(mar=c(.1,.1,.1,.1), mfrow=c(1,1))
+  V(gLatest)$prob <- idf.sub$p
+  aaf$plotCompNetColPredict(gs = gLatest,
+                            focal.firm = name_i,
+                            cutoff=aware.all.cutoff,
+                            probAttrName='prob',
+                            layout.algo = layout.fruchterman.reingold,
+                            seed=11111)
+  dev.off()
+}
+###--------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ## aware.all.cutoff
+# aware.all.cutoff <- 0.001
+
+# 
+# ## mutate group-period factors
+# idf2 <-
+#   idf[idf$d != 0 & idf$d !='0', ] %>%
+#   group_by(d) %>%
+#   mutate(
+#     outlier = log10(p) > .med(log10(p)) + .iqr(log10(p)) * 2, 
+#     low.otl = log10(p) < .med(log10(p)) - .iqr(log10(p)) * 2,
+#     aware.med = p > .qtl(p, .5),
+#     aware.cutoff = p > aware.all.cutoff,
+#     Diversification = ifelse(is.na(genidx_multilevel), NA, 
+#                              ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.5), 'High', 
+#                                     'Low')),
+#     `Competitive Asymmetry` = ifelse(is.na(absdiff_pow_n0_4), NA, 
+#                                      ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.5), 'High',
+#                                             'Low')),
+#     h1 = ifelse(is.na(genidx_multilevel), NA, 
+#                 ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.75), 'Q4', 
+#                        ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.5), 'Q3', 
+#                               ifelse(genidx_multilevel >= .qtl(genidx_multilevel,.25), 'Q2',
+#                                      'Q1')))),
+#     h2 = ifelse(is.na(absdiff_pow_n0_4), NA, 
+#                       ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.75), 'Q4', 
+#                              ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.5), 'Q3', 
+#                                     ifelse(absdiff_pow_n0_4 >= .qtl(absdiff_pow_n0_4,.25), 'Q2',
+#                                            'Q1'))))
+#   ) %>% 
+#   ungroup
+# ## add aware.all boolean
+# idf2$aware.all <- sapply(idf2$p, function(x) x > aware.all.cutoff)
+# 
+# ## manual colors
+# colors2rw <- c('black','red')
+# colors2 <- c( "#333333", '#aaaaaa')
+# colors4 <- c( '#222222', '#aaaaaa', '#555555', '#888888')
+# colors5 <- c( '#111111', '#333333','#555555', '#777777','#999999')
+# 
+# 
+# ## Data for hypotheses interaction plots
+# # idf3 <- idf2[idf2$year %in% c('2007','2008','2009','2010','2011','2012','2013','2014','2015','2016'), ]
+# idf3 <- idf2[idf2$year %in% c('2007','2016'), ]
+# #
+# idf3 <- idf3[ idf3$d != Inf | idf3$year != '2016', ]
+
 
 ##====================================================
 ## Hostility Profile (awareness set) Scatter Facet plot
