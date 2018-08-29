@@ -1,6 +1,13 @@
 library(igraph)
 library(Matrix)
 
+## save plots
+dirname <- "C:\\Users\\T430\\Google Drive\\PhD\\Dissertation\\competition networks\\acquisitions"
+setwd(dirname)
+
+## cache default params
+.par = par()
+
 ##
 #
 ##
@@ -63,7 +70,7 @@ plot2 <- function(gx, layout=layout.random, vertex.size=15, focal.firm=NA, fam='
 ##
 # Bipartite Graph Acquisition
 ##
-biAcq <- function(gi, acquirer, target, project=T)
+biAcq <- function(gi, acquirer, target, project=T, verbose=T)
 {
   if (project) {
     gi <- bipartite.projection(gi, remove.type = F)$proj2
@@ -93,7 +100,8 @@ biAcq <- function(gi, acquirer, target, project=T)
   tdf$after[tdf$name!=target] <- power_centrality(gi.2, exponent = -.2)
   tdf$delta <- tdf$after - tdf$before
   
-  print(tdf)
+  if (verbose)
+    print(tdf)
 
   return(list(df=tdf, g=gi.2))
 }
@@ -152,20 +160,30 @@ df.pow <- function(gx, betas=c(-.3,-.2,-.1,-.01,0))
 
 
 
-.par = par()
 
 
 ##==================================
 ## FIRM-MARKET GRAPH
 ##----------------------------------
-# ## Best SETTINGS
+# ## EXAMPLE OF ALL 4 QUADRANTS
+# n1 <- 4
+# n2 <- 12
+# focal.firm <- as.character(4)
+# set.seed(1133241)  #1133241
+# gx=sample_bipartite(n1,n2,'gnp',.62)
+# ## SPARSE 1
 # n1 <- 5
 # n2 <- 12
 # focal.firm <- as.character(4)
-# 
-# ## CREATE RANDOM BIPARTITE FIRM_MARKET
 # set.seed(11111)
 # gx=sample_bipartite(n1,n2,'gnp',.6)
+##
+# ## DENSE 2
+# n1 <- 4
+# n2 <- 12
+# focal.firm <- as.character(4)
+# set.seed(1133241)
+# gx=sample_bipartite(n1,n2,'gnp',.70)
 ##
 ##----------------------------------
 
@@ -174,8 +192,8 @@ n2 <- 12
 focal.firm <- as.character(4)
 
 ## CREATE RANDOM BIPARTITE FIRM_MARKET
-set.seed(1133241)
-gx=sample_bipartite(n1,n2,'gnp',.70)
+set.seed(1133241)  #1133241
+gx=sample_bipartite(n1,n2,'gnp',.62)
 V(gx)$name <- c(LETTERS[1:n1], 1:n2)
 E(gx)$weight <- 1
 
@@ -206,12 +224,21 @@ mmcidx <- which(adjmat[, ffidx] > 1)
 print(sprintf("FOCAL FIRM %s SUM OF MMC: %s", focal.firm, sum(adjmat[mmcidx, ffidx])))
 ## PLOT FIRM_FIRM NETWORk
 vshapes <- sapply(V(gx.ff)$type,function(x)ifelse(x,'circle','square'))
+## Save plot of bipartite --> firm-firm competition networ
+png(sprintf("firm_market_firm_firm_2side_N%s_M%s.png",n2,n1), height = 4.5, width = 8.5, units = 'in', res = 250)
+par(mar=c(.1,.1,.1,.1), mfrow=c(1,2))
+plot2(gx, 
+      layout=layout.bipartite,
+      vertex.shape=vshapes,
+      vertex.size=18,
+      focal.firm=focal.firm)
 plot2(gx.ff, 
       layout=layout.fruchterman.reingold,
       vertex.shape=vshapes,
       vertex.size= 18, ##1.1*mapTo(centPow(gx.ff, beta = -.01)),
       focal.firm=focal.firm
 )
+dev.off()
 
 
 ##==================================
@@ -262,7 +289,6 @@ for (i in 1:vcount(gx.ff)) {
     acq.df$diff.exposure[idx] <- exposure.diff
     ## PLOT
     vshapes <- sapply(V(gx2.ff)$type,function(x)ifelse(x,'circle','square'))
-    dirname <- "C:\\Users\\T430\\Google Drive\\PhD\\Dissertation\\competition networks\\acquisitions"
     pngfile <- sprintf("%s\\firm_firm_mmc_acquisition%s_1.png",dirname, target.firm)
     png(pngfile, width = 5, height = 5, units = 'in', res = 250)
       par(mar=c(.1,.1,.1,.1))
@@ -275,8 +301,68 @@ for (i in 1:vcount(gx.ff)) {
     dev.off()
   }
 }
-
 print(acq.df)
+csvfilename <- sprintf("%s\\acquisition_mmc_synergies_structure_position_compare_M%s_N%s.csv", dirname, n1, n2)
+write.csv(acq.df, file = csvfilename)
+
+
+
+##=========================
+## EXAMPLE HIGH MARKETS
+##------------------------
+
+n1 <- 2
+n2 <- 12
+focal.firm <- as.character(4)
+
+## CREATE RANDOM BIPARTITE FIRM_MARKET
+set.seed(1133241)  #1133241
+gx=sample_bipartite(n1,n2,'gnp',.72)
+V(gx)$name <- c(LETTERS[1:n1], 1:n2)
+E(gx)$weight <- 1
+
+## BIMODAL FIRM_MARKET PLOT
+vshapes <- sapply(V(gx)$type,function(x)ifelse(x,'circle','square'))
+par(mar=c(.1,.1,.1,.1), mfrow=c(1,2))
+plot2(gx, 
+      layout=layout.bipartite,
+      vertex.shape=vshapes,
+      vertex.size=18,
+      focal.firm=focal.firm)
+plot2(gx, 
+      layout=layout.kamada.kawai,
+      vertex.shape=vshapes,
+      vertex.size=18,
+      focal.firm=focal.firm, edge.curved = F)
+par(mfrow=c(1,1))
+
+## UNIMODAL FIRM_FIRM
+gx.ff <- bipartite.projection(gx, remove.type = F)$proj2
+V(gx.ff)$type <- unlist(V(gx.ff)$type)
+## UNIMODAL FIRM_FIRM ADJACENCY MATRIX
+adjmat <- as_adjacency_matrix(gx.ff, attr = 'weight', sparse = F)
+print(adjmat)
+## SUM MMC
+ffidx <- which(V(gx.ff)$name==focal.firm)
+mmcidx <- which(adjmat[, ffidx] > 1)
+print(sprintf("FOCAL FIRM %s SUM OF MMC: %s", focal.firm, sum(adjmat[mmcidx, ffidx])))
+## PLOT FIRM_FIRM NETWORk
+vshapes <- sapply(V(gx.ff)$type,function(x)ifelse(x,'circle','square'))
+## Save plot of bipartite --> firm-firm competition networ
+png(sprintf("firm_market_firm_firm_2side_N%s_M%s.png",n2,n1), height = 4.5, width = 8.5, units = 'in', res = 250)
+par(mar=c(.1,.1,.1,.1), mfrow=c(1,2))
+plot2(gx, 
+      layout=layout.bipartite,
+      vertex.shape=vshapes,
+      vertex.size=18,
+      focal.firm=focal.firm)
+plot2(gx.ff, 
+      layout=layout.fruchterman.reingold,
+      vertex.shape=vshapes,
+      vertex.size= 18, ##1.1*mapTo(centPow(gx.ff, beta = -.01)),
+      focal.firm=focal.firm
+)
+dev.off()
 
 
 
