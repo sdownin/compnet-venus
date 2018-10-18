@@ -30,8 +30,8 @@ library(reshape2)
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
 
 ## LOAD Scripts and Data
-source(file.path(getwd(),'R','acqlogit','acqlogit_compnet_functions.R')) ## FUNCTIONS loads `aaf` object
-source(file.path(getwd(),'R','acqlogit','acqlogit_cb_data_prep.R'))      ## DATA loads `cb` object
+acf <- source(file.path(getwd(),'R','acqlogit','acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
+cb  <- source(file.path(getwd(),'R','acqlogit','acqlogit_cb_data_prep.R'))$value      ## DATA 
 
 is.missing <- function(x)
 {
@@ -40,120 +40,125 @@ is.missing <- function(x)
   return(is.na(x) | is.nan(x) | x == '')
 }
 
-#####################################################################################
-## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
-#####################################################################################
-# g.full <- makeGraph(comp = co_comp, vertdf = co)
-# ## cut out confirmed dates >= 2016
-# g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016
-#                                                                 | is.na(V(g.full)$founded_year)
-#                                                                 | V(g.full)$founded_year=='' ) ] )
-# g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
-# ## SIMPLIFY
-# g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
-#                            edge.attr.comb = list(weight='sum',
-#                                                  relation_began_on='min',
-#                                                  relation_ended_on='min'))
-# ## save
-# igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
-######################################################################################
-
-## SORT CO_ACQ BY acquisition date
-co_acq <- cb$co_acq[order(cb$co_acq$acquired_on, decreasing = F), ]
-
+##=======================================
+##  PREP DATA and LOAD GRAPH
+##---------------------------------------
 ## comptetition network
-## 29806 firms
 g.full <- read.graph('g_full.graphml', format='graphml')
 
 ## add comp net vertex IDs to acquisitions dataframe
-gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), acquirer_name_unique=V(g.full)$name)
-co_acq <- merge(co_acq, gdf, by='acquirer_name_unique')
-gdf <- data.frame(acquiree_vid=as.integer(V(g.full)), acquiree_name_unique=V(g.full)$name)
-co_acq <- merge(co_acq, gdf, by='acquiree_name_unique')
+gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), 
+                  acquirer_name_unique=V(g.full)$name,
+                  acquirer_net_uuid=V(g.full)$company_uuid)
+co_acq <- merge(co_acq, gdf, by='acquirer_name_unique', all.x = T, all.y = F)
+gdf <- data.frame(acquiree_vid=as.integer(V(g.full)), 
+                  acquiree_name_unique=V(g.full)$name,
+                  acquiree_net_uuid=V(g.full)$company_uuid)
+co_acq <- merge(co_acq, gdf, by='acquiree_name_unique', all.x=T, all.y = F)
 
-## only acquisitions in recent period
-## 20999 (of 29805)
-co_acq_d <- co_acq[which(co_acq$acquired_on >= '2008-01-01'), ]
+## SORT CO_ACQ BY acquisition date
+co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
-## acquisition filtered by comp net firms union (either aquirer or acquired)
-## 14208
-co_acq_g_u <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.full)$name
-                           | co_acq$acquiree_name_unique %in% V(g.full)$name), ]
-## acquisition filtered by comp net firms intersection (both aquirer and acquired)
-## 3442
-co_acq_g_i <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.full)$name
-                           & co_acq$acquiree_name_unique %in% V(g.full)$name), ]
-## acquisition filtered by comp net firms intersection, recent date (>=2010)
-## 2786
-co_acq_g_i_d <- co_acq_g_i[which(co_acq_g_i$acquired_on >= '2010-01-01'), ]
 
-## check top filtered acquirers
-cnt <- plyr::count(co_acq_g_i_d$acquirer_name_unique)
-cnt <- cnt[order(cnt$freq, decreasing = T),]
-head(cnt, 20)
-# Top Acquirers:             x   freq
-# 496                   google   73
-# 544                      ibm   46
-# 414                 facebook   32
-# 847                   oracle   30
-# 1358                   yahoo   29
-# 80                     apple   28
-# 740                microsoft   26
-# 1002              salesforce   26
-# 1229                 twitter   23
-# 58                    amazon   20
-# 240                    cisco   18
-# 368                     ebay   17
-# 505                  groupon   17
-# 581                    intel   16
-# 68                       aol   15
-# 385  endurance-international   15
-# 945                  rakuten   14
-# 243           citrix-systems   13
-# 323                     dell   12
-# 379                      emc   12
-
-## Check Acquisitions distribution by network distance included
-df.ego <- data.frame()
-name_i <- 'ibm'
-for (d in 1:6) {
-  g.ego <- igraph::make_ego_graph(graph = g.full, 
-                                  nodes = V(g.full)[V(g.full)$name==name_i], 
-                                  order = d, mode = 'all')[[1]]
-  mem <- igraph::multilevel.community(g.ego)$membership
-  mem.cnt <- plyr::count(mem)
-  mem.cnt <- mem.cnt[order(mem.cnt$freq, decreasing = T), ]
-  dim(mem.cnt)
-  ##  
-  acq.src <- co_acq_d[which(co_acq_d$acquirer_name_unique %in% V(g.ego)$name), ]
-  acq.src.trg <- co_acq_d[which(co_acq_d$acquirer_name_unique %in% V(g.ego)$name
-                                & co_acq_d$acquiree_name_unique %in% V(g.ego)$name), ]
-  ##
-  df.tmp <- data.frame(d=d,v=vcount(g.ego),e=ecount(g.ego),
-                       acq.src=nrow(acq.src),acq.src.trg=nrow(acq.src.trg),
-                       r.in.out=round(nrow(acq.src.trg)/(nrow(acq.src)+nrow(acq.src.trg)),3),
-                       first.comp=min(E(g.ego)$relation_began_on))
-  df.ego <- rbind(df.ego, df.tmp)
-}; df.ego 
+# # 
+# # ## filter acquisitions in recent period (if necessary)
+# # co_acq_d <- co_acq[which(co_acq$acquired_on >= '1988-01-01'), ]
+# # 
+# # ## acquisition filtered by comp net firms union (either aquirer or acquired)
+# # ## 14208
+# # co_acq_g_u <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.full)$name
+# #                            | co_acq$acquiree_name_unique %in% V(g.full)$name), ]
+# 
+# ## acquisition filtered by comp net firms intersection (both aquirer and acquired)
+# ## 3442
+# co_acq_g_i <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.full)$name
+#                            & co_acq$acquiree_name_unique %in% V(g.full)$name), ]
+# ## acquisition filtered by comp net firms intersection, recent date (>=2010)
+# ## 2786
+# co_acq_g_i_d <- co_acq_g_i[which(co_acq_g_i$acquired_on >= '1988-01-01'), ]
+# 
+# ## check top filtered acquirers
+# cnt <- plyr::count(co_acq_g_i_d$acquirer_name_unique)
+# cnt <- cnt[order(cnt$freq, decreasing = T),]
+# head(cnt, 20)
+# # Top Acquirers:             x   freq
+# # 545                   google   88
+# # 599                      ibm   58
+# # 815                microsoft   47
+# # 1496                   yahoo   46
+# # 77                       aol   43
+# # 944                   oracle   39
+# # 64                    amazon   34
+# # 88                     apple   32
+# # 453                 facebook   31
+# # 403                     ebay   28
+# # 259                    cisco   27
+# # 1109              salesforce   26
+# # 1362                 twitter   24
+# # 578          hewlett-packard   21
+# # 414                      emc   19
+# # 640                    intel   18
+# # 556                  groupon   17
+# # 421  endurance-international   16
+# # 1250                symantec   15
+# # 1347             tripadvisor   15
+# 
+# ## Check Acquisitions distribution by network distance included
+# df.ego <- data.frame()
+# name_i <- 'ibm'
+# for (d in 1:6) {
+#   g.ego <- igraph::make_ego_graph(graph = g.full, 
+#                                   nodes = V(g.full)[V(g.full)$name==name_i], 
+#                                   order = d, mode = 'all')[[1]]
+#   mem <- igraph::multilevel.community(g.ego)$membership
+#   mem.cnt <- plyr::count(mem)
+#   mem.cnt <- mem.cnt[order(mem.cnt$freq, decreasing = T), ]
+#   dim(mem.cnt)
+#   ##  
+#   acq.src <- co_acq_d[which(co_acq_d$acquirer_name_unique %in% V(g.ego)$name), ]
+#   acq.src.trg <- co_acq_d[which(co_acq_d$acquirer_name_unique %in% V(g.ego)$name
+#                                 & co_acq_d$acquiree_name_unique %in% V(g.ego)$name), ]
+#   ##
+#   df.tmp <- data.frame(d=d,v=vcount(g.ego),e=ecount(g.ego),
+#                        acq.src=nrow(acq.src),acq.src.trg=nrow(acq.src.trg),
+#                        r.in.out=round(nrow(acq.src.trg)/(nrow(acq.src)+nrow(acq.src.trg)),3),
+#                        first.comp=min(E(g.ego)$relation_began_on))
+#   df.ego <- rbind(df.ego, df.tmp)
+# }; df.ego 
 
 
 ##--------------------------------------------------------------
-##--------------------------------------------------------------
+##
 ##--------- CREATE FIRM NETWORK PERIOD LISTS  ------------------
-##--------------------------------------------------------------
+##
 ##--------------------------------------------------------------
 
-
+## SETTINGS
 name_i <- 'ibm'
 d <- 2
-times <- sapply(2014:2017, function(x)paste0(x,'-01-01'))
+years <- 2008:2017
 
+## get date periods and ego network based on settings
+times <- sapply(years, function(x)paste0(x,'-01-01'))
+start <- times[1]
+end <- times[length(times)]
+
+## EGO NETWORK
 g.ego <- igraph::make_ego_graph(graph = g.full,
                                 nodes = V(g.full)[V(g.full)$name==name_i],
                                 order = d, mode = 'all')[[1]]
-g.ego.pd.tmp <- makePdGraph(g.ego, times[1], times[length(times)], isolates.remove=TRUE)
-c(v=vcount(g.ego.pd.tmp),e=ecount(g.ego.pd.tmp))
-sapply(2:length(times), function(i){gi=makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
+
+## NETWORKS IN TIMEFRAME TO PROCESS NODE COLLAPSE AND POCESS COVARIATES
+g.pd      <- acf$makePdGraph(g.ego, start, end, isolates.remove=TRUE)   ## ego network
+g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)  ## full network
+
+## CHECK NETWORK PERIOD SIZES
+sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
+
+## PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
+acqs.init <- co_acq[co_acq$acquired_on < start, ]
+g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)
+g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init)
 
 ## YEAR PERIODS: DEFINE NICHE CLUSTERS
 l <- list()
@@ -163,54 +168,62 @@ df.reg <- data.frame()
 lidx <- 0
 timeval <- timeval.last <- 0
 
-## all event vertices
-acq.src <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.ego.pd.tmp)$name), ]
-acq.src.allpd <- acq.src[which(acq.src$acquired_on >= times[1] & acq.src$acquired_on < times[length(times)]) , ]
+## GET ALL ACQ EVENT VERTICES 
+acq.src <- co_acq[ co_acq$acquirer_name_unique %in% V(g.ego.pd.tmp)$name, ]
+acq.src.allpd <- acq.src[ acq.src$acquired_on >= times[1] & acq.src$acquired_on < times[length(times)] , ]
 acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F), ]
-## check number of acquisitions to counts
-acq.src.trg.allpd <- acq.src.allpd[which(acq.src.allpd$acquirer_name_unique %in% V(g.ego)$name 
-                                       & acq.src.allpd$acquiree_name_unique %in% V(g.ego)$name), ]
-dim(acq.src.trg.allpd)
-## get all verts in the period (first either acquired or acquirer)
-acq.verts <- unique(c(as.character(acq.src.allpd$acquirer_name_unique), 
-                      as.character(acq.src.allpd$acquiree_name_unique)))
-df.verts <- data.frame(id=1:length(acq.verts), name=acq.verts, stringsAsFactors = F)
-yrs <- co$founded_year[which(co$company_name_unique %in% df.verts$name & !is.na(co$founded_year))]
-df.verts$founded_year <- sapply(1:nrow(df.verts), function(x) {
-    year <- co$founded_year[which(co$company_name_unique == df.verts$name[x])]
-    year <- year[1]
-    return(ifelse(is.na(year)|length(year)<1|class(year)=='list', median(yrs,na.rm = T), year))
-  }, simplify = T)
-df.verts$age <- 2018 - df.verts$founded_year
+
+# ## check number of acquisitions to counts
+# acq.src.trg.allpd <- acq.src.allpd[which(acq.src.allpd$acquirer_name_unique %in% V(g.ego)$name 
+#                                        & acq.src.allpd$acquiree_name_unique %in% V(g.ego)$name), ]
+# dim(acq.src.trg.allpd)
+
+# ## get all verts in the timeframe (first either acquired or acquirer)
+# acq.verts <- unique(c(as.character(acq.src.allpd$acquirer_name_unique), 
+#                       as.character(acq.src.allpd$acquiree_name_unique)))
+# df.verts <- data.frame(id=1:length(acq.verts), name=acq.verts, stringsAsFactors = F)
+# yrs <- cb$co$founded_year[which(cb$co$company_name_unique %in% df.verts$name & !is.na(cb$co$founded_year))]
+# df.verts$founded_year <- sapply(1:nrow(df.verts), function(x) {
+#     year <- cb$co$founded_year[which(cb$co$company_name_unique == df.verts$name[x])]
+#     year <- year[1]
+#     return(ifelse(is.na(year)|length(year)<1|class(year)=='list', median(yrs,na.rm = T), year))
+#   }, simplify = T)
+# df.verts$age <- 2018 - df.verts$founded_year
+# 
+# ##
+# # p <- 18 ## i.mmc, i.mmc^2, num.mkts, deg, power
+# # m <- nrow(acq.src.allpd)
+# # n <- nrow(df.verts)
+# # ar.cov <- array(dim=c(m,p,n))
+# 
+# # nEventCov <- 4
+# # ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
+
+
+
+##============================
 ##
-# p <- 18 ## i.mmc, i.mmc^2, num.mkts, deg, power
-# m <- nrow(acq.src.allpd)
-# n <- nrow(df.verts)
-# ar.cov <- array(dim=c(m,p,n))
+##  MAIN
+##
+##----------------------------
 
-# nEventCov <- 4
-# ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
-
-start <- times[1]
-end <- times[length(times)]
 ## make period graph
-g.pd <- makePdGraph(g.ego, start, end, isolates.remove=TRUE)
-g.full.pd <- makePdGraph(g.full, start, end, isolates.remove=TRUE)
-## period NC
+g.pd <- acf$makePdGraph(g.ego, start, end, isolates.remove=TRUE)
+g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)
+## Full timeframe Clusters
 V(g.pd)$nc <- as.integer(igraph::multilevel.community(g.pd)$membership)
-## keep original pd graph
+## keep original timeframe graph
 g.pd.orig <- g.pd
 g.full.pd.orig <- g.full.pd
-## filter acquisitions made by firms in this period graph
-acq.src <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.pd)$name), ]
-## filter acquisitions made during this period
-acq.src.pd <- acq.src[which(acq.src$acquired_on >= start & acq.src$acquired_on < end) , ]
-acq.src.pd <- acq.src.pd[order(acq.src.pd$acquired_on, decreasing = F), ]
 
 
+##===============================
+##  MAIN LOOP: COMPUTE COVARIATES
+##-------------------------------
 
 ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
-for (j in 67:nrow(acq.src.allpd)) {
+for (j in 1:nrow(acq.src.allpd)) {
+  
   date_j <- acq.src.allpd$acquired_on[j]
   ## g.pd            d2 updated each acquisition
   ## g.pd.orig       d2 original
@@ -226,7 +239,7 @@ for (j in 67:nrow(acq.src.allpd)) {
   l[[lidx]] <- list()
   
   ## Update MMC after acquisition
-  l[[lidx]]$mmc <- getFmMmc(g.pd, as.integer(V(g.pd)$nc))
+  l[[lidx]]$mmc <- acf$getFmMmc(g.pd, as.integer(V(g.pd)$nc))
   
   ## SUM FM MMC over markets  ??????
   V(g.pd)$fm.mmc.sum <- rowSums(l[[lidx]]$mmc)
@@ -289,11 +302,11 @@ for (j in 67:nrow(acq.src.allpd)) {
   
   tmp <- df.targ.alt[df.targ.alt$company_name_unique %in% names(targ.vids.d2), ]
   ## select based on ownership status
-  if (df.targ$is.public == 1) {
-    tmp <- tmp[tmp$is.public == 1, ]
-  } else {
-    tmp <- tmp[tmp$is.public == 0, ] 
-  }
+  tmp <- if (df.targ$is.public == 1) {
+      tmp[tmp$is.public == 1, ]
+    } else {
+      tmp[tmp$is.public == 0, ] 
+    }
   tmp.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
   ## combine target and alternatives for target set
   df.targ.alt <- rbind(tmp.alt, df.targ)

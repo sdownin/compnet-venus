@@ -786,7 +786,7 @@ library(stringr, quietly = T)
 
   ## RESET original working dir
   setwd(orig_work_dir)
-  cat('\ndone.')
+  cat('done.\n')
   
   ## RETURN cb list
   return(cb)
@@ -796,9 +796,8 @@ library(stringr, quietly = T)
 
 ##============================
 ## RUN
-##  - export to `cb` object
 ##----------------------------
-cb <- .main.cbdp()
+.main.cbdp()
 
 
 
