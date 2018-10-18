@@ -3,7 +3,7 @@
 # amj_awareness_functions.R
 #
 # Notes:
-#  @export list `aaf`
+#  @export list 
 ##
 
 library(igraph)
@@ -684,20 +684,20 @@ library(stringr)
         ## track acquisitions
         noAcq <- .isNA(V(g)$acquired_uuid[acquirer.vid])
         V(g)$acquired_vids[acquirer.vid] <- if(noAcq){
-          target.vid
-        }else{
-          paste(V(g)$acquired_vids[acquirer.vid], target.vid, sep = "|")
-        }
+            target.vid
+          }else{
+            paste(V(g)$acquired_vids[acquirer.vid], target.vid, sep = "|")
+          }
         V(g)$acquired_name[acquirer.vid] <- if(noAcq){
-          V(g)$name[target.vid]
-        }else{
-          paste(V(g)$acquired_name[acquirer.vid], V(g)$name[target.vid], sep = "|")
-        }
+            V(g)$name[target.vid]
+          }else{
+            paste(V(g)$acquired_name[acquirer.vid], V(g)$name[target.vid], sep = "|")
+          }
         V(g)$acquired_uuid[acquirer.vid] <- if(noAcq){
-          V(g)$company_uuid[target.vid]
-        }else{
-          paste(V(g)$acquired_uuid[acquirer.vid], V(g)$company_uuid[target.vid], sep = "|")
-        }
+            V(g)$company_uuid[target.vid]
+          }else{
+            paste(V(g)$acquired_uuid[acquirer.vid], V(g)$company_uuid[target.vid], sep = "|")
+          }
         
         ##-------------- 3. REMOVE TARGETS EDGES ----------------------------------------
         ## NOTE: firm nodes with degree(v)==0 are "removed" from the network by definition
@@ -734,6 +734,8 @@ library(stringr)
           g <- igraph::simplify(g, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
           if (verbose) cat('done.')
         } 
+        
+        if (i %% 10 == 0) cat(sprintf('\n%d: %s --> %s',i,x$acquirer_name_unique,x$acquiree_name_unique))
         
       } ## acquisition loop 
       

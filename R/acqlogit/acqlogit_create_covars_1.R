@@ -47,6 +47,7 @@ is.missing <- function(x)
 g.full <- read.graph('g_full.graphml', format='graphml')
 
 ## add comp net vertex IDs to acquisitions dataframe
+co_acq <- cb$co_acq
 gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), 
                   acquirer_name_unique=V(g.full)$name,
                   acquirer_net_uuid=V(g.full)$company_uuid)
@@ -60,6 +61,9 @@ co_acq <- merge(co_acq, gdf, by='acquiree_name_unique', all.x=T, all.y = F)
 co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 
+##==========================================
+## CHECK EGO FIRM NETWORK PROPERTIES 
+##------------------------------------------
 # # 
 # # ## filter acquisitions in recent period (if necessary)
 # # co_acq_d <- co_acq[which(co_acq$acquired_on >= '1988-01-01'), ]
@@ -157,68 +161,43 @@ sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[
 
 ## PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
 acqs.init <- co_acq[co_acq$acquired_on < start, ]
-g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)
-g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init)
+g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
+g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
+
+## SAVE INITIALIZED FULL AND EGO NETWORKS
+igraph::write.graph(g.pd, file=sprintf('g_%s_NCINIT_%s_%s',name_i,start,end), format = 'graphml')
+igraph::write.graph(g.full.pd, file=sprintf('g_full_NCINIT_%s_%s',start,end), format = 'graphml')
+
+## Full timeframe Clusters
+V(g.pd)$nc <- as.integer(igraph::multilevel.community(g.pd)$membership)
+
+## keep original timeframe graph
+g.pd.orig <- g.pd
+g.full.pd.orig <- g.full.pd
+
+
 
 ## YEAR PERIODS: DEFINE NICHE CLUSTERS
 l <- list()
 df.mmc <- data.frame()
 df.rem <- data.frame()
 df.reg <- data.frame()
-lidx <- 0
+lidx <- 0  ## acquisition list index
 timeval <- timeval.last <- 0
 
+
+
 ## GET ALL ACQ EVENT VERTICES 
-acq.src <- co_acq[ co_acq$acquirer_name_unique %in% V(g.ego.pd.tmp)$name, ]
-acq.src.allpd <- acq.src[ acq.src$acquired_on >= times[1] & acq.src$acquired_on < times[length(times)] , ]
+## keep only acquisitions with acquirer in ego network and target in global competition network
+acq.src <- co_acq[ co_acq$acquirer_name_unique %in% V(g.pd)$name & co_acq$acquiree_name_unique %in% V(g.full.pd)$name, ]
+acq.src.allpd <- acq.src[ acq.src$acquired_on >= start & acq.src$acquired_on < end , ]
 acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F), ]
-
-# ## check number of acquisitions to counts
-# acq.src.trg.allpd <- acq.src.allpd[which(acq.src.allpd$acquirer_name_unique %in% V(g.ego)$name 
-#                                        & acq.src.allpd$acquiree_name_unique %in% V(g.ego)$name), ]
-# dim(acq.src.trg.allpd)
-
-# ## get all verts in the timeframe (first either acquired or acquirer)
-# acq.verts <- unique(c(as.character(acq.src.allpd$acquirer_name_unique), 
-#                       as.character(acq.src.allpd$acquiree_name_unique)))
-# df.verts <- data.frame(id=1:length(acq.verts), name=acq.verts, stringsAsFactors = F)
-# yrs <- cb$co$founded_year[which(cb$co$company_name_unique %in% df.verts$name & !is.na(cb$co$founded_year))]
-# df.verts$founded_year <- sapply(1:nrow(df.verts), function(x) {
-#     year <- cb$co$founded_year[which(cb$co$company_name_unique == df.verts$name[x])]
-#     year <- year[1]
-#     return(ifelse(is.na(year)|length(year)<1|class(year)=='list', median(yrs,na.rm = T), year))
-#   }, simplify = T)
-# df.verts$age <- 2018 - df.verts$founded_year
-# 
-# ##
-# # p <- 18 ## i.mmc, i.mmc^2, num.mkts, deg, power
-# # m <- nrow(acq.src.allpd)
-# # n <- nrow(df.verts)
-# # ar.cov <- array(dim=c(m,p,n))
-# 
-# # nEventCov <- 4
-# # ar.cov.rec <- array(dim=c(m,nEventCov,n,n))
-
-
-
-##============================
-##
-##  MAIN
-##
-##----------------------------
-
-## make period graph
-g.pd <- acf$makePdGraph(g.ego, start, end, isolates.remove=TRUE)
-g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)
-## Full timeframe Clusters
-V(g.pd)$nc <- as.integer(igraph::multilevel.community(g.pd)$membership)
-## keep original timeframe graph
-g.pd.orig <- g.pd
-g.full.pd.orig <- g.full.pd
 
 
 ##===============================
+##
 ##  MAIN LOOP: COMPUTE COVARIATES
+##
 ##-------------------------------
 
 ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
@@ -227,12 +206,17 @@ for (j in 1:nrow(acq.src.allpd)) {
   date_j <- acq.src.allpd$acquired_on[j]
   ## g.pd            d2 updated each acquisition
   ## g.pd.orig       d2 original
-  ## g.full.pd.orig  global network within period start, end
+  ## g.full.pd.orig  global network within timeframe start, end
   
   cat(sprintf('\n\nstart %s end %s : acquisition %s\n\n',start,end,j))
   if ( !(acq.src.allpd$acquiree_name_unique[j] %in% V(g.full.pd.orig)$name) ) 
     next
   if ( !(acq.src.allpd$acquirer_name_unique[j] %in% V(g.pd)$name) ) 
+    next
+  ## skip if acquirer is not public
+  isPublicAcq <- (acq.src.allpd$acquirer_name_unique[j] %in% cb$co_ipo$company_name_unique 
+                  & cb$co_ipo$went_public_on[cb$co_ipo$company_name_unique==acq.src.allpd$acquirer_name_unique[j]] <= acq.src.allpd$acquired_on[j])
+  if ( ! isPublicAcq)
     next
 
   lidx <- lidx + 1
@@ -281,7 +265,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   targ.vids.d1 <- igraph::neighborhood(graph = g.full.pd, order = 1, nodes = targ.id)[[1]]
   targ.vids.d1 <- targ.vids.d1[which( !(names(targ.vids.d1) %in% V(g.full.pd)$name[targ.id]))]
   ## Target alternatives dataframe
-  df.targ.alt <- co[which(co$company_name_unique %in% c(names(targ.vids.d1),names(targ.vids.d2),V(g.full.pd)$name[targ.id])), ]
+  df.targ.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(targ.vids.d1),names(targ.vids.d2),V(g.full.pd)$name[targ.id])), ]
   df.targ.alt$d <- sapply(df.targ.alt$company_name_unique, function(x){ return(
       ifelse(x ==  V(g.full.pd)$name[targ.id], 0, 
              ifelse(x %in% names(targ.vids.d1), 1,   2))
@@ -289,7 +273,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## ipo status
   df.targ.alt$is.public <- sapply(1:nrow(df.targ.alt), function(x){
     isNotOperating <- df.targ.alt$status[x] != 'operating'
-    ipo.date <- co_ipo$went_public_on[which(co_ipo$company_name_unique == df.targ.alt$company_name_unique[x])]
+    ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.targ.alt$company_name_unique[x])]
     if (length(ipo.date)<1) 
       return(0)
     return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
@@ -307,7 +291,8 @@ for (j in 1:nrow(acq.src.allpd)) {
     } else {
       tmp[tmp$is.public == 0, ] 
     }
-  tmp.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
+  # tmp.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
+  tmp.alt <- tmp  ## keep all alternative targets
   ## combine target and alternatives for target set
   df.targ.alt <- rbind(tmp.alt, df.targ)
   ## add MMC
@@ -332,7 +317,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   acq.vids.d1 <- acq.vids.d2[which( !(names(acq.vids.d1) %in% V(g.pd)$name[acq.id]))]
   ## acquirer alternatives dataframe
   # length(acq.vids.d1)
-  df.acq.alt <- co[which(co$company_name_unique %in% c(names(acq.vids.d1),names(acq.vids.d2),V(g.pd)$name[acq.id])), ]
+  df.acq.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(acq.vids.d1),names(acq.vids.d2),V(g.pd)$name[acq.id])), ]
   df.acq.alt$d <- sapply(df.acq.alt$company_name_unique, function(x){ return(
     ifelse(x ==  V(g.pd)$name[acq.id], 0, 
            ifelse(x %in% names(acq.vids.d1), 1,   2))
@@ -340,7 +325,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## ipo status
   df.acq.alt$is.public <- sapply(1:nrow(df.acq.alt), function(x){
     isNotOperating <- df.acq.alt$status[x] != 'operating'
-    ipo.date <- co_ipo$went_public_on[which(co_ipo$company_name_unique == df.acq.alt$company_name_unique[x])]
+    ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.acq.alt$company_name_unique[x])]
     if (length(ipo.date)<1) 
       return(0)
     return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
@@ -358,7 +343,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   } else {
     tmp <- tmp[tmp$is.public == 0, ] 
   }
-  tmp.acq.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
+  # tmp.acq.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
+  tmp.acq.alt <- tmp ## keep all
   ## combine target and alternatives for target set
   df.acq.alt <- rbind(tmp.acq.alt, df.acq)
   ## set MMC
