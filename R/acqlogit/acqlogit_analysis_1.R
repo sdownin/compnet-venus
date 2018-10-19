@@ -118,7 +118,8 @@ df.reg$ij.inv.dist <- 100 / df.reg$ij.dist  ## max(df.reg$ij.dist[df.reg$ij.dist
 ## cbind(y,t) ~ econ.left/class+welfare/class+auth/class,
 df.sub <- df.reg
 # df.sub$ij.dist[df.sub$ij.dist == Inf] <- median(df.reg$ij.dist[df.reg$ij.dist < Inf])
-df.sub$ij.dist[df.sub$ij.dist == Inf] <- 1 + max(df.reg$ij.dist[df.reg$ij.dist < Inf])
+dists.nonInf <- df.reg$ij.dist[df.reg$ij.dist < Inf]
+df.sub$ij.dist[df.sub$ij.dist == Inf] <- round(sd(dists.nonInf)) + max(dists.nonInf) ## 1 SD above max
 
 ## replace NA|missing discrete homophily terms with mode
 df.sub$ij.same.state[is.na(df.sub$ij.same.state)] <- Mode(df.sub$ij.same.state[!is.na(df.sub$ij.same.state)])
@@ -244,10 +245,12 @@ df.sub$roa <- 100 * df.sub$ebitda / df.sub$act
 df.sub$me <- df.sub$prcc_c * df.sub$csho
 
 ###------------- SMS Proposal --------------------------------------
+
 mc0 <- mclogit(
-  cbind(y,t) ~ ln_asset + cash_holding + roa + ln_employee +
-    ij.same.region  +  ij.diff.deg   +
-    i.fm.mmc.sum    + I(i.acq.experience * 100),
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n2 +  I(100 * ij.discossim) ,
   data = df.sub)
 summary(mc0)
 
@@ -255,8 +258,8 @@ mc1 <- mclogit(
   cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
     ij.same.region +  ij.diff.deg   +
     i.fm.mmc.sum + I(i.acq.experience * 100) +
-    j.constraint + i.pow.n2 +
-    ij.inv.dist + I(100 * ij.discossim) ,
+    i.pow.n2 + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2),
   data = df.sub)
 summary(mc1)
 
@@ -264,62 +267,74 @@ mc2 <- mclogit(
   cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
     ij.same.region +  ij.diff.deg   +
     i.fm.mmc.sum + I(i.acq.experience * 100) +
-    j.constraint + i.pow.n2 +
-    I(i.fm.mmc.sum^2) ,
+    i.pow.n2 + I(100 * ij.discossim) + 
+    j.constraint,
   data = df.sub)
 summary(mc2)
 
 mc3 <- mclogit(
   cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
     ij.same.region +  ij.diff.deg   +
-    ij.inv.dist + I(100 * ij.discossim) + 
     i.fm.mmc.sum + I(i.acq.experience * 100) +
-    j.constraint + i.pow.n2 +
-    I(i.fm.mmc.sum^2) ,
+    i.pow.n2 + I(100 * ij.discossim) + 
+    ij.dist,
   data = df.sub)
 summary(mc3)
-
-mc3b <- mclogit(
-  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
-    ij.same.region +  ij.diff.deg   +
-    ij.inv.dist + I(100 * ij.discossim) + 
-    i.fm.mmc.sum + I(i.acq.experience * 100) +
-    j.constraint + i.pow.n2 +
-    I(i.fm.mmc.sum^2) +
-    I(i.fm.mmc.sum^2):i.pow.n2,
-  data = df.sub)
-summary(mc3b)
-
 
 mc4 <- mclogit(
   cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
     ij.same.region +  ij.diff.deg   +
     i.fm.mmc.sum + I(i.acq.experience * 100) +
-    j.constraint + i.pow.n2 +
-    ij.inv.dist + I(100 * ij.discossim) + 
-    I(i.fm.mmc.sum^2) +
-    I(i.fm.mmc.sum^2):ij.inv.dist , 
+    i.pow.n2 + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist,
   data = df.sub)
 summary(mc4)
+
 
 mc5 <- mclogit(
   cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
     ij.same.region +  ij.diff.deg   +
     i.fm.mmc.sum + I(i.acq.experience * 100) +
-    j.constraint + i.pow.n2 +
-    ij.inv.dist + I(100 * ij.discossim) + 
-    I(i.fm.mmc.sum^2) +
-    I(i.fm.mmc.sum^2):j.constraint , 
+    i.pow.n2 + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist + 
+    I(i.fm.mmc.sum^2):i.pow.n2,
   data = df.sub)
 summary(mc5)
 
+mc5b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n2 + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist + 
+    I(i.fm.mmc.sum^2):j.constraint,
+  data = df.sub)
+summary(mc5b)
+
+mc5c <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n2 + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist + 
+    I(i.fm.mmc.sum^2):ij.inv.dist,
+  data = df.sub)
+summary(mc5c)
+
 ## SUMMARY TABLE
-mtable(mc1,mc3,mc3b,mc4,mc5)
+mtable(mc0,mc1,mc2,mc3,mc4,mc5,mc5b,mc5c)
 
 ## SAVE FILE
-mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4, signif.symbols = "")
-memisc::write.mtable(mtab, file = "acqlogit_reg_table_ibm.txt", 
-                     signif.symbols = "*")
+mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4,mc5,mc5b,mc5c)
+memisc::write.mtable(mtab, file = "acqlogit_reg_table_ibm.tsv")
 
 
 
