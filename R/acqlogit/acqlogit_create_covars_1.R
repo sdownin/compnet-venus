@@ -201,7 +201,7 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##-------------------------------
 
 ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
-for (j in 1:nrow(acq.src.allpd)) {
+for (j in 17:nrow(acq.src.allpd)) {
   
   date_j <- acq.src.allpd$acquired_on[j]
   ## g.pd            d2 updated each acquisition
@@ -216,6 +216,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## skip if acquirer is not public
   isPublicAcq <- (acq.src.allpd$acquirer_name_unique[j] %in% cb$co_ipo$company_name_unique 
                   & cb$co_ipo$went_public_on[cb$co_ipo$company_name_unique==acq.src.allpd$acquirer_name_unique[j]] <= acq.src.allpd$acquired_on[j])
+  if (length(isPublicAcq)==0)
+    next
   if ( ! isPublicAcq)
     next
 
@@ -443,11 +445,23 @@ for (j in 1:nrow(acq.src.allpd)) {
   cat('appending dyadic regression dataframe...')
   
   for (k in 1:nrow(df.alt[df.alt$set=='acquirer', ])) {
+    ix <- which( df.alt$company_name_unique == df.alt[df.alt$set=='acquirer', ][k, ]$company_name_unique )
+    
+    if (length(df.alt$event[ix])==0)
+      next
+    
     for (r in 1:nrow(df.alt[df.alt$set=='target', ])) {
-      ix <- which( df.alt$company_name_unique == df.alt[df.alt$set=='acquirer', ][k, ]$company_name_unique )
       jx <- which( df.alt$company_name_unique == df.alt[df.alt$set=='target', ][r, ]$company_name_unique )
       
+      ## skip pairing if neither acquirer nor target were in this actual event 
+      if (length(df.alt$event[jx])==0)
+        next
+      if ( !as.integer(df.alt$event[ix]) & !as.integer(df.alt$event[jx]) )
+        next
+      
       if (df.alt$company_name_unique[ix] != df.alt$company_name_unique[jx]) {
+        # cat(sprintf('ix %s jx %s\n',ix,jx))
+        
         ij.dist <- igraph::distances(g.full.pd, 
                                      v = V(g.full.pd)[which(V(g.full.pd)$name == df.alt$company_name_unique[ix])], 
                                      to =V(g.full.pd)[which(V(g.full.pd)$name == df.alt$company_name_unique[jx])] )
@@ -499,27 +513,28 @@ for (j in 1:nrow(acq.src.allpd)) {
   
   ##--------------------------------------------------------------------------    
   ## NODE COLLAPSE update network
-  g.pd <- nodeCollapseGraph(g.pd, acq.src.allpd[j,])
-  g.full.pd <- nodeCollapseGraph(g.full.pd, acq.src.allpd[j,])
+  g.pd <- acf$nodeCollapseGraph(g.pd, acq.src.allpd[j,])
+  g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acq.src.allpd[j,])
   
   ## save incrementally
   if (lidx %% 10 == 0) {   
-    saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_covs_list_%s.rds",name_i))
+    saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
   }
   
   gc()
 }
 
+## final save
+saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
 
-saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_covs_list_%s.rds",name_i))
 
 
-
-tmp <- readRDS(sprintf("acqlogit_covs_list_%s.rds",name_i))
+tmp <- readRDS(sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
 l <- tmp$l
 df.reg <- tmp$df.reg
 
-write.csv(df.reg, file = sprintf("acqlogit_covs_df_%s.csv",name_i), row.names = F)
+## save regression dataframe to seprate table file
+write.csv(df.reg, file = sprintf("acqlogit_compnet_covs_df_%s.csv",name_i), row.names = F)
 
 
 

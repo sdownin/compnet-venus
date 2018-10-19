@@ -20,6 +20,7 @@
 setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 # .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 library(texreg, quietly = T)
+library(memisc, quietly = T)
 library(plyr, quietly = T)
 library(lattice, quietly = T)
 library(latticeExtra, quietly = T)
@@ -32,53 +33,79 @@ library(lmerTest)
 library(lubridate)
 
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
-## FUNCTIONS
-source(file.path(getwd(),'R','comp_net_functions.R'))
-source(file.path(getwd(),'R','netrisk_functions.R'))
-## DATA
-source(file.path(getwd(),'R','cb_data_prep.R'))
-## DATA
-# source(file.path(getwd(),'R','cb_data_prep.R'))
 
 Mode <- function(x) {
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
 }
 
-#####################################################################################
-## MAKE FULL COMP NET OF ALL RELATIONS IN DB 
-#####################################################################################
-# g.full <- makeGraph(comp = co_comp, vertdf = co)
-# ## cut out confirmed dates >= 2016
-# g.full <- igraph::induced.subgraph(g.full, vids=V(g.full)[which(V(g.full)$founded_year <= 2016
-#                                                                 | is.na(V(g.full)$founded_year)
-#                                                                 | V(g.full)$founded_year=='' ) ] )
-# g.full <- igraph::delete.edges(g.full, E(g.full)[which(E(g.full)$relation_created_at >= '2017-01-01')])
-# ## SIMPLIFY
-# g.full <- igraph::simplify(g.full, remove.loops=T,remove.multiple=T,
-#                            edge.attr.comb = list(weight='sum',
-#                                                  relation_began_on='min',
-#                                                  relation_ended_on='min'))
-# ## save
-# igraph::write.graph(graph = g.full, file="g_full.graphml", format = 'graphml')
-######################################################################################
 
-# ## SORT CO_ACQ BY acquisition date
-# co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
-# 
-# ## comptetition network
-# ## 37828
-# g.full <- read.graph('g_full.graphml', format='graphml')
-
-##------------- load data --------------------
+## focal firm's competition network
 name_i <- 'ibm'
-data.in <- readRDS(sprintf("acqlogit_covs_list_%s.rds",name_i))
-l <- data.in$l
-df.reg <- data.in$df.reg
 
-##_-------------------------------------------
+##============================================
+## load data 
+##   **SLOW TO LOAD**
+##--------------------------------------------
+## 1. CrunchBase data
+cb  <- source(file.path(getwd(),'R','acqlogit','acqlogit_cb_data_prep.R'))$value      ## DATA 
 
-tmp <- co[,c('company_name_unique','founded_on')]; 
+## 2. COMPUSTAT
+csa <- read.csv(file = file.path('compustat','fundamentals-annual.csv'), na.strings = c(NA,'','NA'))
+dim(csa)
+names(csa)
+
+## 3. load FILTERED regression dataframe to seprate table file
+df.reg <- read.csv(sprintf("acqlogit_compnet_covs_df_FILTERED_%s.csv",name_i),na.strings = c(NA,'','NA'))
+
+
+## SELECT COLUMNS FROM COMPUSTAT
+cols <- c('conm','conml','gvkey','datadate','fyear','indfmt','consol','popsrc','tic','cusip',
+  'act', ## total assets  (ln for size proxy)
+  'che', ## cash and short term investments (scale by total assets for cash holdings)
+  'emp', ## employees (ln employee size proxy) 
+  'ebitda', ## ebidta (scale by total assets for ROA performance proxy)
+  'prcc_c', ## close market price at calendar year
+  # 'prccm', ## (monthly close price for december; use if prcc_c not available)
+  'csho', ## shares outstanding  (PRCC_C x CSHO = market value of equity)
+  'ceq' ## common/ordinary equity total
+)
+csa2 <- csa[,cols]
+
+##==================================
+## Public firms data frame (mapping company_name_unique --> stock_symbol)
+##   used to merge in COMPUSTAT DATA with CrunchBase public firms
+##----------------------------------
+## public firms from crunbhbase regression data
+tmpnames <- unique(c(as.character(df.reg$i),as.character(df.reg$j)))
+df.cs <- data.frame(company_name_unique=tmpnames[tmpnames %in% cb$co_ipo$company_name_unique])
+## crunchbase ipo data fields for crunchbase compnet firms
+ipocols <- c('company_name_unique','stock_symbol','stock_exchange_symbol','went_public_on','country_code')
+df.cs <- merge(df.cs, cb$co_ipo[,ipocols], by='company_name_unique', all.x=T, all.y=F)
+## merge in COMPUSTAT data by stock_exchange symbole
+df.cs <- merge(df.cs, csa2, by.x='stock_symbol',by.y='tic', all.x=T, all.y=F)
+## merge in COMPUSTAT data with crunchbase ticker symbol and unique name into crunchbase regression data frame
+df.reg$year <- as.integer(sapply(str_split(as.character(df.reg$date),'[-]'), function(x)x[1]))
+yrs <- unique(df.reg$year)
+df.reg.m <- data.frame()
+for (yr in yrs) {
+  df.reg.yr <- df.reg[df.reg$year==yr,]
+  df.cs.yr <- df.cs[df.cs$fyear==yr,]
+  df.reg.yr <- merge(df.reg.yr, df.cs.yr, by.x='i',by.y='company_name_unique', all.x=T, all.y=F)
+  df.reg.m <- rbind(df.reg.m, df.reg.yr)
+}
+
+
+##=====================================
+## Get diversification from segments
+##-------------------------------------
+##
+##  TODO
+##
+
+##--------------------------------------------
+df.reg <- df.reg.m
+tmp <- cb$co[,c('company_name_unique','founded_on')]; 
 tmpi <- tmp; names(tmpi) <- c('name','founded_on_i')
 tmpj <- tmp; names(tmpj) <- c('name','founded_on_j')
 df.reg <- merge(df.reg, tmpi, by.x='j',by.y='name',all.x=T,all.y=F)
@@ -86,7 +113,7 @@ df.reg <- merge(df.reg, tmpj, by.x='i',by.y='name',all.x=T,all.y=F)
 
 df.reg$ij.age.diff <- as.numeric( (ymd(df.reg$founded_on_i) - ymd(df.reg$founded_on_j)) / 365.25 )
 
-df.reg$ij.inv.dist <- max(df.reg$ij.dist[df.reg$ij.dist < Inf ]) / df.reg$ij.dist
+df.reg$ij.inv.dist <- 100 / df.reg$ij.dist  ## max(df.reg$ij.dist[df.reg$ij.dist < Inf ])
 
 ## cbind(y,t) ~ econ.left/class+welfare/class+auth/class,
 df.sub <- df.reg
@@ -104,48 +131,315 @@ df.sub$ij.same.employee.range[is.na(df.sub$ij.same.employee.range)] <- Mode(df.s
 # df.sub$i.deg[is.na(df.sub$i.deg)] 
 # df.sub$ij.diff.deg[is.na(df.sub$ij.diff.deg)]
 
-##--------------------------------------------------
-acq.only <- df.sub[df.sub$y==1,c('t','i')]
-acq.only <-droplevels.data.frame(acq.only)
-#
-df.acq <- data.frame()
-df.cnt <- data.frame()
-for (i in 1:nrow(acq.only)) {
-  t <- as.numeric(acq.only$t[i])
-  firm_i <- as.character(acq.only$i[i])
-  tmp <- df.sub[as.numeric(df.sub$t) == t, ]
-  tmp <- tmp[as.character(tmp$i) == firm_i, ]
-  cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
-  df.cnt <- rbind(df.cnt, data.frame(t=t,n=nrow(tmp)))
-  df.acq <- rbind(df.acq, tmp)
+## COMPUTE PRODUCT DISSIMILARITY
+df.sub$ij.dissim <- NA
+df.sub$ij.discossim <- NA
+for (i in 1:nrow(df.sub)) {
+  firm.i <- as.character(df.sub$i[i])
+  firm.j <- as.character(df.sub$j[i])
+  cats.i <- str_split(cb$co$category_list[cb$co$company_name_unique == firm.i], '[|]')[[1]]
+  cg.i <- str_split(cb$co$category_group_list[cb$co$company_name_unique == firm.i], '[|]')[[1]]
+  c.i <- unique(c(cats.i,cg.i))
+  cats.j <- str_split(cb$co$category_list[cb$co$company_name_unique == firm.j], '[|]')[[1]]
+  cg.j <- str_split(cb$co$category_group_list[cb$co$company_name_unique == firm.j], '[|]')[[1]]
+  c.j <- unique(c(cats.j,cg.j))
+  c.all <- unique(c(c.i,c.j))
+  v.i <- as.integer(c.all %in% c.i)
+  v.j <- as.integer(c.all %in% c.j)
+  df.sub$ij.dissim[i] <- -1 * (v.i %*% v.j)[1,1]
+  df.sub$ij.discossim[i] <- -1 * (v.i %*% v.j)[1,1] / (sqrt(sum(v.i^2)) * sqrt(sum(v.j^2)))
+  if (i %% 50 == 0) cat(sprintf('%s\n',i))
 }
-## keep only nrow >= x
-t.keep.acq <- df.cnt$t[which(df.cnt$n >= 3)]
-df.acq <- df.acq[which(df.acq$t %in% t.keep.acq), ]
 
-##-----------------------------------------------------
-targ.only <- df.sub[df.sub$y==1,c('t','j')]
-targ.only <-droplevels.data.frame(targ.only)
+##====================================================
+##  SUBSET
+##----------------------------------------------------
+# ##--------------------------------------------------
+# acq.only <- df.sub[df.sub$y==1,c('t','i')]
+# acq.only <- droplevels.data.frame(acq.only)
+# #
+# df.acq <- data.frame()
+# df.cnt <- data.frame()
+# for (i in 1:nrow(acq.only)) {
+#   t <- as.numeric(acq.only$t[i])
+#   firm_i <- as.character(acq.only$i[i])
+#   tmp <- df.sub[as.numeric(df.sub$t) == t, ]
+#   tmp <- tmp[as.character(tmp$i) == firm_i, ]
+#   cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
+#   df.cnt <- rbind(df.cnt, data.frame(t=t,n=nrow(tmp)))
+#   df.acq <- rbind(df.acq, tmp)
+# }
+# ## keep only nrow >= x
+# t.keep.acq <- df.cnt$t[which(df.cnt$n >= 3)]
+# df.acq <- df.acq[which(df.acq$t %in% t.keep.acq), ]
+# 
+# ##-----------------------------------------------------
+# targ.only <- df.sub[df.sub$y==1,c('t','j')]
+# targ.only <-droplevels.data.frame(targ.only)
+# #
+# df.targ <- data.frame()
+# df.cnt <- data.frame()
+# for (i in 1:nrow(targ.only)) {
+#   t <- as.numeric(targ.only$t[i])
+#   j <- as.character(targ.only$j[i])
+#   tmp <- df.sub[as.numeric(df.sub$t) == t, ]
+#   tmp <- tmp[as.character(tmp$j) == j, ]
+#   cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
+#   df.cnt <- rbind(df.cnt, data.frame(t=t,n=nrow(tmp)))
+#   df.targ <- rbind(df.targ, tmp)
+# }
+# ## keep only nrow >= x
+# t.keep.targ <- df.cnt$t[which(df.cnt$n >= 3)]
+# df.targ <- df.targ[which(df.targ$t %in% t.keep.targ), ]
+# ##-------------------------------------------------------
+# df.sub.0 <- df.sub
+# df.sub <- df.sub[which(df.sub$t %in% t.keep.targ
+#                        & df.sub$t %in% t.keep.acq), ]
+# ##------------------------------------------------------
+
+##================================
+##
+##  HOW MANY TARGETS ARE PRIVAET / PUBLIC?
+##
+##--------------------------------
 #
-df.targ <- data.frame()
-df.cnt <- data.frame()
-for (i in 1:nrow(targ.only)) {
-  t <- as.numeric(targ.only$t[i])
-  j <- as.character(targ.only$j[i])
-  tmp <- df.sub[as.numeric(df.sub$t) == t, ]
-  tmp <- tmp[as.character(tmp$j) == j, ]
-  cat(sprintf("t %s : nrow %s\n",t,nrow(tmp)))
-  df.cnt <- rbind(df.cnt, data.frame(t=t,n=nrow(tmp)))
-  df.targ <- rbind(df.targ, tmp)
-}
-## keep only nrow >= x
-t.keep.targ <- df.cnt$t[which(df.cnt$n >= 3)]
-df.targ <- df.targ[which(df.targ$t %in% t.keep.targ), ]
-##-------------------------------------------------------
-df.sub.0 <- df.sub
-df.sub <- df.sub[which(df.sub$t %in% t.keep.targ
-                       & df.sub$t %in% t.keep.acq), ]
-##------------------------------------------------------
+# df.own <- df.sub[df.sub$y==1,c('j','date')]
+# df.own$is_ipo <- apply(df.own,1,function(x){
+#   any(cb$co_ipo$company_name_unique==x[1] & cb$co_ipo$went_public_on < x[2])
+# })
+
+## CHECK CRUNCHBASE ACQUISITIONS TARGETS OWNERSHIP STATUS AT TIME OF ACQUISITION
+df.own <- cb$co_acq[cb$co_acq$acquired_on > '2000-01-01', 
+                    c('acquirer_name_unique','acquiree_name_unique','acquired_on')]
+df.own$acquirer_is_ipo <- apply(df.own,1,function(x){
+  any(cb$co_ipo$company_name_unique==x[1] & cb$co_ipo$went_public_on < x[3])
+})
+df.own$target_is_ipo <- apply(df.own,1,function(x){
+  any(cb$co_ipo$company_name_unique==x[2] & cb$co_ipo$went_public_on < x[3])
+})
+cnt.a <- plyr::count(df.own$acquirer_is_ipo)
+cnt.t <- plyr::count(df.own$target_is_ipo)
+print(sprintf('PUBLIC: %.2f%s aquirers, %.2f%s targets',
+              100*cnt.a$freq[2]/sum(cnt.a$freq),'%',
+              100*cnt.t$freq[2]/sum(cnt.t$freq),'%'))
+print(sprintf('PRIVATE: %.2f%s aquirers, %.2f%s targets',
+              100*cnt.a$freq[1]/sum(cnt.a$freq),'%',
+              100*cnt.t$freq[1]/sum(cnt.t$freq),'%'))
+
+
+# 'act', ## total assets  (ln for size proxy)
+# 'che', ## cash and short term investments (scale by total assets for cash holdings)
+# 'emp', ## employees (ln employee size proxy) 
+# 'ebitda', ## ebidta (scale by total assets for ROA performance proxy)
+# 'prcc_c', ## close market price at calendar year
+# # 'prccm', ## (monthly close price for december; use if prcc_c not available)
+# 'csho', ## shares outstanding  (PRCC_C x CSHO = market value of equity)
+# 'ceq' ## common/ordinary equity total
+
+## Precompute COMPUSTAT CONTROLS
+df.sub$ln_asset <- log(df.sub$act)
+df.sub$cash_holding <- 100 * df.sub$che / df.sub$act
+df.sub$ln_employee <- log(df.sub$emp)
+df.sub$roa <- 100 * df.sub$ebitda / df.sub$act
+df.sub$me <- df.sub$prcc_c * df.sub$csho
+
+###------------- SMS Proposal --------------------------------------
+mc0 <- mclogit(
+  cbind(y,t) ~ ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region  +  ij.diff.deg   +
+    i.fm.mmc.sum    + I(i.acq.experience * 100),
+  data = df.sub)
+summary(mc0)
+
+mc1 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    j.constraint + i.pow.n2 +
+    ij.inv.dist + I(100 * ij.discossim) ,
+  data = df.sub)
+summary(mc1)
+
+mc2 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    j.constraint + i.pow.n2 +
+    I(i.fm.mmc.sum^2) ,
+  data = df.sub)
+summary(mc2)
+
+mc3 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    ij.inv.dist + I(100 * ij.discossim) + 
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    j.constraint + i.pow.n2 +
+    I(i.fm.mmc.sum^2) ,
+  data = df.sub)
+summary(mc3)
+
+mc3b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    ij.inv.dist + I(100 * ij.discossim) + 
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    j.constraint + i.pow.n2 +
+    I(i.fm.mmc.sum^2) +
+    I(i.fm.mmc.sum^2):i.pow.n2,
+  data = df.sub)
+summary(mc3b)
+
+
+mc4 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    j.constraint + i.pow.n2 +
+    ij.inv.dist + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    I(i.fm.mmc.sum^2):ij.inv.dist , 
+  data = df.sub)
+summary(mc4)
+
+mc5 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    j.constraint + i.pow.n2 +
+    ij.inv.dist + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    I(i.fm.mmc.sum^2):j.constraint , 
+  data = df.sub)
+summary(mc5)
+
+## SUMMARY TABLE
+mtable(mc1,mc3,mc3b,mc4,mc5)
+
+## SAVE FILE
+mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4, signif.symbols = "")
+memisc::write.mtable(mtab, file = "acqlogit_reg_table_ibm.txt", 
+                     signif.symbols = "*")
+
+
+
+
+
+mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4, signif.symbols = "")
+memisc::write.mtable(mtab, file = "sms_acq_logit_reg_table_ibm.txt", signif.symbols = "")
+
+# correlations
+round(cor(mc4$model),2)
+
+(smc0 <- mclogit::getSummary.mclogit(mc0, alpha=.05) )
+(smc1 <- mclogit::getSummary.mclogit(mc1, alpha=.05) )
+(smc2 <- mclogit::getSummary.mclogit(mc2, alpha=.05) )
+(smc3 <- mclogit::getSummary.mclogit(mc3, alpha=.05) )
+(smc4 <- mclogit::getSummary.mclogit(mc4, alpha=.05) )
+
+smc4$coef
+
+round(mc4$covmat, 3)
+
+df.model <- cbind(predict(mc4),mc4$model)
+
+
+
+
+## SANITY CHECK
+mc0 <- mclogit(
+  cbind(y,t) ~ i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
+  data = df.sub)
+summary(mc0)
+
+## add all controls to check
+mc1 <- mclogit(
+  cbind(y,t) ~ ij.same.state + ij.same.region + ij.same.country + ij.same.employee.range + ij.diff.deg + 
+    i.num.mkts + i.deg  + 
+    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
+  data = df.sub)
+summary(mc1)
+
+## preferable model (only useful controls)
+mc2 <- mclogit(
+  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
+    i.deg  +  
+    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
+  data = df.sub)
+summary(mc2)
+
+## period effect  acquirer
+mc2r <- mclogit(
+  cbind(y,t) ~ ij.same.region +  ij.same.employee.range + ij.diff.deg +
+    i.deg  +  
+    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
+  random = ~ 1 | t,
+  control = mclogit.control(epsilon=1e-08, maxit=2000, trace=TRUE),
+  data = df.sub)
+summary(mc2r)
+
+mc3r <- mclogit(
+  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
+    i.deg  + 
+    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
+  random = ~ 1 | t,
+  control = mclogit.control(epsilon=1e-08, maxit=2000, trace=TRUE),
+  data = df.sub)
+summary(mc3r)
+
+## NESTED i in time t
+mc4r <- mclogit(
+  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
+    i.deg  + 
+    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
+  random = ~ 1 | t / i,
+  control = mclogit.control(epsilon=1e-08, maxit=2000, trace=TRUE),
+  data = df.sub)
+summary(mc4r)
+
+mc4 <- mclogit(
+  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
+    i.deg  + 
+    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    i.pow.n2 ,
+  control = mclogit.control(epsilon=1e-07, maxit=200, trace=TRUE),
+  data = df.sub)
+summary(mc4)
+
+
+
+## preferable model (only useful controls)
+cols <- c('i.deg','i.fm.mmc.sum','ij.dist','i.pow.n2')
+df.sub.std <- df.sub
+df.sub.std[,cols] <- scale(df.sub.std[,cols], center = T, scale = T)
+
+
+mc2 <- mclogit(
+  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
+    log(1 + i.deg) + 
+    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
+    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
+  data = df.sub.std)
+summary(mc2)
+
+
+
+
+
 
 
 ## >= 10 constraint , power 
@@ -160,10 +454,10 @@ df.sub <- df.sub[which(df.sub$t %in% t.keep.targ
 mc3 <- mclogit(
   cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
     i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
-    i.pow.n1 + j.pow.n1 + ij.dist  +
+    i.pow.n2 + j.pow.n1 + ij.dist  +
     i.constraint + ij.diff.constraint +
     I(i.fm.mmc.sum^2) +
-    i.fm.mmc.sum:i.pow.n1 +
+    i.fm.mmc.sum:i.pow.n2 +
     i.fm.mmc.sum:i.constraint +
     i.fm.mmc.sum:ij.dist  , 
   data = df.sub)
@@ -172,10 +466,10 @@ summary(mc3)
 mc2 <- mclogit(
   cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
     i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
-    i.pow.n1 + j.pow.n1 + ij.dist  +
+    i.pow.n2 + j.pow.n1 + ij.dist  +
     i.constraint + 
     I(i.fm.mmc.sum^2) +
-    i.fm.mmc.sum:i.pow.n1 +
+    i.fm.mmc.sum:i.pow.n2 +
     i.fm.mmc.sum:i.constraint +
     i.fm.mmc.sum:j.constraint +
     i.fm.mmc.sum:ij.dist  , 
@@ -218,162 +512,6 @@ df.model <- cbind(predict(mc4),mc4$model)
 
 
 
-
-
-###------------- SMS Proposal --------------------------------------
-mc0 <- mclogit(
-  cbind(y,t) ~  ij.same.region  + ij.same.employee.range + ij.diff.deg   +
-    i.deg  +  i.fm.mmc.sum    + I(i.acq.experience * 100) + 
-     i.pow.n1,
-  data = df.sub)
-summary(mc0)
-
-mc1 <- mclogit(
-  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
-    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
-     i.pow.n1 + ij.dist,
-  data = df.sub)
-summary(mc1)
-
-mc2 <- mclogit(
-  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
-    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
-    i.pow.n1 +
-    I(i.fm.mmc.sum^2) ,
-  data = df.sub)
-summary(mc2)
-
-mc3 <- mclogit(
-  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
-    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
-     i.pow.n1  +
-    I(i.fm.mmc.sum^2) +
-    I(i.fm.mmc.sum^2):i.pow.n1 , 
-  data = df.sub)
-summary(mc3)
-
-mc4 <- mclogit(
-  cbind(y,t) ~  ij.same.region + ij.same.employee.range + ij.diff.deg   +
-    i.deg  +  i.fm.mmc.sum + I(i.acq.experience * 100) +
-    i.pow.n1  + ij.dist +
-    I(i.fm.mmc.sum^2) +
-    I(i.fm.mmc.sum^2):i.pow.n1 , 
-  data = df.sub)
-summary(mc4)
-
-memisc::mtable(mc0,mc1,mc2,mc3,mc4)
-
-mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4, signif.symbols = "")
-memisc::write.mtable(mtab, file = "sms_acq_logit_reg_table_ibm.txt", signif.symbols = "")
-
-# correlations
-round(cor(mc4$model),2)
-
-(smc0 <- mclogit::getSummary.mclogit(mc0, alpha=.05) )
-(smc1 <- mclogit::getSummary.mclogit(mc1, alpha=.05) )
-(smc2 <- mclogit::getSummary.mclogit(mc2, alpha=.05) )
-(smc3 <- mclogit::getSummary.mclogit(mc3, alpha=.05) )
-(smc4 <- mclogit::getSummary.mclogit(mc4, alpha=.05) )
-
-smc4$coef
-
-round(mc4$covmat, 3)
-
-df.model <- cbind(predict(mc4),mc4$model)
-
-
-
-
-## SANITY CHECK
-mc0 <- mclogit(
-  cbind(y,t) ~ i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
-    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
-  data = df.sub)
-summary(mc0)
-
-## add all controls to check
-mc1 <- mclogit(
-  cbind(y,t) ~ ij.same.state + ij.same.region + ij.same.country + ij.same.employee.range + ij.diff.deg + 
-    i.num.mkts + i.deg  + 
-    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
-    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
-  data = df.sub)
-summary(mc1)
-
-## preferable model (only useful controls)
-mc2 <- mclogit(
-  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
-     i.deg  +  
-    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
-    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
-  data = df.sub)
-summary(mc2)
-
-## period effect  acquirer
-mc2r <- mclogit(
-  cbind(y,t) ~ ij.same.region +  ij.same.employee.range + ij.diff.deg +
-     i.deg  +  
-    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
-    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
-  random = ~ 1 | t,
-  control = mclogit.control(epsilon=1e-08, maxit=2000, trace=TRUE),
-  data = df.sub)
-summary(mc2r)
-
-mc3r <- mclogit(
-  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
-    i.deg  + 
-    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
-    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
-  random = ~ 1 | t,
-  control = mclogit.control(epsilon=1e-08, maxit=2000, trace=TRUE),
-  data = df.sub)
-summary(mc3r)
-
-## NESTED i in time t
-mc4r <- mclogit(
-  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
-    i.deg  + 
-    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
-    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
-  random = ~ 1 | t / i,
-  control = mclogit.control(epsilon=1e-08, maxit=2000, trace=TRUE),
-  data = df.sub)
-summary(mc4r)
-
-mc4 <- mclogit(
-  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
-    i.deg  + 
-    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
-    ij.dist + 
-    i.pow.n1 ,
-  control = mclogit.control(epsilon=1e-07, maxit=200, trace=TRUE),
-  data = df.sub)
-summary(mc4)
-
-
-
-## preferable model (only useful controls)
-cols <- c('i.deg','i.fm.mmc.sum','ij.dist','i.pow.n1')
-df.sub.std <- df.sub
-df.sub.std[,cols] <- scale(df.sub.std[,cols], center = T, scale = T)
-
-
-mc2 <- mclogit(
-  cbind(y,t) ~ ij.same.region + ij.same.employee.range + ij.diff.deg +
-    log(1 + i.deg) + 
-    i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
-    ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
-  data = df.sub.std)
-summary(mc2)
-
 ## ----------------------------------------
 ##  Logit Model 
 ##------------------------------------------
@@ -382,7 +520,7 @@ mc2 <- mclogit(
     log(1 + i.deg) + 
     i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
   data = df.sub)
 summary(mc2)
 
@@ -391,7 +529,7 @@ mc2.i <- mclogit(
     log(1 + i.deg) + 
     i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
   random = ~ 1 | i,
   data = df.sub)
 summary(mc2.i)
@@ -404,7 +542,7 @@ glm1 <- glmer(
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2 +
     (1 | i) + (1 | t), 
   verbose = 9, 
   family=binomial(link = "logit"),
@@ -490,7 +628,7 @@ mc2t <- mclogit(
     log(1 + i.deg) + 
     i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
   data = df.targ)
 summary(mc2t)
 
@@ -499,7 +637,7 @@ mc2tr.t <- mclogit(
     log(1 + i.deg) + 
     i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
   random =  ~ 1 | t,
   data = df.targ)
 summary(mc2tr.t)
@@ -509,7 +647,7 @@ mc2tr.i <- mclogit(
     log(1 + i.deg) + 
     i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1,
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2,
   random =  ~ 1 | i,
   data = df.targ)
 summary(mc2tr.i)
@@ -524,7 +662,7 @@ m0 <- glmer(
   y ~ ij.same.region + ij.same.employee.range + ij.diff.deg  +
     log(1 + i.deg) +  i.fm.mmc.sum +
     ij.dist +
-    i.pow.n1 +  
+    i.pow.n2 +  
     ( 1 | i ) + ( 1 | t ), 
   # verbose = 9, 
   family=binomial(link = "logit"),
@@ -539,7 +677,7 @@ m1 <- glmer(
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist +
-    i.pow.n1 +  
+    i.pow.n2 +  
     ( 1 | i ) + ( 1 | t ), 
   # verbose = 9, 
   family=binomial(link = "logit"),
@@ -554,7 +692,7 @@ m2 <- glmer(
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2 +
     ( 1 | i ) + ( 1 | t ), 
   # verbose = 9, 
   family=binomial(link = "logit"),
@@ -569,7 +707,7 @@ m3 <- glmer(
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 + 
+    i.pow.n2 + 
     ( 1 | i ) + ( 1 | t ), 
   # verbose = 9, 
   family=binomial(link = "logit"),
@@ -584,7 +722,7 @@ m4 <- glmer(
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2 +
     ( 1 | i ) + ( 1 | t ), 
   # verbose = 9, 
   family=binomial(link = "logit"),
@@ -612,7 +750,7 @@ glm.targ1 <- glmer(
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2 +
     (1  | t/i ), 
   verbose = 9, 
   family=binomial(link = "logit"),
@@ -628,7 +766,7 @@ glm.targ2 <- glmer(
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2 +
     ( 1 | i ) + ( 1 | t ), 
   verbose = 9, 
   family=binomial(link = "logit"),
@@ -644,7 +782,7 @@ glm.targ2 <- glmer(
     log(1 + i.deg) +  i.fm.mmc.sum +
     I(i.fm.mmc.sum^2) +
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 +
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2 +
     (1  | i/t ), 
   verbose = 9, 
   family=binomial(link = "logit"),
@@ -657,7 +795,7 @@ summary(glm.targ2)
 ##----------------------------------------
 ## Mixed LOGISTIC REGRESSION
 ##---------------------------------------
-cols <- c('i.deg','i.fm.mmc.sum','ij.dist','i.pow.n1')
+cols <- c('i.deg','i.fm.mmc.sum','ij.dist','i.pow.n2')
 df.sub.std <- df.sub
 df.sub.std[,cols] <- scale(df.sub.std[,cols], center = T, scale = T)
 
@@ -667,7 +805,7 @@ lm1 <- lmer(
     i.deg  + 
     i.fm.mmc.sum + I(i.fm.mmc.sum^2) + 
     ij.dist + I(i.fm.mmc.sum^2):ij.dist + 
-    i.pow.n1 +  I(i.fm.mmc.sum^2):i.pow.n1 + 
+    i.pow.n2 +  I(i.fm.mmc.sum^2):i.pow.n2 + 
     (1 | j) + (1 | i), 
   verbose = 9, family=binomial,
   data=df.sub.std
