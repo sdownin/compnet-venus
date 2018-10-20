@@ -169,10 +169,10 @@ sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[
 # igraph::write.graph(g.pd, file=sprintf('g_%s_NCINIT_%s_%s.rds',name_i,start,end), format = 'graphml')
 # igraph::write.graph(g.full.pd, file=sprintf('g_full_NCINIT_%s_%s.rds',start,end), format = 'graphml')
 
-
 ## NOT FIRST TIME:  LOAD IN EGO NETWORK AND GLOBAL NETWORK
 g.pd <- igraph::read.graph(sprintf('g_%s_NCINIT_%s_%s.rds',name_i,start,end), format='graphml')
 g.full.pd <- igraph::read.graph(sprintf('g_full_NCINIT_%s_%s.rds',start,end), format='graphml')
+
 
 ## Full timeframe Clusters
 V(g.pd)$nc <- as.integer(igraph::multilevel.community(g.pd)$membership)
