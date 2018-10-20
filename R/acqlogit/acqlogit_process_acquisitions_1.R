@@ -451,6 +451,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   if (length(bool.t.i)==0)
     next
   idx.t.i <- which(bool.t.i)
+  if (length(idx.t.i)==0)
+    next  ## SKIP IS NO ALTERNATIVE ACQUIRERS
   ##----------------------------------------------------------
   ## RANDOMLY SAMPLE 5 alternatives 
   ##   TODO: REPLACE BY PROBIT MODEL FOR TOP PROPENSITY SCORES (???)
@@ -547,6 +549,8 @@ for (j in 1:nrow(acq.src.allpd)) {
         next
       if ( !as.integer(df.alt$event[ix]) & !as.integer(df.alt$event[jx]) )
         next
+      
+      cat(sprintf('appending pairing %s-->%s\n',df.alt$company_name_unique[ix],df.alt$company_name_unique[jx]))
 
       if (df.alt$company_name_unique[ix] != df.alt$company_name_unique[jx]) {
         # cat(sprintf('ix %s jx %s\n',ix,jx))
@@ -559,8 +563,8 @@ for (j in 1:nrow(acq.src.allpd)) {
         pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
         pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
 
-        ## COUNTERFACTUAL NETWORK `r`
-        g.cf.r <- g.cf[[ df.alt$company_name_unique[ix] ]]
+        ## COUNTERFACTUAL NETWORK `r` for different target jx
+        g.cf.r <- g.cf[[ df.alt$company_name_unique[jx] ]]
         
         ## PAIRING DATAFRAME
         df.tmp.dyad <- data.frame(
@@ -614,6 +618,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   
   ##--------------------------------------------------------------------------    
   ## NODE COLLAPSE update network
+  cat('node collapsing acquisition %s:\n',j)
   g.pd <- acf$nodeCollapseGraph(g.pd, acq.src.allpd[j,])
   g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acq.src.allpd[j,])
   
