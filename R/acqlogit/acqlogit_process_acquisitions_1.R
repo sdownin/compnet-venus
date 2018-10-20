@@ -159,16 +159,18 @@ g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)  ## full 
 ## CHECK NETWORK PERIOD SIZES
 sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
 
-## PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
-acqs.init <- co_acq[co_acq$acquired_on < start, ]
-g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
-g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
 
-## SAVE INITIALIZED EGO NETWORK AND GLOBAL NETWORK
-igraph::write.graph(g.pd, file=sprintf('g_%s_NCINIT_%s_%s.rds',name_i,start,end), format = 'graphml')
-igraph::write.graph(g.full.pd, file=sprintf('g_full_NCINIT_%s_%s.rds',start,end), format = 'graphml')
+# ## FIRST TIME: PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
+# acqs.init <- co_acq[co_acq$acquired_on < start, ]
+# g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
+# g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
 
-## LOAD IN EGO NETWORK AND GLOBAL NETWORK
+# ## SAVE INITIALIZED EGO NETWORK AND GLOBAL NETWORK
+# igraph::write.graph(g.pd, file=sprintf('g_%s_NCINIT_%s_%s.rds',name_i,start,end), format = 'graphml')
+# igraph::write.graph(g.full.pd, file=sprintf('g_full_NCINIT_%s_%s.rds',start,end), format = 'graphml')
+
+
+## NOT FIRST TIME:  LOAD IN EGO NETWORK AND GLOBAL NETWORK
 g.pd <- igraph::read.graph(sprintf('g_%s_NCINIT_%s_%s.rds',name_i,start,end), format='graphml')
 g.full.pd <- igraph::read.graph(sprintf('g_full_NCINIT_%s_%s.rds',start,end), format='graphml')
 
