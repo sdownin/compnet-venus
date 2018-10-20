@@ -625,7 +625,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   
   ##--------------------------------------------------------------------------    
   ## NODE COLLAPSE update network
-  cat('node collapsing acquisition %s:\n',j)
+  cat(sprintf('node collapsing acquisition %s:\n',j))
   g.pd <- acf$nodeCollapseGraph(g.pd, acq.src.allpd[j,])
   g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acq.src.allpd[j,])
   
