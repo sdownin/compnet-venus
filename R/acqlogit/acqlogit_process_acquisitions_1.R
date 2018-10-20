@@ -139,7 +139,7 @@ co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 ## SETTINGS
 name_i <- 'ibm'
-d <- 3
+d <- 2
 years <- 2007:2017
 
 ## get date periods and ego network based on settings
@@ -166,11 +166,11 @@ sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[
 # g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
 
 # ## SAVE INITIALIZED EGO NETWORK AND GLOBAL NETWORK
-# igraph::write.graph(g.pd, file=sprintf('g_%s_NCINIT_%s_%s.rds',name_i,start,end), format = 'graphml')
+# igraph::write.graph(g.pd, file=sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end), format = 'graphml')
 # igraph::write.graph(g.full.pd, file=sprintf('g_full_NCINIT_%s_%s.rds',start,end), format = 'graphml')
 
 ## NOT FIRST TIME:  LOAD IN EGO NETWORK AND GLOBAL NETWORK
-g.pd <- igraph::read.graph(sprintf('g_%s_NCINIT_%s_%s.rds',name_i,start,end), format='graphml')
+g.pd <- igraph::read.graph(sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end), format='graphml')
 g.full.pd <- igraph::read.graph(sprintf('g_full_NCINIT_%s_%s.rds',start,end), format='graphml')
 
 
@@ -487,6 +487,11 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.alt$t <- j ## acquisition index
   df.alt <- df.alt[order(which(V(g.full.pd.orig)$name %in% df.alt$company_name_unique )), ] ## confirm ascencing order
   
+  if (!all(count(df.alt$set)$freq>1)) {
+    next  ## SKIP IF NOT AT LEAST 1 ALTERNATIVE FOR ACQUIRER AND TARGET
+    cat('missing alternative match. skipping.\n')
+  }
+
   # ## Create Diff Graph (removed|acquired nodes are represented as isolates)
   vids <- which( V(g.full.pd)$name %in% df.alt$company_name_unique )
   vids.orig <- which( V(g.full.pd.orig)$name %in% df.alt$company_name_unique )
