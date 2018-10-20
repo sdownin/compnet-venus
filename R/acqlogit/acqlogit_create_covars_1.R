@@ -133,7 +133,7 @@ co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 ##--------------------------------------------------------------
 ##
-##--------- CREATE FIRM NETWORK PERIOD LISTS  ------------------
+##            CREATE FIRM NETWORK PERIOD LISTS  
 ##
 ##--------------------------------------------------------------
 
@@ -164,12 +164,17 @@ acqs.init <- co_acq[co_acq$acquired_on < start, ]
 g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
 g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
 
-## SAVE INITIALIZED FULL AND EGO NETWORKS
+## SAVE INITIALIZED EGO NETWORK AND GLOBAL NETWORK
 igraph::write.graph(g.pd, file=sprintf('g_%s_NCINIT_%s_%s',name_i,start,end), format = 'graphml')
 igraph::write.graph(g.full.pd, file=sprintf('g_full_NCINIT_%s_%s',start,end), format = 'graphml')
 
+## LOAD IN EGO NETWORK AND GLOBAL NETWORK
+g.pd <- igraph::read.graph(sprintf('g_%s_NCINIT_%s_%s',name_i,start,end), format='graphml')
+g.full.pd <- igraph::read.graph(sprintf('g_full_NCINIT_%s_%s',start,end), format='graphml')
+
 ## Full timeframe Clusters
 V(g.pd)$nc <- as.integer(igraph::multilevel.community(g.pd)$membership)
+V(g.full.pd)$nc <- as.integer(igraph::multilevel.community(g.full.pd)$membership)
 
 ## keep original timeframe graph
 g.pd.orig <- g.pd
@@ -201,7 +206,7 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##-------------------------------
 
 ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
-for (j in 17:nrow(acq.src.allpd)) {
+for (j in 1:nrow(acq.src.allpd)) {
   
   date_j <- acq.src.allpd$acquired_on[j]
   ## g.pd            d2 updated each acquisition
@@ -417,6 +422,7 @@ for (j in 17:nrow(acq.src.allpd)) {
   ## global covars
   tmp.cov <- data.frame(
     company_name_unique = unlist(V(g.diff)$name[vids.diff]),
+    pow.n3 = unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.3))),
     pow.n2 = unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.2))),
     pow.n1 = unname(unlist(igraph::power_centrality(g.diff, nodes = vids.diff, exponent = -0.1))),
     deg = unname(igraph::degree(g.diff, v = vids.diff)),
@@ -475,6 +481,7 @@ for (j in 17:nrow(acq.src.allpd)) {
           # acquirer covars 
           i.pow.n1 = df.alt$pow.n1[ix],
           i.pow.n2 = df.alt$pow.n2[ix],
+          i.pow.n3 = df.alt$pow.n3[ix],
           i.deg = df.alt$deg[ix],
           i.fm.mmc.sum = ifelse(is.missing(df.alt$fm.mmc.sum[ix]), NA, df.alt$fm.mmc.sum[ix]),
           i.num.mkts = ifelse(is.missing(df.alt$num.mkts[ix]), NA, df.alt$num.mkts[ix]),
@@ -483,6 +490,7 @@ for (j in 17:nrow(acq.src.allpd)) {
           # target covars 
           j.pow.n1 = df.alt$pow.n1[jx],
           j.pow.n2 = df.alt$pow.n2[jx],
+          j.pow.n3 = df.alt$pow.n3[jx],
           j.deg = df.alt$deg[jx],
           j.fm.mmc.sum = ifelse(is.missing(df.alt$fm.mmc.sum[jx]), NA, df.alt$fm.mmc.sum[jx]),
           j.num.mkts = ifelse(is.missing(df.alt$num.mkts[jx]), NA, df.alt$num.mkts[jx]),
@@ -496,6 +504,7 @@ for (j in 17:nrow(acq.src.allpd)) {
           ij.dist = ifelse( class(ij.dist)=='matrix' & nrow(ij.dist)>0 & ncol(ij.dist)>0, ij.dist[1,1], Inf),
           ij.diff.pow.n1 = as.numeric(df.alt$pow.n1[ix]) - as.numeric(df.alt$pow.n1[jx]),
           ij.diff.pow.n2 = as.numeric(df.alt$pow.n2[ix]) - as.numeric(df.alt$pow.n2[jx]),
+          ij.diff.pow.n3 = as.numeric(df.alt$pow.n3[ix]) - as.numeric(df.alt$pow.n3[jx]),
           ij.diff.deg = as.numeric(df.alt$deg[ix]) - as.numeric(df.alt$deg[jx]),
           ij.diff.fm.mmc.sum = ifelse(any(is.missing(df.alt$fm.mmc.sum[ix]),is.missing(df.alt$fm.mmc.sum[jx])), NA, as.numeric(df.alt$fm.mmc.sum[ix]) - as.numeric(df.alt$fm.mmc.sum[jx])),
           ij.diff.num.mkts = ifelse(any(is.missing(df.alt$num.mkts[ix]), is.missing(df.alt$num.mkts[jx])), NA, as.numeric(df.alt$num.mkts[ix]) - as.numeric(df.alt$num.mkts[jx])),
