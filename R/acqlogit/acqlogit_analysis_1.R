@@ -51,12 +51,12 @@ name_i <- 'ibm'
 cb  <- source(file.path(getwd(),'R','acqlogit','acqlogit_cb_data_prep.R'))$value      ## DATA 
 
 ## 2. COMPUSTAT
-csa <- read.csv(file = file.path('compustat','fundamentals-annual.csv'), na.strings = c(NA,'','NA'))
+csa <- cb$readCsv(file = file.path('compustat','fundamentals-annual.csv'), na.strings = c(NA,'','NA'))
 dim(csa)
 names(csa)
 
 ## 3. load FILTERED regression dataframe to seprate table file
-df.reg <- read.csv(sprintf("acqlogit_compnet_covs_df_FILTERED_%s.csv",name_i),na.strings = c(NA,'','NA'))
+df.in <- cb$readCsv(sprintf("acqlogit_compnet_covs_df_FILTERED_%s.csv",name_i),na.strings = c(NA,'','NA'))
 
 
 ## SELECT COLUMNS FROM COMPUSTAT
@@ -72,12 +72,40 @@ cols <- c('conm','conml','gvkey','datadate','fyear','indfmt','consol','popsrc','
 )
 csa2 <- csa[,cols]
 
+##============================================
+## MANUAL CORRECTIONS (COMPUSTAT STOCK SYMBOLS CHANGED AFTER CRUNCHBASE DATA)
+##--------------------------------------------
+## SEARCH COMPUSTAT NAMES
+unique(as.character(csa2$conm[grep('SONY',csa2$conm)]))
+## SEARCH COMPUSTAT TICKER SYMBOLS
+csa2[grep('SONY',csa2$conm),c('conm','tic')]
+## SEARCH CRUNCHBASE IPOS
+cb$co_ipo[grep('ask',cb$co_ipo$company_name_unique),c('company_name_unique','stock_symbol','stock_exchange_symbol')]
+# > unique(as.character(df.sub$i[is.na(df.sub$roa)]))
+# [1] "ask-com"               "bazaarvoice"          
+# [3] "bmc-software"          "compuware"            
+# [5] "csc"                   "forcepoint"           
+# [7] "fujitsu"               "google"               
+# [9] "htc"                   "mcafee"               
+# [11] "naspers"               "netsuite"             
+# [13] "opera-software"        "qlik-technologies"    
+# [15] "responsys"             "rightnow-technologies"
+# [17] "samsung-electronics"   "servicepower"         
+# [19] "siemens"               "software-ag"          
+# [21] "solarwinds"            "sony"  
+cs.conm.tic.map <- c(
+  `ALPHABET INC`='GOOG'
+)
+for (conm in names(cs.conm.tic.map)) {
+  csa2$tic[csa2$conm==conm] <- cs.conm.tic.map[conm]   ## from `GOOGL`
+}
+
 ##==================================
 ## Public firms data frame (mapping company_name_unique --> stock_symbol)
 ##   used to merge in COMPUSTAT DATA with CrunchBase public firms
 ##----------------------------------
 ## public firms from crunbhbase regression data
-tmpnames <- unique(c(as.character(df.reg$i),as.character(df.reg$j)))
+tmpnames <- unique(c(as.character(df.in$i),as.character(df.in$j)))
 df.cs <- data.frame(company_name_unique=tmpnames[tmpnames %in% cb$co_ipo$company_name_unique])
 ## crunchbase ipo data fields for crunchbase compnet firms
 ipocols <- c('company_name_unique','stock_symbol','stock_exchange_symbol','went_public_on','country_code')
@@ -85,14 +113,14 @@ df.cs <- merge(df.cs, cb$co_ipo[,ipocols], by='company_name_unique', all.x=T, al
 ## merge in COMPUSTAT data by stock_exchange symbole
 df.cs <- merge(df.cs, csa2, by.x='stock_symbol',by.y='tic', all.x=T, all.y=F)
 ## merge in COMPUSTAT data with crunchbase ticker symbol and unique name into crunchbase regression data frame
-df.reg$year <- as.integer(sapply(str_split(as.character(df.reg$date),'[-]'), function(x)x[1]))
-yrs <- unique(df.reg$year)
-df.reg.m <- data.frame()
+df.in$year <- as.integer(sapply(str_split(as.character(df.in$date),'[-]'), function(x)x[1]))
+yrs <- unique(df.in$year)
+df.in.m <- data.frame()
 for (yr in yrs) {
-  df.reg.yr <- df.reg[df.reg$year==yr,]
+  df.in.yr <- df.in[df.in$year==yr,]
   df.cs.yr <- df.cs[df.cs$fyear==yr,]
-  df.reg.yr <- merge(df.reg.yr, df.cs.yr, by.x='i',by.y='company_name_unique', all.x=T, all.y=F)
-  df.reg.m <- rbind(df.reg.m, df.reg.yr)
+  df.in.yr <- merge(df.in.yr, df.cs.yr, by.x='i',by.y='company_name_unique', all.x=T, all.y=F)
+  df.in.m <- rbind(df.in.m, df.in.yr)
 }
 
 
@@ -104,7 +132,7 @@ for (yr in yrs) {
 ##
 
 ##--------------------------------------------
-df.reg <- df.reg.m
+df.reg <- df.in.m
 tmp <- cb$co[,c('company_name_unique','founded_on')]; 
 tmpi <- tmp; names(tmpi) <- c('name','founded_on_i')
 tmpj <- tmp; names(tmpj) <- c('name','founded_on_j')
@@ -209,23 +237,23 @@ for (i in 1:nrow(df.sub)) {
 #   any(cb$co_ipo$company_name_unique==x[1] & cb$co_ipo$went_public_on < x[2])
 # })
 
-## CHECK CRUNCHBASE ACQUISITIONS TARGETS OWNERSHIP STATUS AT TIME OF ACQUISITION
-df.own <- cb$co_acq[cb$co_acq$acquired_on > '2000-01-01', 
-                    c('acquirer_name_unique','acquiree_name_unique','acquired_on')]
-df.own$acquirer_is_ipo <- apply(df.own,1,function(x){
-  any(cb$co_ipo$company_name_unique==x[1] & cb$co_ipo$went_public_on < x[3])
-})
-df.own$target_is_ipo <- apply(df.own,1,function(x){
-  any(cb$co_ipo$company_name_unique==x[2] & cb$co_ipo$went_public_on < x[3])
-})
-cnt.a <- plyr::count(df.own$acquirer_is_ipo)
-cnt.t <- plyr::count(df.own$target_is_ipo)
-print(sprintf('PUBLIC: %.2f%s aquirers, %.2f%s targets',
-              100*cnt.a$freq[2]/sum(cnt.a$freq),'%',
-              100*cnt.t$freq[2]/sum(cnt.t$freq),'%'))
-print(sprintf('PRIVATE: %.2f%s aquirers, %.2f%s targets',
-              100*cnt.a$freq[1]/sum(cnt.a$freq),'%',
-              100*cnt.t$freq[1]/sum(cnt.t$freq),'%'))
+# ## CHECK CRUNCHBASE ACQUISITIONS TARGETS OWNERSHIP STATUS AT TIME OF ACQUISITION
+# df.own <- cb$co_acq[cb$co_acq$acquired_on > '2000-01-01', 
+#                     c('acquirer_name_unique','acquiree_name_unique','acquired_on')]
+# df.own$acquirer_is_ipo <- apply(df.own,1,function(x){
+#   any(cb$co_ipo$company_name_unique==x[1] & cb$co_ipo$went_public_on < x[3])
+# })
+# df.own$target_is_ipo <- apply(df.own,1,function(x){
+#   any(cb$co_ipo$company_name_unique==x[2] & cb$co_ipo$went_public_on < x[3])
+# })
+# cnt.a <- plyr::count(df.own$acquirer_is_ipo)
+# cnt.t <- plyr::count(df.own$target_is_ipo)
+# print(sprintf('PUBLIC: %.2f%s aquirers, %.2f%s targets',
+#               100*cnt.a$freq[2]/sum(cnt.a$freq),'%',
+#               100*cnt.t$freq[2]/sum(cnt.t$freq),'%'))
+# print(sprintf('PRIVATE: %.2f%s aquirers, %.2f%s targets',
+#               100*cnt.a$freq[1]/sum(cnt.a$freq),'%',
+#               100*cnt.t$freq[1]/sum(cnt.t$freq),'%'))
 
 
 # 'act', ## total assets  (ln for size proxy)
@@ -325,9 +353,32 @@ mc5c <- mclogit(
     I(i.fm.mmc.sum^2) + 
     j.constraint + 
     ij.dist + 
-    I(i.fm.mmc.sum^2):ij.inv.dist,
+    I(i.fm.mmc.sum^2):ij.dist,
   data = df.sub)
 summary(mc5c)
+
+mc5d <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n2 + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    ij.dist + 
+    I(i.fm.mmc.sum^2):ij.dist,
+  data = df.sub)
+summary(mc5d)
+
+mc6 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    i.pow.n2 + I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist + 
+    I(ij.dist^2),
+  data = df.sub)
+summary(mc6)
 
 ## SUMMARY TABLE
 mtable(mc0,mc1,mc2,mc3,mc4,mc5,mc5b,mc5c)
@@ -336,7 +387,7 @@ mtable(mc0,mc1,mc2,mc3,mc4,mc5,mc5b,mc5c)
 mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4,mc5,mc5b,mc5c)
 memisc::write.mtable(mtab, file = "acqlogit_reg_table_ibm.tsv")
 
-
+write.csv(df.sub, file="acqlogit_reg_data_sample_ibm.csv", row.names = F)
 
 
 

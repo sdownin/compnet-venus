@@ -139,8 +139,8 @@ co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 ## SETTINGS
 name_i <- 'ibm'
-d <- 2
-years <- 2008:2017
+d <- 3
+years <- 2007:2017
 
 ## get date periods and ego network based on settings
 times <- sapply(years, function(x)paste0(x,'-01-01'))
