@@ -179,9 +179,14 @@ V(g.full.pd)$nc <- as.integer(igraph::multilevel.community(g.full.pd)$membership
 ## keep original timeframe graph
 g.pd.orig <- g.pd
 g.full.pd.orig <- g.full.pd
+##----------------------------------
 
 
 
+
+
+
+##----------------------------------
 ## YEAR PERIODS: DEFINE NICHE CLUSTERS
 l <- list()
 df.mmc <- data.frame()
@@ -533,7 +538,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   names(g.cf) <- df.targ.alt$company_name_unique
 
   ##---------------------------------------------
-  cat('appending dyadic regression dataframe...')
+  cat('appending dyadic regression dataframe...\n')
 
   for (k in 1:nrow(df.alt[df.alt$set=='acquirer', ])) {
     ix <- which( df.alt$company_name_unique == df.alt[df.alt$set=='acquirer', ][k, ]$company_name_unique )
@@ -560,13 +565,15 @@ for (j in 1:nrow(acq.src.allpd)) {
                                      v = V(g.full.pd)[which(V(g.full.pd)$name == df.alt$company_name_unique[ix])],
                                      to =V(g.full.pd)[which(V(g.full.pd)$name == df.alt$company_name_unique[jx])] )
         ## AQUIRER POSITION
-        pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
-        pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
+        cat('  power centralities\n')
+        # pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
+        # pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
 
         ## COUNTERFACTUAL NETWORK `r` for different target jx
         g.cf.r <- g.cf[[ df.alt$company_name_unique[jx] ]]
         
         ## PAIRING DATAFRAME
+        cat('  network synergies\n')
         df.tmp.dyad <- data.frame(
           # event features
           y = ifelse(as.integer(df.alt$event[ix]) & as.integer(df.alt$event[jx]), 1, 0),
@@ -575,8 +582,8 @@ for (j in 1:nrow(acq.src.allpd)) {
           i = df.alt$company_name_unique[ix],
           j = df.alt$company_name_unique[jx],
           # acquirer covars
-          i.pow.n1 = pow.n1,
-          i.pow.n3 = pow.n3,
+          # i.pow.n1 = pow.n1,
+          # i.pow.n3 = pow.n3,
           i.closeness = df.alt$closeness[ix],
           i.deg = df.alt$deg[ix],
           i.fm.mmc.sum = ifelse(is.missing(df.alt$fm.mmc.sum[ix]), NA, df.alt$fm.mmc.sum[ix]),
@@ -601,8 +608,8 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.diff.constraint = as.numeric(df.alt$constraint[ix]) - as.numeric(df.alt$constraint[jx]),
           ij.diff.acq.experience = as.numeric(df.alt$acq.experience[ix]) - as.numeric(df.alt$acq.experience[jx]),
           # network synergies
-          ij.syn.pow.n1 = igraph::power_centrality(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1) - pow.n1,
-          ij.syn.pow.n3 = igraph::power_centrality(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3) - pow.n3,
+          # ij.syn.pow.n1 = igraph::power_centrality(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1) - pow.n1,
+          # ij.syn.pow.n3 = igraph::power_centrality(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3) - pow.n3,
           ij.syn.closeness = igraph::closeness(g.cf.r, vids = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))                       - df.alt$closeness[ix],
           ij.syn.degree = igraph::degree(g.cf.r, v = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))                                - df.alt$deg[ix],
           ij.syn.constraint = igraph::constraint(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))                    - df.alt$constraint[ix]
@@ -625,23 +632,23 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## save incrementally
   if (lidx %% 10 == 0) {   
     # saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
-    saveRDS(l, file = sprintf("acqlogit_compnet_processed_acquisitions_list_%s.rds",name_i))
+    saveRDS(l, file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
   }
   
   gc()
 }
 
 ## final save
-saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
+saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
 
 
 
-tmp <- readRDS(sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
+tmp <- readRDS(sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
 l <- tmp$l
 df.reg <- tmp$df.reg
 
 ## save regression dataframe to seprate table file
-write.csv(df.reg, file = sprintf("acqlogit_compnet_covs_df_%s.csv",name_i), row.names = F)
+write.csv(df.reg, file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_df_%s.csv",name_i), row.names = F)
 
 
 
