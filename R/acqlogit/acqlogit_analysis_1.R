@@ -56,8 +56,9 @@ dim(csa)
 names(csa)
 
 ## 3. load FILTERED regression dataframe to seprate table file
-df.in <- cb$readCsv(sprintf("acqlogit_compnet_covs_df_FILTERED_%s.csv",name_i),na.strings = c(NA,'','NA'))
-
+# df.in <- cb$readCsv(sprintf("acqlogit_compnet_covs_df_FILTERED_%s.csv",name_i),na.strings = c(NA,'','NA'))
+l <- readRDS(file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
+df.in <- l$df.reg
 
 ## SELECT COLUMNS FROM COMPUSTAT
 cols <- c('conm','conml','gvkey','datadate','fyear','indfmt','consol','popsrc','tic','cusip',

@@ -213,7 +213,7 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##-------------------------------
 
 ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
-for (j in 1:nrow(acq.src.allpd)) {
+for (j in 519:nrow(acq.src.allpd)) {
   
   date_j <- acq.src.allpd$acquired_on[j]
   ## g.pd            d2 updated each acquisition
@@ -639,7 +639,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## save incrementally
   if (lidx %% 10 == 0) {   
     # saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
-    saveRDS(l, file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
+    saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
   }
   
   gc()
