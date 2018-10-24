@@ -1021,286 +1021,242 @@ for (i in 1:nrow(df.sub))
 ##--------------------------------------------------
 
 
-
-
 mg0 <- mclogit(
-  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
-    j.age + i.age + ij.age.diff + 
-    i.deg + j.deg + ij.diff.deg + 
-    ij.same.region +  ij.diff.deg   +
-    i.fm.mmc.sum + I(i.acq.experience * 100) +
-    ij.discossim + 
-    I(i.fm.mmc.sum^2) + 
-    ij.dist + 
-    j.constraint +
-    ij.syn.constraint + 
-    ij.syn.degree +
-    react.rival.1 + 
-    I(i.fm.mmc.sum^2):react.rival.1,
-  data = df.sub)
-summary(mg0)
-
-mg0 <- mclogit(
-  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
-    j.age + i.age + ij.age.diff + 
-    i.deg + j.deg + ij.diff.deg + 
-    ij.same.region +  ij.diff.deg   +
-    i.fm.mmc.sum + I(i.acq.experience * 100) +
-    ij.discossim + 
-    I(i.fm.mmc.sum^2) + 
-    ij.dist + 
-    j.constraint +
-    ij.syn.constraint + 
-    ij.syn.closeness2 + 
-    react.rival.2 + 
-    I(i.fm.mmc.sum^2):ij.syn.closeness2 +
-    I(i.fm.mmc.sum^2):ij.syn.constraint + 
-    I(i.fm.mmc.sum^2):react.rival.2,
-  data = df.sub)
-summary(mg0)
-
-
-mg7 <- mclogit(
-  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
-    j.age + i.age + ij.age.diff + 
-    i.deg + j.deg + ij.diff.deg + 
-    ij.same.region +  ij.diff.deg   +
-    i.fm.mmc.sum + I(i.acq.experience * 100) +
-    ij.discossim + 
-    I(i.fm.mmc.sum^2) + 
-    ij.dist + 
-    j.constraint +
-    react.rival.2 +
-    ij.syn.constraint + 
-    ij.syn.degree +
-    ij.syn.closeness2 + 
-    I(i.fm.mmc.sum^2):ij.syn.constraint + 
-    I(i.fm.mmc.sum^2):ij.syn.degree +
-    I(i.fm.mmc.sum^2):ij.syn.closeness2 ,
-  data = df.sub)
-summary(mg7)
-
-mg8 <- mclogit(
-  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
-    j.age + i.age + ij.age.diff + 
-    i.deg + j.deg + ij.diff.deg + 
-    ij.same.region +  ij.diff.deg   +
-    i.fm.mmc.sum + I(i.acq.experience * 100) +
-    ij.discossim + 
-    I(i.fm.mmc.sum^2) + 
-    ij.dist + 
-    j.constraint +
-    react.rival.2 +
-    ij.syn.constraint + 
-    ij.syn.closeness2 + 
-    I(i.fm.mmc.sum^2):ij.syn.constraint + 
-    I(i.fm.mmc.sum^2):ij.syn.closeness2 ,
-  data = df.sub)
-summary(mg8)
-
-mg9 <- mclogit(
-  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
-    j.age + i.age + ij.age.diff + 
-    i.deg + j.deg + ij.diff.deg + 
-    ij.same.region +  ij.diff.deg   +
-    i.fm.mmc.sum + I(i.acq.experience * 100) +
-    ij.discossim + 
-    I(i.fm.mmc.sum^2) + 
-    ij.dist + 
-    react.rival.2 +
-    j.constraint +
-    ij.syn.constraint + 
-    ij.syn.closeness2 + 
-    # ij.syn.degree + 
-    I(i.fm.mmc.sum^2):ij.syn.constraint + 
-    I(i.fm.mmc.sum^2):ij.syn.closeness2 +
-    # I(i.fm.mmc.sum^2):ij.syn.degree 
-    I(i.fm.mmc.sum^2):react.rival.2 ,
-  data = df.sub)
-summary(mg9)
-
-mtable(mg8,mg9,mg7)
-
-
-
-
-
-mgt <- mclogit(
-  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
-    j.age + i.age + ij.age.diff + 
-    i.deg + j.deg + ij.diff.deg + 
-    ij.same.region +  ij.diff.deg   +
-    i.fm.mmc.sum + I(i.acq.experience * 100) +
-    ij.discossim + 
-    I(i.fm.mmc.sum^2) + 
-    ij.dist + 
-    j.constraint +
-    ij.syn.constraint + 
-    ij.syn.closeness2 + 
-    ij.syn.degree +
-    react.rival.2 +
-    react.rival.2:ij.dist +
-    I(i.fm.mmc.sum^2):ij.syn.constraint + 
-    I(i.fm.mmc.sum^2):ij.syn.closeness2 +
-    I(i.fm.mmc.sum^2):ij.syn.degree ,
-  data = df.sub)
-summary(mgt)
-
-
-
-##----------- end most grant models ------------------
-
-##===================================================
-##  CURVILINEAR INTERACTION PLOTS
-##---------------------------------------------------
-# cols <- c('y','t','ln_asset','cash_holding','roa','ln_employee',
-#           'ij.same.region',
-#           'j.age','i.age','ij.age.diff','i.deg','j.deg',
-#           'ij.diff.deg','i.fm.mmc.sum','i.acq.experience',
-#           'ij.discossim','j.constraint','ij.dist','react.rival.2',
-#           'ij.syn.constraint','ij.syn.closeness2')
-# df.sub2 <- df.sub[,cols]
-# df.sub2$i.acq.experience.100 <- df.sub2$i.acq.experience
-# df.sub2$mmc.2 <- df.sub2$i.fm.mmc.sum^2
-# df.sub2$mmc.2_ij.syn.constraint <- df.sub2$mmc.2 * df.sub2$ij.syn.constraint
-# df.sub2$mmc.2_ij.syn.closeness2 <- df.sub2$mmc.2 * df.sub2$ij.syn.closeness2
-# df.sub2$mmc.2_react.rival.2 <- df.sub2$mmc.2 * df.sub2$react.rival.2
-mg9 <- mclogit(
   cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
     j.age + i.age + ij.age.diff + 
     i.deg + j.deg + 
     ij.same.region +  
     i.fm.mmc.sum + I(i.acq.experience * 100) +
     ij.discossim + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    react.rival.2 ,
+  data = df.sub)
+summary(mg0)
+
+mg1 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + 
+    ij.same.region +  
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    ij.dist + 
+    j.constraint +
+    react.rival.2 +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2) ,
+  data = df.sub)
+summary(mg1)
+
+mg2 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + 
+    ij.same.region +  
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    ij.dist + 
+    j.constraint +
+    react.rival.2 +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
     I(i.fm.mmc.sum^2) + 
+    I(i.fm.mmc.sum^2):react.rival.2,
+  data = df.sub)
+summary(mg2)
+
+mg3 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + 
+    ij.same.region +  
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    ij.dist + 
+    j.constraint +
+    react.rival.2 +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2) + 
+    I(i.fm.mmc.sum^2):ij.syn.constraint,
+  data = df.sub)
+summary(mg3)
+
+mg4 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + 
+    ij.same.region +  
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    ij.dist + 
+    j.constraint +
+    react.rival.2 +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2) + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2,
+  data = df.sub)
+summary(mg4)
+
+mg5 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + 
+    ij.same.region +  
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
     ij.dist + 
     react.rival.2 +
     j.constraint +
     ij.syn.constraint + 
     ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2) + 
+    # ij.syn.degree + 
+    I(i.fm.mmc.sum^2):react.rival.2 +
     I(i.fm.mmc.sum^2):ij.syn.constraint + 
-    I(i.fm.mmc.sum^2):ij.syn.closeness2 +
-    I(i.fm.mmc.sum^2):react.rival.2 ,
+    I(i.fm.mmc.sum^2):ij.syn.closeness2,
+    # I(i.fm.mmc.sum^2):ij.syn.degree 
   data = df.sub)
-summary(mg9)
+summary(mg5)
 
-# mod <- mg9
-# prediction(mod, data = find_data(mod, parent.frame()), calculate_se = TRUE)
-# prediction(mod, data = , calculate_se = TRUE)
 
+tabmost <- mtable(mg0,mg1,mg2,mg3,mg4,mg5)
+print(tabmost)
+## SAVE FILE
+memisc::write.mtable(tabmost, 
+  file = "acqlogit_reg_table_313_ibm_MOST_GRANT.tsv")
+
+
+## Chisq Deviance Test
+anova(mg0,mg1, test='Chisq')
+anova(mg0,mg2, test='Chisq')
+anova(mg0,mg4, test='Chisq')
+anova(mg0,mg5, test='Chisq')
+
+## Correlations
+library(psych)
+X <- mg5
+xcor <- psych::cor()
+
+
+## Descriptives
+
+
+
+
+
+##----------- end most grant models ------------------
 
 ##=======================================
 ##
 ## PLOT U-SHAPE MMC INTERACTIONS
 ##
 ##---------------------------------------
-png(sprintf('mmc_curve_interaction_%s_mg9.png','ibm'),width = 10,height = 4,units = 'in',res = 200)
+# ms <- c('-3 SD','-2 SD','-1 SD','Median','+1 SD','+2 SD','+3 SD')
+# ms <- c('Min','-1 SD','Median','+1 SD','Max')
+# ms <- c('L99','1Q','Median','3Q','U99')
+ms <- c('L95','1Q','Median','3Q','U95')
+# ms <- c('Min','1Q','Median','3Q','Max')
+lwds <- c(3,3,3,1.5,3,3,3)
+labs <- list(
+  list(
+    var='react.rival.2',
+    ylab='Ln Acquisition Likelihood',
+    xlab='Standardized FM-MMC',
+    leg.title='Rival Acquisitions'
+  ),
+  list(
+    var='ij.syn.constraint',
+    ylab='Ln Acquisition Likelihood',
+    xlab='Standardized FM-MMC',
+    leg.title='Structural Synergy'
+  )
+)
+fit <- mg5
+
+png(sprintf('mmc_curve_interaction_%s_%s_mg9.png','ibm',length(ms)),width = 10,height = 4,units = 'in',res = 200)
     par(mfrow=c(1,2), mar=c(4.2,4.2,.5,1.5))
-
-    var <- 'ij.syn.constraint'
-    mmc <- 'i.fm.mmc.sum'
-    mmc.z <- 'mmc.z'
-    fit <- mg9
-    fit.data <-  find_data(fit, parent.frame())
-    
-    ## MMC Z SCORE
-    fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
-    
-    ## CREATE MEDIAN DATAFRAME (1 row)
-    df.med <- fit.data
-    for (col in names(df.med)) {
-      if (is.numeric(df.med[[col]]) & col!=mmc.z) 
-        df.med[,col] <- median(df.med[,col],na.rm = T)
-    }
-    df.med <- droplevels.data.frame(df.med)
-    
-    ## PREP PREDICTION DATAFRAME
-    z <- seq(-3.2,3.2,length.out = 50)
-    df.med <- df.med[1:length(z),]
-    df.med[,mmc.z] <- z
-    df.med[,mmc] <- z
-    ## replace predicted data column
-    df.comb <- df.med[mmc.z]  ## data.frame
-    
-    ms <- c('-1SD','Med','+1SD')
-    for (m in ms) 
+    for (i in 1:length(labs))
     {
-      ## VAR SETTING
-      df.med[,var] <- if(m == '-1SD'){
-          median(fit.data[[var]]) - sd(fit.data[[var]])
-        }else if (m == '+1SD'){
-          median(fit.data[[var]]) + sd(fit.data[[var]])
-        }else{
-          median(fit.data[[var]])
+        var <- labs[[i]]$var
+        mmc <- 'i.fm.mmc.sum'
+        mmc.z <- 'mmc.z'
+        fit.data <-  find_data(fit, parent.frame())
+        
+        ## MMC Z SCORE
+        fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
+        
+        ## CREATE MEDIAN DATAFRAME (1 row)
+        df.med <- fit.data
+        for (col in names(df.med)) {
+          if (is.numeric(df.med[[col]]) & col!=mmc.z) 
+            df.med[,col] <- median(df.med[,col],na.rm = T)
         }
-      ## predictions
-      pred <- prediction(fit, data = df.med)
-      df.comb[,m] <- pred$fitted
+        df.med <- droplevels.data.frame(df.med)
+        
+        ## PREP PREDICTION DATAFRAME
+        z <- seq(-3,3.3,length.out = 50)
+        df.med <- df.med[1:length(z),]
+        df.med[,mmc.z] <- z
+        df.med[,mmc] <- z
+        ## replace predicted data column
+        df.comb <- df.med[mmc.z]  ## data.frame
+        
+        for (m in ms) 
+        {
+          ## VAR SETTING
+          df.med[,var] <- if(m == '-1 SD'){
+            median(fit.data[[var]]) -   sd(fit.data[[var]])
+          }else if (m == '-2 SD'){
+            median(fit.data[[var]]) - 2*sd(fit.data[[var]])
+          }else if (m == '-3 SD'){
+            median(fit.data[[var]]) - 3*sd(fit.data[[var]])
+          }else if (m == '+1 SD'){
+            median(fit.data[[var]]) +   sd(fit.data[[var]])
+          }else if (m == '+2 SD'){
+            median(fit.data[[var]]) + 2*sd(fit.data[[var]])
+          }else if (m == '+3 SD'){
+            median(fit.data[[var]]) + 3*sd(fit.data[[var]])
+          }else if (m == '1Q'){
+            quantile(fit.data[[var]], .25)
+          }else if (m == '3Q'){
+            quantile(fit.data[[var]], .75)
+          }else if (m == 'L95'){  ## 2-sided
+            quantile(fit.data[[var]], .025)
+          }else if (m == 'U95'){  ## 2-sided
+            quantile(fit.data[[var]], .975)
+          }else if (m == 'L99'){  ## 2-sided
+            quantile(fit.data[[var]], .005)
+          }else if (m == 'U99'){  ## 2-sided
+            quantile(fit.data[[var]], .995)
+          }else if (m == 'Min'){
+            min(fit.data[[var]]) 
+          }else if (m == 'Max'){
+            max(fit.data[[var]])
+          }else{
+            median(fit.data[[var]])
+          }
+          ## predictions
+          pred <- prediction(fit, data = df.med)
+          df.comb[,m] <- pred$fitted
+        }
+        
+        ## PLOT
+        pch <- c(15,2,16)
+        matplot(df.comb[,1], df.comb[,-1],
+                ylab=labs[[i]]$ylab,
+                xlab=labs[[i]]$xlab,
+                type='l', log='y', lwd=lwds,lty=1:length(ms),col=1:length(ms))
+        # abline(v=c(-1.29,1.29),lty=4,col='gray',pch=pch)
+        legend('bottomright',title=labs[[i]]$leg.title,
+               legend=ms,lty=1:length(ms),col=1:length(ms), 
+               lwd=lwds, cex=.8)
     }
-    
-    ## PLOT
-    pch <- c(15,2,16)
-    matplot(df.comb[,1], df.comb[,-1],
-            ylab='Ln Acquisition Likelihood',
-            xlab='Standardized FM-MMC',
-            type='o', log='y', pch=pch)
-    # abline(v=c(-1.29,1.29),lty=4,col='gray',pch=pch)
-    legend('bottom',title='Structural Synergy',legend=ms,lty=1:3,col=1:3,pch=pch)
-    
-    ##=======================================
-    ## EFFECT TO PREDICT:  RIVAL REATION
-    ##---------------------------------------
-    var <- 'react.rival.2'
-    mmc <- 'i.fm.mmc.sum'
-    mmc.z <- 'mmc.z'
-    fit <- mg9
-    fit.data <-  find_data(fit, parent.frame())
-    
-    ## MMC Z SCORE
-    fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
-    
-    ## CREATE MEDIAN DATAFRAME (1 row)
-    df.med <- fit.data
-    for (col in names(df.med)) {
-      if (is.numeric(df.med[[col]]) & col!=mmc.z) 
-        df.med[,col] <- median(df.med[,col],na.rm = T)
-    }
-    df.med <- droplevels.data.frame(df.med)
-    
-    ## PREP PREDICTION DATAFRAME
-    z <- seq(-3.2,3.2,length.out = 50)
-    df.med <- df.med[1:length(z),]
-    df.med[,mmc.z] <- z
-    df.med[,mmc] <- z
-    ## replace predicted data column
-    df.comb <- df.med[mmc.z]  ## data.frame
-    
-    ms <- c('-1SD','Med','+1SD')
-    for (m in ms) 
-    {
-      ## VAR SETTING
-      df.med[,var] <- if(m == '-1SD'){
-        median(fit.data[[var]]) - sd(fit.data[[var]])
-      }else if (m == '+1SD'){
-        median(fit.data[[var]]) + sd(fit.data[[var]])
-      }else{
-        median(fit.data[[var]])
-      }
-      ## predictions
-      pred <- prediction(fit, data = df.med)
-      df.comb[,m] <- pred$fitted
-    }
-    
-    ## PLOT
-    pch <- c(15,2,16)
-    matplot(df.comb[,1], df.comb[,-1],
-            ylab='Ln Acquisition Likelihood',
-            xlab='Standardized FM-MMC',
-            type='o', log='y', pch=pch, cex=.8)
-    # abline(v=c(-1.28,1.28),lty=4,col='gray')
-    legend('bottom',title='Rival Acquisitions',
-           legend=ms,lty=1:3,col=1:3,pch=pch, pt.cex = .8)
-
 dev.off()
 
 ##---------------------------------------------------
@@ -1308,6 +1264,146 @@ dev.off()
 ##                end curviliean plots 
 ##
 ##---------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+##=======================================
+##
+## **QUANTILES**
+## PLOT U-SHAPE MMC INTERACTIONS
+##
+##---------------------------------------
+# ms <- c('-3 SD','-2 SD','-1 SD','Median','+1 SD','+2 SD','+3 SD')
+# ms <- c('Min','-1 SD','Median','+1 SD','Max')
+ms <- c('L99','1Q','Median','3Q','U99')
+# ms <- c('Min','1Q','Median','3Q','Max')
+lwds <- c(2,2,2,1,2,2,2)
+labs <- list(
+  list(
+    var='react.rival.2',
+    ylab='Ln Acquisition Likelihood',
+    xlab='Standardized FM-MMC',
+    leg.title='Rival Acquisitions'
+  ),
+  list(
+    var='ij.syn.constraint',
+    ylab='Ln Acquisition Likelihood',
+    xlab='Standardized FM-MMC',
+    leg.title='Structural Synergy'
+  )
+)
+fit <- mg9
+
+png(sprintf('mmc_curve_interaction_%s_sds%s_mg9.png',length(ms),'ibm'),width = 10,height = 4,units = 'in',res = 200)
+par(mfrow=c(1,2), mar=c(4.2,4.2,.5,1.5))
+for (i in 1:length(labs))
+{
+  var <- labs[[i]]$var
+  mmc <- 'i.fm.mmc.sum'
+  mmc.z <- 'mmc.z'
+  mmc.q <- 'mmc.q'
+  fit.data <-  find_data(fit, parent.frame())
+  
+  ## MMC Z SCORE
+  fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
+  ## Quantiles
+  fit.data[,mmc.q] <- fit.data[,mmc]
+  
+  ## CREATE MEDIAN DATAFRAME (1 row)
+  df.med <- fit.data
+  for (col in names(df.med)) {
+    if (is.numeric(df.med[[col]]) & col!=mmc.z & col!=mmc.q) 
+      df.med[,col] <- median(df.med[,col],na.rm = T)
+  }
+  df.med <- droplevels.data.frame(df.med)
+  
+  ## PREP PREDICTION DATAFRAME
+  z <- seq(-2.5,3.2,length.out = 50)
+  q <- seq(0,1,length.out = 50)
+  df.med <- df.med[1:length(z),]
+  df.med[,mmc.z] <- z
+  df.med[,mmc.q] <- quantile(fit.data[,mmc], q)
+  ##---------------
+  df.med[,mmc] <- q 
+  ##---------------
+  ## replace predicted data column
+  df.comb <- df.med[mmc.z]  ## data.frame
+  
+  for (m in ms) 
+  {
+    ## VAR SETTING
+    df.med[,var] <- if(m == '-1 SD'){
+      median(fit.data[[var]]) -   sd(fit.data[[var]])
+    }else if (m == '-2 SD'){
+      median(fit.data[[var]]) - 2*sd(fit.data[[var]])
+    }else if (m == '-3 SD'){
+      median(fit.data[[var]]) - 3*sd(fit.data[[var]])
+    }else if (m == '+1 SD'){
+      median(fit.data[[var]]) +   sd(fit.data[[var]])
+    }else if (m == '+2 SD'){
+      median(fit.data[[var]]) + 2*sd(fit.data[[var]])
+    }else if (m == '+3 SD'){
+      median(fit.data[[var]]) + 3*sd(fit.data[[var]])
+    }else if (m == '1Q'){
+      quantile(fit.data[[var]], .25)
+    }else if (m == '3Q'){
+      quantile(fit.data[[var]], .75)
+    }else if (m == 'L95'){  ## 2-sided
+      quantile(fit.data[[var]], .025)
+    }else if (m == 'U95'){  ## 2-sided
+      quantile(fit.data[[var]], .975)
+    }else if (m == 'L99'){  ## 2-sided
+      quantile(fit.data[[var]], .005)
+    }else if (m == 'U99'){  ## 2-sided
+      quantile(fit.data[[var]], .995)
+    }else if (m == 'Min'){
+      min(fit.data[[var]]) 
+    }else if (m == 'Max'){
+      max(fit.data[[var]])
+    }else{
+      median(fit.data[[var]])
+    }
+    ## predictions
+    pred <- prediction(fit, data = df.med)
+    df.comb[,m] <- pred$fitted
+  }
+  
+  ## PLOT
+  pch <- c(15,2,16)
+  matplot(df.comb[,1], df.comb[,-1],
+          ylab=labs[[i]]$ylab,
+          xlab=labs[[i]]$xlab,
+          type='l', log='y', lwd=lwds,lty=1:length(ms),col=1:length(ms))
+  # abline(v=c(-1.29,1.29),lty=4,col='gray',pch=pch)
+  legend('bottomright',title=labs[[i]]$leg.title,
+         legend=ms,lty=1:length(ms),col=1:length(ms), 
+         lwd=lwds, cex=.8)
+}
+dev.off()
+
+##---------------------------------------------------
+##
+##                end curviliean plots 
+##
+##---------------------------------------------------
+
+
+
+
+
+
+
+
 
 
 
