@@ -1188,112 +1188,132 @@ summary(mg9)
 # prediction(mod, data = find_data(mod, parent.frame()), calculate_se = TRUE)
 # prediction(mod, data = , calculate_se = TRUE)
 
+
 ##=======================================
-## EFFECT TO PREDICT:  RIVAL REATION
+##
+## PLOT U-SHAPE MMC INTERACTIONS
+##
 ##---------------------------------------
-var <- 'ij.syn.constraint'
-mmc <- 'i.fm.mmc.sum'
-mmc.z <- 'mmc.z'
-fit <- mg9
-fit.data <-  find_data(fit, parent.frame())
+png(sprintf('mmc_curve_interaction_%s_mg9.png','ibm'),width = 10,height = 4,units = 'in',res = 200)
+    par(mfrow=c(1,2), mar=c(4.2,4.2,.5,1.5))
 
-## MMC Z SCORE
-fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
-
-## CREATE MEDIAN DATAFRAME (1 row)
-df.med <- fit.data
-for (col in names(df.med)) {
-  if (is.numeric(df.med[[col]]) & col!=mmc.z) 
-    df.med[,col] <- median(df.med[,col],na.rm = T)
-}
-df.med <- droplevels.data.frame(df.med)
-
-## PREP PREDICTION DATAFRAME
-z <- seq(-2.2,2.2,length.out = 100)
-df.med <- df.med[1:length(z),]
-df.med[,mmc.z] <- z
-df.med[,mmc] <- z
-## replace predicted data column
-df.comb <- df.med[mmc.z]  ## data.frame
-
-ms <- c('-1SD','Med','+1SD')
-for (m in ms) 
-{
-  ## VAR SETTING
-  df.med[,var] <- if(m == '-1SD'){
-      median(fit.data[[var]]) - sd(fit.data[[var]])
-    }else if (m == '+1SD'){
-      median(fit.data[[var]]) + sd(fit.data[[var]])
-    }else{
-      median(fit.data[[var]])
+    var <- 'ij.syn.constraint'
+    mmc <- 'i.fm.mmc.sum'
+    mmc.z <- 'mmc.z'
+    fit <- mg9
+    fit.data <-  find_data(fit, parent.frame())
+    
+    ## MMC Z SCORE
+    fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
+    
+    ## CREATE MEDIAN DATAFRAME (1 row)
+    df.med <- fit.data
+    for (col in names(df.med)) {
+      if (is.numeric(df.med[[col]]) & col!=mmc.z) 
+        df.med[,col] <- median(df.med[,col],na.rm = T)
     }
-  ## predictions
-  pred <- prediction(fit, data = df.med)
-  df.comb[,m] <- pred$fitted
-}
+    df.med <- droplevels.data.frame(df.med)
+    
+    ## PREP PREDICTION DATAFRAME
+    z <- seq(-3.2,3.2,length.out = 50)
+    df.med <- df.med[1:length(z),]
+    df.med[,mmc.z] <- z
+    df.med[,mmc] <- z
+    ## replace predicted data column
+    df.comb <- df.med[mmc.z]  ## data.frame
+    
+    ms <- c('-1SD','Med','+1SD')
+    for (m in ms) 
+    {
+      ## VAR SETTING
+      df.med[,var] <- if(m == '-1SD'){
+          median(fit.data[[var]]) - sd(fit.data[[var]])
+        }else if (m == '+1SD'){
+          median(fit.data[[var]]) + sd(fit.data[[var]])
+        }else{
+          median(fit.data[[var]])
+        }
+      ## predictions
+      pred <- prediction(fit, data = df.med)
+      df.comb[,m] <- pred$fitted
+    }
+    
+    ## PLOT
+    pch <- c(15,2,16)
+    matplot(df.comb[,1], df.comb[,-1],
+            ylab='Ln Acquisition Likelihood',
+            xlab='Standardized FM-MMC',
+            type='o', log='y', pch=pch)
+    # abline(v=c(-1.29,1.29),lty=4,col='gray',pch=pch)
+    legend('bottom',title='Structural Synergy',legend=ms,lty=1:3,col=1:3,pch=pch)
+    
+    ##=======================================
+    ## EFFECT TO PREDICT:  RIVAL REATION
+    ##---------------------------------------
+    var <- 'react.rival.2'
+    mmc <- 'i.fm.mmc.sum'
+    mmc.z <- 'mmc.z'
+    fit <- mg9
+    fit.data <-  find_data(fit, parent.frame())
+    
+    ## MMC Z SCORE
+    fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
+    
+    ## CREATE MEDIAN DATAFRAME (1 row)
+    df.med <- fit.data
+    for (col in names(df.med)) {
+      if (is.numeric(df.med[[col]]) & col!=mmc.z) 
+        df.med[,col] <- median(df.med[,col],na.rm = T)
+    }
+    df.med <- droplevels.data.frame(df.med)
+    
+    ## PREP PREDICTION DATAFRAME
+    z <- seq(-3.2,3.2,length.out = 50)
+    df.med <- df.med[1:length(z),]
+    df.med[,mmc.z] <- z
+    df.med[,mmc] <- z
+    ## replace predicted data column
+    df.comb <- df.med[mmc.z]  ## data.frame
+    
+    ms <- c('-1SD','Med','+1SD')
+    for (m in ms) 
+    {
+      ## VAR SETTING
+      df.med[,var] <- if(m == '-1SD'){
+        median(fit.data[[var]]) - sd(fit.data[[var]])
+      }else if (m == '+1SD'){
+        median(fit.data[[var]]) + sd(fit.data[[var]])
+      }else{
+        median(fit.data[[var]])
+      }
+      ## predictions
+      pred <- prediction(fit, data = df.med)
+      df.comb[,m] <- pred$fitted
+    }
+    
+    ## PLOT
+    pch <- c(15,2,16)
+    matplot(df.comb[,1], df.comb[,-1],
+            ylab='Ln Acquisition Likelihood',
+            xlab='Standardized FM-MMC',
+            type='o', log='y', pch=pch, cex=.8)
+    # abline(v=c(-1.28,1.28),lty=4,col='gray')
+    legend('bottom',title='Rival Acquisitions',
+           legend=ms,lty=1:3,col=1:3,pch=pch, pt.cex = .8)
 
-## PLOT
-matplot(df.comb[,1], df.comb[,-1],
-        ylab='Ln Acquisition Likelihood',
-        xlab='Standardized FM-MMC',
-        type='l', log='y')
-legend('topleft',title='Structural Synergy',legend=ms,lty=1:3,col=1:3)
-abline(v=c(-1.29,1.29),lty=4,col='gray')
+dev.off()
 
-##=======================================
-## EFFECT TO PREDICT:  RIVAL REATION
-##---------------------------------------
-var <- 'react.rival.2'
-mmc <- 'i.fm.mmc.sum'
-mmc.z <- 'mmc.z'
-fit <- mg9
-fit.data <-  find_data(fit, parent.frame())
-
-## MMC Z SCORE
-fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
-
-## CREATE MEDIAN DATAFRAME (1 row)
-df.med <- fit.data
-for (col in names(df.med)) {
-  if (is.numeric(df.med[[col]]) & col!=mmc.z) 
-    df.med[,col] <- median(df.med[,col],na.rm = T)
-}
-df.med <- droplevels.data.frame(df.med)
-
-## PREP PREDICTION DATAFRAME
-z <- seq(-2.2,2.2,length.out = 100)
-df.med <- df.med[1:length(z),]
-df.med[,mmc.z] <- z
-df.med[,mmc] <- z
-## replace predicted data column
-df.comb <- df.med[mmc.z]  ## data.frame
-
-ms <- c('-1SD','Med','+1SD')
-for (m in ms) 
-{
-  ## VAR SETTING
-  df.med[,var] <- if(m == '-1SD'){
-    median(fit.data[[var]]) - sd(fit.data[[var]])
-  }else if (m == '+1SD'){
-    median(fit.data[[var]]) + sd(fit.data[[var]])
-  }else{
-    median(fit.data[[var]])
-  }
-  ## predictions
-  pred <- prediction(fit, data = df.med)
-  df.comb[,m] <- pred$fitted
-}
-
-## PLOT
-matplot(df.comb[,1], df.comb[,-1],
-        ylab='Ln Acquisition Likelihood',
-        xlab='Standardized FM-MMC',
-        type='l', log='y')
-legend('topleft',title='Rivals Acquisitions',legend=ms,lty=1:3,col=1:3)
-abline(v=c(-1.28,1.28),lty=4,col='gray')
+##---------------------------------------------------
+##
+##                end curviliean plots 
+##
+##---------------------------------------------------
 
 
-##------------- end curviliean plots ----------------
+
+
+
+
 
 
 mr2 <- mclogit(
