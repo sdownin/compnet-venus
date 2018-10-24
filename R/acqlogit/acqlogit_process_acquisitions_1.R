@@ -220,7 +220,7 @@ for (j in 519:nrow(acq.src.allpd)) {
   ## g.pd.orig       d2 original
   ## g.full.pd.orig  global network within timeframe start, end
   
-  cat(sprintf('\n\nstart %s end %s : acquisition %s (%.2f%s)\n\n',start,end,j,j/nrow(acq.src.allpd),'%'))
+  cat(sprintf('\n\nstart %s end %s : acquisition %s (%.2f%s)\n\n',start,end,j,100*j/nrow(acq.src.allpd),'%'))
   if ( !(acq.src.allpd$acquiree_name_unique[j] %in% V(g.full.pd.orig)$name) ) 
     next
   if ( !(acq.src.allpd$acquirer_name_unique[j] %in% V(g.pd)$name) ) 
@@ -259,10 +259,10 @@ for (j in 519:nrow(acq.src.allpd)) {
   # acquirer id in original graph (at start of period)
   xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.allpd$acquirer_name_unique[j]])
   xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
-  #
+  # 
   xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
   xi.num.mkts <-  V(g.pd)$num.mkts[xi]
-  ##
+  ## 
   xj <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j]])
   xj.orig <- ifelse( !is.na(xj.orig.vid), as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid]), NA)
   xj.orig <- ifelse(length(xj.orig) > 1, xj.orig, NA)

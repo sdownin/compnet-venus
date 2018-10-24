@@ -181,6 +181,22 @@ for (i in 1:nrow(df.sub)) {
   if (i %% 50 == 0) cat(sprintf('%s\n',i))
 }
 
+## AGE
+df.age <- cb$co[,c('company_name_unique','founded_on')]
+names(df.age) <- c('company_name_unique','j.founded_on')
+df.sub <- merge(df.sub,df.age,by.x='j',by.y='company_name_unique',all.x=T,all.y=F)
+names(df.age) <- c('company_name_unique','i.founded_on')
+df.sub <- merge(df.sub,df.age,by.x='i',by.y='company_name_unique',all.x=T,all.y=F)
+
+df.sub$i.founded_year <- as.integer(sapply(df.sub$i.founded_on,function(x)str_split(x,'[-]')[[1]][1]))
+df.sub$j.founded_year <- as.integer(sapply(df.sub$j.founded_on,function(x)str_split(x,'[-]')[[1]][1]))
+
+df.sub$i.age <- 1 + df.sub$year - df.sub$i.founded_year
+df.sub$j.age <- 1 + df.sub$year - df.sub$j.founded_year
+
+## DROP NEGATIVE ACUIQISTION TARGET AGE
+df.sub <- df.sub[df.sub$j.age >= 0 & df.sub$i.age >= 0, ]
+
 ##====================================================
 ##  SUBSET
 ##----------------------------------------------------
@@ -272,11 +288,1282 @@ df.sub$cash_holding <- 100 * df.sub$che / df.sub$act
 df.sub$ln_employee <- log(df.sub$emp)
 df.sub$roa <- 100 * df.sub$ebitda / df.sub$act
 df.sub$me <- df.sub$prcc_c * df.sub$csho
+## scale closeness
+df.sub$ij.syn.closeness2 <- df.sub$ij.syn.closeness * 1e13
+
+df.sub <- df.sub[order(df.sub$t,decreasing = F),]
+
+
+## SAVE REGRESSION DATAFRAME TO CSV
+write.csv(df.sub, file=sprintf("acqlogit_reg_data_sample_313_%s.csv",name_i), row.names = F)
+
+
+###------------- ORG SCIENCE --------------------------------------
+
+
+
+
+mc2 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim),
+  data = df.sub)
+summary(mc2)
+
+mc3 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2),
+  data = df.sub)
+summary(mc3)
+
+mc3a <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    ij.dist,
+  data = df.sub)
+summary(mc3a)
+
+mc3b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    j.constraint,
+  data = df.sub)
+summary(mc3b)
+
+mc3c <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    ij.syn.constraint,
+  data = df.sub)
+summary(mc3c)
+
+mc3d <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    ij.syn.degree,
+  data = df.sub)
+summary(mc3d)
+
+mc3e <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    ij.syn.closeness2,
+  data = df.sub)
+summary(mc3e)
+
+mc3z <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint + 
+    ij.syn.constraint + 
+    ij.syn.degree + 
+    ij.syn.closeness2,
+  data = df.sub)
+summary(mc3z)
+
+tabp <- mtable(mc2,mc3,mc3a,mc3b,mc3c,mc3d,mc3e,mc3z)
+print(tabp)
+## SAVE FILE
+memisc::write.mtable(tabp, 
+    file = "acqlogit_reg_table_313_primary_ibm.tsv")
+
+##=================================
+## ORGSCI: FM-MMC INTERACTIONS
+##--------------------------------
+mc4 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree ,
+  data = df.sub)
+summary(mc4)
+
+mc4a <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    I(i.fm.mmc.sum^2):ij.dist,
+  data = df.sub)
+summary(mc4a)
+
+mc4b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    I(i.fm.mmc.sum^2):j.constraint,
+  data = df.sub)
+summary(mc4b)
+
+mc4c <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    I(i.fm.mmc.sum^2):ij.syn.closeness2,
+  data = df.sub)
+summary(mc4c)
+
+mc4d <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    I(i.fm.mmc.sum^2):ij.syn.constraint,
+  data = df.sub)
+summary(mc4d)
+
+mc4e <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    I(i.fm.mmc.sum^2):ij.syn.degree,
+  data = df.sub)
+summary(mc4e)
+
+mc4f <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    I(i.fm.mmc.sum^2):ij.discossim,
+  data = df.sub)
+summary(mc4f)
+
+mc4g <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree + 
+    I(i.fm.mmc.sum^2):ij.dist +
+    I(i.fm.mmc.sum^2):j.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.degree + 
+    I(i.fm.mmc.sum^2):ij.discossim,
+  data = df.sub)
+summary(mc4g)
+
+
+tabh1i <- mtable(mc4,mc4a,mc4b,mc4c,mc4d,mc4e,mc4f,mc4g)
+print(tabh1i)
+## SAVE FILE
+memisc::write.mtable(tabh1i, 
+file = "acqlogit_reg_table_313_h1interactions_ibm.tsv")
+
+
+
+##=================================
+## ORGSCI: DISTANCE INTERACTIONS
+##--------------------------------
+mc5 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree ,
+  data = df.sub)
+summary(mc5)
+
+mc5a <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.dist:j.constraint,
+  data = df.sub)
+summary(mc5a)
+
+mc5b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.dist:ij.syn.closeness2,
+  data = df.sub)
+summary(mc5b)
+
+mc5c <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.dist:ij.syn.constraint,
+  data = df.sub)
+summary(mc5c)
+
+mc5d <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.dist:ij.syn.degree,
+  data = df.sub)
+summary(mc5d)
+
+
+mc5e <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.dist:ij.discossim,
+  data = df.sub)
+summary(mc5e)
+
+mc5f <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.dist:j.constraint + 
+    ij.dist:ij.syn.closeness2 + 
+    ij.dist:ij.syn.constraint + 
+    ij.dist:ij.syn.degree + 
+    ij.dist:ij.discossim,
+  data = df.sub)
+summary(mc5f)
+
+tabdi <- mtable(mc5,mc5a,mc5b,mc5c,mc5d,mc5e,mc5f)
+print(tabdi)
+## SAVE FILE
+memisc::write.mtable(tabdi, 
+                     file = "acqlogit_reg_table_313_distance_interactions_ibm.tsv")
+
+
+
+##=================================
+## ORGSCI: SYNERGEY DEGREE INTERACTIONS
+##--------------------------------
+mc6 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree ,
+  data = df.sub)
+summary(mc6)
+
+mc6a <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.degree:ij.dist,
+  data = df.sub)
+summary(mc6a)
+
+mc6b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.degree:j.constraint,
+  data = df.sub)
+summary(mc6b)
+
+mc6c <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.degree:ij.discossim,
+  data = df.sub)
+summary(mc6c)
+
+mc6d <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.degree:ij.syn.closeness2,
+  data = df.sub)
+summary(mc6d)
+
+mc6e <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.degree:ij.syn.constraint,
+  data = df.sub)
+summary(mc6e)
+
+mc6z <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.degree:j.constraint,
+  data = df.sub)
+summary(mc6z)
+
+mc6f <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.degree:ij.dist +
+    ij.syn.degree:j.constraint +
+    ij.syn.degree:ij.discossim +
+    ij.syn.degree:ij.syn.closeness2 +
+    ij.syn.degree:ij.syn.constraint,
+  data = df.sub)
+summary(mc6f)
+
+tabsdi <- mtable(mc6,mc6a,mc6b,mc6c,mc6d,mc6e,mc6f)
+print(tabsdi)
+## SAVE FILE
+memisc::write.mtable(tabsdi, 
+                     file = "acqlogit_reg_table_313_synergy_degree_interactions_ibm.tsv")
+
+
+##=================================
+## ORGSCI: SYNERGEY CLOSENESS INTERACTIONS
+##--------------------------------
+mc7 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree ,
+  data = df.sub)
+summary(mc7)
+
+mc7a <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.closeness2:ij.dist,
+  data = df.sub)
+summary(mc7a)
+
+mc7b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.closeness2:j.constraint,
+  data = df.sub)
+summary(mc7b)
+
+mc7c <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.closeness2:ij.discossim,
+  data = df.sub)
+summary(mc7c)
+
+mc7d <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.closeness2:ij.syn.degree,
+  data = df.sub)
+summary(mc7d)
+
+mc7e <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.closeness2:ij.syn.constraint,
+  data = df.sub)
+summary(mc7e)
+
+mc7f <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.closeness2:ij.dist +
+    ij.syn.closeness2:j.constraint +
+    ij.syn.closeness2:ij.discossim +
+    ij.syn.closeness2:ij.syn.degree +
+    ij.syn.closeness2:ij.syn.constraint,
+  data = df.sub)
+summary(mc7f)
+
+tabsci <- mtable(mc7,mc7a,mc7b,mc7c,mc7d,mc7e,mc7f)
+print(tabsci)
+## SAVE FILE
+memisc::write.mtable(tabsci, 
+                     file = "acqlogit_reg_table_313_synergy_closeness_interactions_ibm.tsv")
+
+
+
+
+
+
+
+
+
+
+
+
+##================================
+##
+##  Test Rival's responses to acquisitions theory
+## 
+##--------------------------------
+library(igraph)
+g.full <- read.graph('g_full.graphml',format='graphml')
+acqfile <- 'C:\\Users\\T430\\Google Drive\\PhD\\Dissertation\\crunchbase\\crunchbase_export_20161024\\acquisitions.csv'
+df.acq <- read.csv(acqfile, header = T, na.strings = c('',NA,'NA'), stringsAsFactors = F)
+
+## CREATE RIVAL REACTION VARIABLES 
+df.sub$react.rival.1 <- NA
+df.sub$react.rival.2 <- NA
+df.sub$react.rival.3 <- NA
+df.sub$react.rival.4 <- NA
+df.sub$react.rival.5 <- NA
+for (i in 1:nrow(df.sub)) 
+{
+  x <- df.sub[i,]
+  xdate <- as.character(x$date)
+  if(is.na(xdate)) next
+  parts <- str_split(xdate,'[-]')[[1]]
+  xdate1 <- sprintf('%04d-%s-%s',as.numeric(parts[1])-1,parts[2],parts[3])
+  xdate2 <- sprintf('%04d-%s-%s',as.numeric(parts[1])-2,parts[2],parts[3])
+  xdate3 <- sprintf('%04d-%s-%s',as.numeric(parts[1])-3,parts[2],parts[3])
+  xdate4 <- sprintf('%04d-%s-%s',as.numeric(parts[1])-4,parts[2],parts[3])
+  xdate5 <- sprintf('%04d-%s-%s',as.numeric(parts[1])-5,parts[2],parts[3])
+  xdate10 <- sprintf('%04d-%s-%s',as.numeric(parts[1])-10,parts[2],parts[3])
+  rivals <- names(neighbors(g.full, v = which(V(g.full)$name==x$i)))
+  df.sub$react.rival.1[i] <- sum(rivals %in% df.acq$acquirer_name_unique[df.acq$acquired_on < xdate & df.acq$acquired_on >= xdate1])
+  df.sub$react.rival.2[i] <- sum(rivals %in% df.acq$acquirer_name_unique[df.acq$acquired_on < xdate & df.acq$acquired_on >= xdate2])
+  df.sub$react.rival.3[i] <- sum(rivals %in% df.acq$acquirer_name_unique[df.acq$acquired_on < xdate & df.acq$acquired_on >= xdate3])
+  df.sub$react.rival.4[i] <- sum(rivals %in% df.acq$acquirer_name_unique[df.acq$acquired_on < xdate & df.acq$acquired_on >= xdate4])
+  df.sub$react.rival.5[i] <- sum(rivals %in% df.acq$acquirer_name_unique[df.acq$acquired_on < xdate & df.acq$acquired_on >= xdate5])
+  df.sub$react.rival.10[i] <- sum(rivals %in% df.acq$acquirer_name_unique[df.acq$acquired_on < xdate & df.acq$acquired_on >= xdate10])
+  if(i %% 50 == 0)cat(sprintf('row %s\n',i))
+}
+
+##==================================================
+##  MOST GRANT
+##--------------------------------------------------
+
+
+
+
+mg0 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.constraint + 
+    ij.syn.degree +
+    react.rival.1 + 
+    I(i.fm.mmc.sum^2):react.rival.1,
+  data = df.sub)
+summary(mg0)
+
+mg0 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    react.rival.2 + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 +
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):react.rival.2,
+  data = df.sub)
+summary(mg0)
+
+
+mg7 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    react.rival.2 +
+    ij.syn.constraint + 
+    ij.syn.degree +
+    ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.degree +
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 ,
+  data = df.sub)
+summary(mg7)
+
+mg8 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    react.rival.2 +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 ,
+  data = df.sub)
+summary(mg8)
+
+mg9 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    react.rival.2 +
+    j.constraint +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    # ij.syn.degree + 
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 +
+    # I(i.fm.mmc.sum^2):ij.syn.degree 
+    I(i.fm.mmc.sum^2):react.rival.2 ,
+  data = df.sub)
+summary(mg9)
+
+mtable(mg8,mg9,mg7)
+
+
+
+
+
+mgt <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    ij.syn.degree +
+    react.rival.2 +
+    react.rival.2:ij.dist +
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 +
+    I(i.fm.mmc.sum^2):ij.syn.degree ,
+  data = df.sub)
+summary(mgt)
+
+
+
+##----------- end most grant models ------------------
+
+##===================================================
+##  CURVILINEAR INTERACTION PLOTS
+##---------------------------------------------------
+# cols <- c('y','t','ln_asset','cash_holding','roa','ln_employee',
+#           'ij.same.region',
+#           'j.age','i.age','ij.age.diff','i.deg','j.deg',
+#           'ij.diff.deg','i.fm.mmc.sum','i.acq.experience',
+#           'ij.discossim','j.constraint','ij.dist','react.rival.2',
+#           'ij.syn.constraint','ij.syn.closeness2')
+# df.sub2 <- df.sub[,cols]
+# df.sub2$i.acq.experience.100 <- df.sub2$i.acq.experience
+# df.sub2$mmc.2 <- df.sub2$i.fm.mmc.sum^2
+# df.sub2$mmc.2_ij.syn.constraint <- df.sub2$mmc.2 * df.sub2$ij.syn.constraint
+# df.sub2$mmc.2_ij.syn.closeness2 <- df.sub2$mmc.2 * df.sub2$ij.syn.closeness2
+# df.sub2$mmc.2_react.rival.2 <- df.sub2$mmc.2 * df.sub2$react.rival.2
+mg9 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + 
+    ij.same.region +  
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    react.rival.2 +
+    j.constraint +
+    ij.syn.constraint + 
+    ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 +
+    I(i.fm.mmc.sum^2):react.rival.2 ,
+  data = df.sub)
+summary(mg9)
+
+# mod <- mg9
+# prediction(mod, data = find_data(mod, parent.frame()), calculate_se = TRUE)
+# prediction(mod, data = , calculate_se = TRUE)
+
+##=======================================
+## EFFECT TO PREDICT:  RIVAL REATION
+##---------------------------------------
+var <- 'ij.syn.constraint'
+mmc <- 'i.fm.mmc.sum'
+mmc.z <- 'mmc.z'
+fit <- mg9
+fit.data <-  find_data(fit, parent.frame())
+
+## MMC Z SCORE
+fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
+
+## CREATE MEDIAN DATAFRAME (1 row)
+df.med <- fit.data
+for (col in names(df.med)) {
+  if (is.numeric(df.med[[col]]) & col!=mmc.z) 
+    df.med[,col] <- median(df.med[,col],na.rm = T)
+}
+df.med <- droplevels.data.frame(df.med)
+
+## PREP PREDICTION DATAFRAME
+z <- seq(-2.2,2.2,length.out = 100)
+df.med <- df.med[1:length(z),]
+df.med[,mmc.z] <- z
+df.med[,mmc] <- z
+## replace predicted data column
+df.comb <- df.med[mmc.z]  ## data.frame
+
+ms <- c('-1SD','Med','+1SD')
+for (m in ms) 
+{
+  ## VAR SETTING
+  df.med[,var] <- if(m == '-1SD'){
+      median(fit.data[[var]]) - sd(fit.data[[var]])
+    }else if (m == '+1SD'){
+      median(fit.data[[var]]) + sd(fit.data[[var]])
+    }else{
+      median(fit.data[[var]])
+    }
+  ## predictions
+  pred <- prediction(fit, data = df.med)
+  df.comb[,m] <- pred$fitted
+}
+
+## PLOT
+matplot(df.comb[,1], df.comb[,-1],
+        ylab='Ln Acquisition Likelihood',
+        xlab='Standardized FM-MMC',
+        type='l', log='y')
+legend('topleft',title='Structural Synergy',legend=ms,lty=1:3,col=1:3)
+abline(v=c(-1.29,1.29),lty=4,col='gray')
+
+##=======================================
+## EFFECT TO PREDICT:  RIVAL REATION
+##---------------------------------------
+var <- 'react.rival.2'
+mmc <- 'i.fm.mmc.sum'
+mmc.z <- 'mmc.z'
+fit <- mg9
+fit.data <-  find_data(fit, parent.frame())
+
+## MMC Z SCORE
+fit.data[,mmc.z] <- scale(fit.data[,mmc], center = T, scale = T)
+
+## CREATE MEDIAN DATAFRAME (1 row)
+df.med <- fit.data
+for (col in names(df.med)) {
+  if (is.numeric(df.med[[col]]) & col!=mmc.z) 
+    df.med[,col] <- median(df.med[,col],na.rm = T)
+}
+df.med <- droplevels.data.frame(df.med)
+
+## PREP PREDICTION DATAFRAME
+z <- seq(-2.2,2.2,length.out = 100)
+df.med <- df.med[1:length(z),]
+df.med[,mmc.z] <- z
+df.med[,mmc] <- z
+## replace predicted data column
+df.comb <- df.med[mmc.z]  ## data.frame
+
+ms <- c('-1SD','Med','+1SD')
+for (m in ms) 
+{
+  ## VAR SETTING
+  df.med[,var] <- if(m == '-1SD'){
+    median(fit.data[[var]]) - sd(fit.data[[var]])
+  }else if (m == '+1SD'){
+    median(fit.data[[var]]) + sd(fit.data[[var]])
+  }else{
+    median(fit.data[[var]])
+  }
+  ## predictions
+  pred <- prediction(fit, data = df.med)
+  df.comb[,m] <- pred$fitted
+}
+
+## PLOT
+matplot(df.comb[,1], df.comb[,-1],
+        ylab='Ln Acquisition Likelihood',
+        xlab='Standardized FM-MMC',
+        type='l', log='y')
+legend('topleft',title='Rivals Acquisitions',legend=ms,lty=1:3,col=1:3)
+abline(v=c(-1.28,1.28),lty=4,col='gray')
+
+
+##------------- end curviliean plots ----------------
+
+
+mr2 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    react.rival.2 + 
+    I(i.fm.mmc.sum^2):react.rival.2,
+  data = df.sub)
+summary(mr2)
+
+
+mr3 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    react.rival.3 + 
+    I(i.fm.mmc.sum^2):react.rival.3,
+  data = df.sub)
+summary(mr3)
+
+mr4 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    react.rival.4 + 
+    I(i.fm.mmc.sum^2):react.rival.4,
+  data = df.sub)
+summary(mr4)
+
+mr5 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    react.rival.5 + 
+    I(i.fm.mmc.sum^2):react.rival.5,
+  data = df.sub)
+summary(mr5)
+
+mr10 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg + ij.diff.deg + 
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree +
+    react.rival.10 + 
+    I(i.fm.mmc.sum^2):react.rival.10,
+  data = df.sub)
+summary(mr10)
+
+mtable(mr1,mr2,mr3)
+
+mc4g <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age + ij.age.diff + 
+    i.deg + j.deg +  
+    ij.same.region +  
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    ij.discossim + 
+    I(i.fm.mmc.sum^2) + 
+    ij.dist + 
+    j.constraint +
+    ij.syn.closeness2 + 
+    ij.syn.constraint + 
+    ij.syn.degree + 
+    I(i.fm.mmc.sum^2):ij.dist +
+    I(i.fm.mmc.sum^2):j.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.degree + 
+    I(i.fm.mmc.sum^2):ij.discossim,
+  data = df.sub)
+summary(mc4g)
+
+
+
+prediction(mc4g, data = find_data(mc4g, parent.frame()), calculate_se = TRUE)
+
+
+
+
+
+
+
+
+
+mc4 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist,
+  data = df.sub)
+summary(mc4)
+
+
+mc5 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist ,
+  data = df.sub)
+summary(mc5)
+
+mc5b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist + 
+    I(i.fm.mmc.sum^2):j.constraint,
+  data = df.sub)
+summary(mc5b)
+
+mc5c <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) + 
+    j.constraint + 
+    ij.dist + 
+    I(i.fm.mmc.sum^2):ij.dist,
+  data = df.sub)
+summary(mc5c)
+
+mc5d <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    ij.dist + 
+    I(i.fm.mmc.sum^2):ij.dist,
+  data = df.sub)
+summary(mc5d)
+
+mc6 <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    ij.dist + ij.syn.closeness2 ,
+  data = df.sub)
+summary(mc6)
+
+mc6a <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    ij.dist + ij.syn.closeness2 +
+    I(i.fm.mmc.sum^2):ij.syn.closeness2,
+  data = df.sub)
+summary(mc6a)
+
+mc6b <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    ij.dist + ij.syn.degree +
+    I(i.fm.mmc.sum^2):ij.syn.degree,
+  data = df.sub)
+summary(mc6b)
+
+mc6c <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    ij.dist + ij.syn.constraint +
+    I(i.fm.mmc.sum^2):ij.syn.constraint,
+  data = df.sub)
+summary(mc6c)
+
+mc6d <- mclogit(
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+    j.age + i.age +
+    ij.same.region +  ij.diff.deg   +
+    i.fm.mmc.sum + I(i.acq.experience * 100) +
+    I(100 * ij.discossim) + 
+    I(i.fm.mmc.sum^2) +
+    ij.dist  +
+    I(i.fm.mmc.sum^2):ij.dist,
+  data = df.sub)
+summary(mc6d)
+
+## SUMMARY TABLE
+mtable(mc0,mc1,mc2,mc3,mc4,mc6,mc6a,mc6b,mc6c,mc6d)
+
+## SAVE FILE
+mtab <- memisc::mtable(mc0,mc1,mc2,mc3,mc4,mc5,mc5b,mc5c)
+memisc::write.mtable(mtab, file = "acqlogit_reg_table_ibm.tsv")
+
+write.csv(df.sub, file="acqlogit_reg_data_sample_ibm.csv", row.names = F)
+
+
+
+
+
 
 ###------------- SMS Proposal --------------------------------------
 
 mc0 <- mclogit(
-  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee +
+  cbind(y,t) ~  ln_asset + cash_holding + roa + ln_employee + 
+    
     ij.same.region +  ij.diff.deg   +
     i.fm.mmc.sum + I(i.acq.experience * 100) +
     i.pow.n2 +  I(100 * ij.discossim) ,
@@ -380,6 +1667,8 @@ mc6 <- mclogit(
     I(ij.dist^2),
   data = df.sub)
 summary(mc6)
+
+
 
 ## SUMMARY TABLE
 mtable(mc0,mc1,mc2,mc3,mc4,mc5,mc5b,mc5c)
