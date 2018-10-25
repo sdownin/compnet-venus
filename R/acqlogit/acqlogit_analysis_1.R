@@ -1029,7 +1029,7 @@ mg0 <- mclogit(
     i.fm.mmc.sum + I(i.acq.experience * 100) +
     ij.discossim + 
     ij.dist + 
-    j.constraint +
+    j.constraint + i.constraint +
     ij.syn.constraint + 
     ij.syn.closeness2 + 
     react.rival.2 ,
@@ -1044,7 +1044,7 @@ mg1 <- mclogit(
     i.fm.mmc.sum + I(i.acq.experience * 100) +
     ij.discossim + 
     ij.dist + 
-    j.constraint +
+    j.constraint + i.constraint +
     react.rival.2 +
     ij.syn.constraint + 
     ij.syn.closeness2 + 
@@ -1060,7 +1060,7 @@ mg2 <- mclogit(
     i.fm.mmc.sum + I(i.acq.experience * 100) +
     ij.discossim + 
     ij.dist + 
-    j.constraint +
+    j.constraint + i.constraint +
     react.rival.2 +
     ij.syn.constraint + 
     ij.syn.closeness2 + 
@@ -1077,7 +1077,7 @@ mg3 <- mclogit(
     i.fm.mmc.sum + I(i.acq.experience * 100) +
     ij.discossim + 
     ij.dist + 
-    j.constraint +
+    j.constraint + i.constraint +
     react.rival.2 +
     ij.syn.constraint + 
     ij.syn.closeness2 + 
@@ -1094,7 +1094,7 @@ mg4 <- mclogit(
     i.fm.mmc.sum + I(i.acq.experience * 100) +
     ij.discossim + 
     ij.dist + 
-    j.constraint +
+    j.constraint + i.constraint +
     react.rival.2 +
     ij.syn.constraint + 
     ij.syn.closeness2 + 
@@ -1112,13 +1112,13 @@ mg5 <- mclogit(
     ij.discossim + 
     ij.dist + 
     react.rival.2 +
-    j.constraint +
+    j.constraint + i.constraint +
     ij.syn.constraint + 
     ij.syn.closeness2 + 
     I(i.fm.mmc.sum^2) + 
     # ij.syn.degree + 
     I(i.fm.mmc.sum^2):react.rival.2 +
-    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):I(100 * ij.syn.constraint) + 
     I(i.fm.mmc.sum^2):ij.syn.closeness2,
     # I(i.fm.mmc.sum^2):ij.syn.degree 
   data = df.sub)
@@ -1135,22 +1135,72 @@ memisc::write.mtable(tabmost,
 ## Chisq Deviance Test
 anova(mg0,mg1, test='Chisq')
 anova(mg0,mg2, test='Chisq')
+anova(mg0,mg3, test='Chisq')
 anova(mg0,mg4, test='Chisq')
 anova(mg0,mg5, test='Chisq')
 
-## Correlations
+## Correlations and descriptives stats
 library(psych)
-X <- mg5
-xcor <- psych::cor()
 
+X <- mg5$model
+X <- cbind(y=X[,1][,1],t=X[,1][,2],X[,-1])  ## unbind the cbind(y,t)
+
+X$react.rival.2_mmc2 <- X$react.rival.2 * X$`I(i.fm.mmc.sum^2)`
+X$ij.syn.closeness2_mmc2 <- X$ij.syn.closeness2 * X$`I(i.fm.mmc.sum^2)`
+X$ij.syn.constraint_mmc2 <- X$ij.syn.constraint * X$`I(i.fm.mmc.sum^2)`
+
+namemap <- list(
+  y = 'y',
+  t = 't',
+  ln_asset = 'Ln Assets (Acquirer)',            
+  cash_holding = 'Cash Holdings (Acquirer)',          
+  roa = 'ROA (Acquirer)',          
+  ln_employee = 'Ln Employees (Acquirer)',         
+  j.age = 'Age (Target)',             
+  i.age = 'Age (Acquirer)',                  
+  ij.age.diff = 'Age Diff.',         
+  i.deg = 'Competitors (Acquirer)',               
+  j.deg = 'Competitors (Target)',                
+  ij.same.region = 'Geographic Region Homophily' ,    
+  i.fm.mmc.sum = 'FM-MMC',        
+  `I(i.acq.experience * 100)` = 'Acquisition Experience (Acquirer)',
+  ij.discossim = 'Product Dissimilarity',  
+  ij.dist = 'Competitive Distance',        
+  react.rival.2 = 'Rivals Acquisitions (Acquirer)',  
+  j.constraint = 'Constraint (Target)',
+  i.constraint = 'Constraint (Acquirer)',  
+  ij.syn.constraint = 'Structural Synergy',
+  ij.syn.closeness2 = 'Positional Synergy',        
+  `I(i.fm.mmc.sum^2)` = 'FM-MMC Sqaured (Acquirer)',       
+  react.rival.2_mmc2 = 'FM-MMC^2 * Rivals Acquisitions',      
+  ij.syn.closeness2_mmc2 = 'FM-MMC^2 * Positional Synergy',  
+  ij.syn.constraint_mmc2 = 'FM-MMC^2 * Structural Synergy'
+)
+for (j in 1:ncol(X)) {
+  names(X)[j] <- namemap[[names(X)[j]]]
+}
+
+xcor <- psych::corr.test(X, adjust = 'bonferroni')
+write.csv(as.data.frame(xcor$r), file = 'acqlogit_correlations_table_313_ibm_MOST_GRANT.csv')
+write.csv(as.data.frame(xcor$p), file = 'acqlogit_corr_pvals_table_313_ibm_MOST_GRANT.csv')
+
+## DESCRIPTIVES
+xdescr <- psych::describe(X[, ! names(X) %in% c('y','t')])
+write.csv(as.data.frame(xdescr), file = 'acqlogit_descriptives_table_313_ibm_MOST_GRANT.csv')
 
 ## Descriptives
+# png('acqlogit_descriptives_PLOT_313_ibm_MOST_GRANT.png', width = 8, height = 8, units = 'in', res = 200)
+  par(mfrow=c(3,3), mar=c(4,4,2.5,1))
+  for (var in names(X)) {
+    if(var %in% c('y','t')) next
+    hist(X[,var],col='gray',breaks=25, main=var)
+    abline(v=quantile(X[,col],c(.025,.975)),col='darkred',lwd=2)
+  }
+# dev.off()
 
 
 
 
-
-##----------- end most grant models ------------------
 
 ##=======================================
 ##
@@ -1159,8 +1209,8 @@ xcor <- psych::cor()
 ##---------------------------------------
 # ms <- c('-3 SD','-2 SD','-1 SD','Median','+1 SD','+2 SD','+3 SD')
 # ms <- c('Min','-1 SD','Median','+1 SD','Max')
-# ms <- c('L99','1Q','Median','3Q','U99')
-ms <- c('L95','1Q','Median','3Q','U95')
+ms <- c('L99','1Q','Median','3Q','U99')
+# ms <- c('L95','1Q','Median','3Q','U95')
 # ms <- c('Min','1Q','Median','3Q','Max')
 lwds <- c(3,3,3,1.5,3,3,3)
 labs <- list(
