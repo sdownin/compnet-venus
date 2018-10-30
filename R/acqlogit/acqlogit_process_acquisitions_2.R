@@ -208,6 +208,13 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 
 ##===============================
 ##
+##  Propensity Score
+##
+##-------------------------------
+
+
+##===============================
+##
 ##  MAIN LOOP: COMPUTE COVARIATES
 ##
 ##-------------------------------
