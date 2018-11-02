@@ -212,10 +212,14 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##
 ##-------------------------------
 
-## SAVE updated compustat data
-csa2.all <- cb$readCsv(file.path('compustat','fundamentals-annual-UPDATED.csv'))
+## Load updated compustat data
+csfunda.file <- file.path('compustat','fundamentals-annual-UPDATED.csv')
+if (!file.exists(csfunda.file)) { ## if file not exists, then run script to create it
+  source(file.path(getwd(),'R','acqlogit','acqlogit_compustat_update.R'))
+}
+csa2.all <- cb$readCsv(csfunda.file)
 minyr <- min(unique(csa2.all$fyear), na.rm = T)
-csa2 <- 
+csa2 <- csa2.all[which(csa2.all$fyear != minyr & !is.na(csa2.all$fyear)), ]
 
 ##============================================
 ##  MERGE Compustat Data into Compnet Dataframe 
@@ -232,24 +236,24 @@ g.pd.df <- merge(g.pd.df, cb$co_ipo[,ipocols], by.x='company_name_unique', by.y=
 ##============================================
 ## MANUAL CORRECTIONS (COMPUSTAT STOCK SYMBOLS CHANGED AFTER CRUNCHBASE DATA)
 ##--------------------------------------------
-## SEARCH COMPUSTAT NAMES
-csa2[grep('SONY',csa2$conm),]
-## SEARCH COMPUSTAT TICKER SYMBOLS
-csa2[grep('software',csa2$conm,ignore.case = T),c('conm','tic')]
-## SEARCH CRUNCHBASE IPOS
-cb$co_ipo[grep('software-ag',cb$co_ipo$company_name_unique),c('company_name_unique','stock_symbol','stock_exchange_symbol')]
-# > unique(as.character(df.sub$i[is.na(df.sub$roa)]))
-# [1] "ask-com"  ??            "bazaarvoice"-         
-# [3] "bmc-software"-          "compuware"-           
-# [5] "csc"-[bought by DXC]    "forcepoint"-           
-# [7] "fujitsu"-               "google"-              
-# [9] "htc"  ??                "mcafee"-               
-# [11] "naspers"-              "netsuite"             
-# [13] "opera-software"-       "qlik-technologies"-    
-# [15] "responsys"-            "rightnow-technologies"-
-# [17] "samsung-electronics"?? "servicepower" ??        
-# [19] "siemens"-              "software-ag"          
-# [21] "solarwinds"-           "sony"-  
+# ## SEARCH COMPUSTAT NAMES
+# csa2[grep('SONY',csa2$conm),]
+# ## SEARCH COMPUSTAT TICKER SYMBOLS
+# csa2[grep('software',csa2$conm,ignore.case = T),c('conm','tic')]
+# ## SEARCH CRUNCHBASE IPOS
+# cb$co_ipo[grep('software-ag',cb$co_ipo$company_name_unique),c('company_name_unique','stock_symbol','stock_exchange_symbol')]
+# # > unique(as.character(df.sub$i[is.na(df.sub$roa)]))
+# # [1] "ask-com"  ??            "bazaarvoice"-         
+# # [3] "bmc-software"-          "compuware"-           
+# # [5] "csc"-[bought by DXC]    "forcepoint"-           
+# # [7] "fujitsu"-               "google"-              
+# # [9] "htc"  ??                "mcafee"-               
+# # [11] "naspers"-              "netsuite"             
+# # [13] "opera-software"-       "qlik-technologies"-    
+# # [15] "responsys"-            "rightnow-technologies"-
+# # [17] "samsung-electronics"?? "servicepower" ??        
+# # [19] "siemens"-              "software-ag"          
+# # [21] "solarwinds"-           "sony"-  
 
 ### MAP:  [COMPUSTAT]::CONM |--> [CrunchBase]::ipo.stock_symbol
 ###   to replace the COMPUSTAT `tic` value with the CrunchBase `stock_symbol`
