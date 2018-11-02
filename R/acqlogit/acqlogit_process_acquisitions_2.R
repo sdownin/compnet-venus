@@ -212,78 +212,14 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##
 ##-------------------------------
 
+## SAVE updated compustat data
+csa2.all <- cb$readCsv(file.path('compustat','fundamentals-annual-UPDATED.csv'))
+minyr <- min(unique(csa2.all$fyear), na.rm = T)
+csa2 <- 
 
-## 2. COMPUSTAT??????*** SLOW TO LOAD ***
-csa <- cb$readCsv(file = file.path('compustat','fundamentals-annual.csv'), na.strings = c(NA,'','NA'))
-dim(csa)
-names(csa)
-
-# ## 3. load FILTERED regression dataframe to seprate table file
-# # df.in <- cb$readCsv(sprintf("acqlogit_compnet_covs_df_FILTERED_%s.csv",name_i),na.strings = c(NA,'','NA'))
-# l <- readRDS(file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
-# df.in <- l$df.reg
-
-## SELECT COLUMNS FROM COMPUSTAT
-cols <- c('conm','conml','gvkey','datadate','fyear','indfmt','consol','popsrc','tic','cusip',
-          'act', ## total assets  (ln for size proxy)
-          'che', ## cash and short term investments (scale by total assets for cash holdings)
-          'emp', ## employees (ln employee size proxy) 
-          'ebitda', ## ebidta (scale by total assets for ROA performance proxy)
-          'prcc_c', ## close market price at calendar year
-          'csho', ## shares outstanding  (PRCC_C x CSHO = market value of equity)
-          'seq', ## stockholder equity
-          'ceq', ## total common equity
-          'pstk', ## preferred stock par value
-          'lt', ## Total Liabilities
-          'mib' ## Minority Interest
-)
-csa2 <- csa[,cols]
-
-## DATA YEAR
-csa2$datayear <- as.integer(str_sub(csa2$datadate,1,4))
-
-##===========================
-## COMPUTE M/B RATIO
-##  @see https://wrds-www.wharton.upenn.edu/pages/support/applications/risk-and-valuation-measures/market-book-mb-ratio/
-##---------------------------
-## MARKET VAL OF EQUITY
-csa2$mcap_c <- csa2$prcc_c * csa2$csho
-## STOCK HOLDER EQUITY algorithm
-##   SHE = 1. `seq` if available, else
-##         2. `ceq`+`pstk` if available, else
-##         3. `act`-(`lt`+`mib`)
-csa2names <- names(csa2)
-# count <- 0 ## DEBUG `she` computation
-csa2$she <- apply(csa2, 1, function(x){
-  # count <<- count+1 ## DEBUG
-  seq  <- as.numeric(unlist(x[which(csa2names=='seq')]))
-  if (!is.na(seq)) {
-    # cat(sprintf('row %s: seq\n',count)) ## DEBUG
-    return(seq)
-  }
-  ceq  <- as.numeric(unlist(x[which(csa2names=='ceq')]))
-  pstk <- as.numeric(unlist(x[which(csa2names=='pstk')]))
-  if (!is.na(ceq) & !is.na(pstk)) {
-    # cat(sprintf('row %s: ceq+pstk\n',count)) ## DEBUG
-    return(ceq + pstk)
-  }
-  act  <- as.numeric(unlist(x[which(csa2names=='act')]))
-  lt   <- as.numeric(unlist(x[which(csa2names=='lt')]))
-  mib  <- as.numeric(unlist(x[which(csa2names=='mib')]))
-  if (!is.na(act) & !is.na(lt) & !is.na(mib)) {
-    # cat(sprintf('row %s: act-(lt+mib)\n',count)) ## DEBUG
-    # cat(sprintf('act %s, lt %s, mib %s\n',act,lt,mib))
-    return(act - (lt + mib))
-  }
-  return(NA)
-})
-
-## MARKET-to-BOOK RATIO
-csa2$m2b <- apply(csa2[,c('mcap_c','she')], 1, function(x){
-  if (any(is.na(x))) return(NA)
-  return(ifelse( x[2]==0, NA, x[1]/x[2] ))
-})
-
+##============================================
+##  MERGE Compustat Data into Compnet Dataframe 
+##--------------------------------------------
 ## EGO GRAPH VERTEX DATARAME MERGE WITH COMPUSTAT DATA
 g.pd.df <- as_data_frame(g.pd, what = 'vertices')
 ## rename graph vertex name to company_name_unique
@@ -291,6 +227,7 @@ names(g.pd.df)[which(names(g.pd.df)=='name')] <- 'company_name_unique'
 ## crunchbase ipo data fields for crunchbase compnet firms
 ipocols <- c('company_name_unique','stock_symbol','stock_exchange_symbol','went_public_on')
 g.pd.df <- merge(g.pd.df, cb$co_ipo[,ipocols], by.x='company_name_unique', by.y='company_name_unique', all.x=T, all.y=F)
+
 
 ##============================================
 ## MANUAL CORRECTIONS (COMPUSTAT STOCK SYMBOLS CHANGED AFTER CRUNCHBASE DATA)
