@@ -188,27 +188,12 @@ g.full.pd.orig <- g.full.pd
 
 
 
-##----------------------------------
-## YEAR PERIODS: DEFINE NICHE CLUSTERS
-l <- list()
-df.mmc <- data.frame()
-df.rem <- data.frame()
-df.reg <- data.frame()
-lidx <- 0  ## acquisition list index
-timeval <- timeval.last <- 0
 
-
-
-## GET ALL ACQ EVENT VERTICES 
-## keep only acquisitions with acquirer in ego network and target in global competition network
-acq.src <- co_acq[ co_acq$acquirer_name_unique %in% V(g.pd)$name & co_acq$acquiree_name_unique %in% V(g.full.pd)$name, ]
-acq.src.allpd <- acq.src[ acq.src$acquired_on >= start & acq.src$acquired_on < end , ]
-acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F), ]
 
 
 ##============================================
 ##
-##  Propensity Scores for Alternatives
+##  DATA FOR CONTROLS AND PROPENSITY SCORES
 ##
 ##--------------------------------------------
 
@@ -323,6 +308,43 @@ seg3 <- merge(seg2, df.conm.u, by.x='conm', by.y='conm', all.x=T, all.y=F)
 seg4 <- seg3[which(!is.na(seg3$company_name_unique)),]
 
 
+##===================================
+##
+##  AQUISITIONS FILTER
+##
+##-----------------------------------
+## GET ALL ACQ EVENT VERTICES 
+## keep only acquisitions with acquirer in ego network and target in global competition network
+acq.src <- co_acq[ co_acq$acquirer_name_unique %in% V(g.pd)$name & co_acq$acquiree_name_unique %in% V(g.full.pd)$name, ]
+acq.src.allpd <- acq.src[ acq.src$acquired_on >= start & acq.src$acquired_on < end , ]
+acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F), ]
+
+
+
+##===================================
+##
+## COMPUTE PROPOENSITY SCORES
+##
+##-----------------------------------
+## ACQUIRERS
+prop.data$idx <- 1:nrow(prop.data)
+df.fitted <- data.frame(idx=as.integer(names(prop.fit$fitted.values)), pred=prop.fit$fitted.values)
+prop.data <- merge(prop.data, df.fitted, by.x='idx', by.y='idx', all.x=T, all.y=T)
+##
+prop.data <- prop.data[order(prop.data$pred,decreasing = T),]
+prop.alt.names <- prop.data$company_name_unique[prop.data$y==0]
+
+
+## TARGETS
+
+##----------------------------------
+## YEAR PERIODS: DEFINE NICHE CLUSTERS
+l <- list()
+df.mmc <- data.frame()
+df.rem <- data.frame()
+df.reg <- data.frame()
+lidx <- 0  ## acquisition list index
+timeval <- timeval.last <- 0
 
 ##===============================
 ##
@@ -352,20 +374,23 @@ for (j in 1:nrow(acq.src.allpd)) {
   if ( ! isPublicAcq)
     next
 
-  lidx <- lidx + 1
+  lidx <- length(l) + 1
   l[[lidx]] <- list()
   
+  ## GET FIRM x FRIM MMC MATRIX TO USE IN FM-MMC COMPUTATION
+  m.mmc <- acf$getFirmFirmMmc(g.pd, as.integer(V(g.pd)$nc))
+  
   ## Update MMC after acquisition
-  l[[lidx]]$mmc <- acf$getFmMmc(g.pd, as.integer(V(g.pd)$nc))
+  l[[lidx]]$mmc <- acf$getFmMmc(g.pd, as.integer(V(g.pd)$nc), m.mmc)
+  
+  ## MMC degree: number of mmc dyads linked to each firm i
+  V(g.pd)$num.mmc.comps <- acf$getNumMmcRivalsByMembership(g.pd, as.integer(V(g.pd)$nc), m.mmc)
   
   ## SUM FM MMC over markets  ??????
   V(g.pd)$fm.mmc.sum <- rowSums(l[[lidx]]$mmc)
   V(g.pd)$num.mkts <- apply(l[[lidx]]$mmc, MARGIN=1, FUN=function(x){
     return(length(x[x>0]))
   })
-  
-  ## MMC degree: number of mmc dyads linked to each firm i
-  V(g.pd)$num.mmc.comps <- acf$getNumMmcRivalsByMembership(g.pd, as.integer(V(g.pd)$nc))
   
   ## GET  DATAFRAME VARS
   
@@ -475,7 +500,7 @@ for (j in 1:nrow(acq.src.allpd)) {
     # ## Alternative firms company_name_unique
     # alt.firm.j <- df.targ.alt$company_name_unique[ sample(idx.t.j, size=min(5, length(idx.t.j)), replace=F) ]
     # ## Propensity Score ranked selection
-    prop.data <- df.targ.alt
+    prop.data <- df.targ.alt[idx.t.j,]
     prop.data$y <- as.integer(prop.data$d == 0)
     prop.data$age <- 2018 - prop.data$founded_year
     prop.data$deg <- igraph::degree(g.full.pd, v = which(V(g.full.pd)$name %in% prop.data$company_name_unique))
@@ -586,7 +611,7 @@ for (j in 1:nrow(acq.src.allpd)) {
     # ## Alternative firms company_name_unique
     # alt.firm.i <- df.acq.alt$company_name_unique[ sample(idx.t.i, size=min(5, length(idx.t.i)), replace=F) ]
     # ## Propensity Score ranked selection
-    prop.data <- df.acq.alt
+    prop.data <- df.acq.alt[idx.t.i,]
     prop.data$y <- as.integer(prop.data$d == 0)
     prop.data$age <- 2018 - prop.data$founded_year
     prop.data$deg <- igraph::degree(g.full.pd, v = which(V(g.full.pd)$name %in% prop.data$company_name_unique))
@@ -604,10 +629,10 @@ for (j in 1:nrow(acq.src.allpd)) {
     prop.data$roa <- prop.data$ebitda / prop.data$act
     prop.data$cash <- prop.data$che / prop.data$act
     ##
-    prop.fit <- glm(y ~ d + age + deg + acqs + ln_asset + ln_emp + roa + cash + m2b, family=binomial(link='probit'), data=prop.data)
+    prop.fit <- glm(y ~ ln_asset + ln_emp + roa + cash + m2b, family=binomial(link='probit'), data=prop.data)
     ##
     prop.data$idx <- 1:nrow(prop.data)
-    df.fitted <- data.frame(idx=as.integer(names(fitted)), pred=prop.fit$fitted.values)
+    df.fitted <- data.frame(idx=as.integer(names(prop.fit$fitted.values)), pred=prop.fit$fitted.values)
     prop.data <- merge(prop.data, df.fitted, by.x='idx', by.y='idx', all.x=T, all.y=T)
     ##
     prop.data <- prop.data[order(prop.data$pred,decreasing = T),]
@@ -829,12 +854,12 @@ for (j in 1:nrow(acq.src.allpd)) {
         g.cf.r <- g.cf[[ df.alt$company_name_unique[jx] ]]
         
         ## COUNTERFACTUAL NETWORK COVARIATES
+        cat('  network counterfactuals\n')
         cf.closeness <- igraph::closeness(g.cf.r, vids = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
         cf.degree <- igraph::degree(g.cf.r, v = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
         cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
         
         ## PAIRING DATAFRAME
-        cat('  network synergies\n')
         df.tmp.dyad <- data.frame(
           ###------  event metadata ------
           y = ifelse(as.integer(df.alt$event[ix]) & as.integer(df.alt$event[jx]), 1, 0),
@@ -913,23 +938,23 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## save incrementally
   if (lidx %% 10 == 0) {   
     # saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
-    saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
+    saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
   }
   
   gc()
 }
 
 ## final save
-saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
+saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
 
 
 
-tmp <- readRDS(sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
+tmp <- readRDS(sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
 l <- tmp$l
 df.reg <- tmp$df.reg
 
 ## save regression dataframe to seprate table file
-write.csv(df.reg, file = sprintf("acqlogit_compnet_processed_acquisitions_synergies_df_%s.csv",name_i), row.names = F)
+write.csv(df.reg, file = sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_df_%s.csv",name_i), row.names = F)
 
 
 
