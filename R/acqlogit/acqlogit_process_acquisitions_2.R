@@ -206,13 +206,15 @@ acq.src.allpd <- acq.src[ acq.src$acquired_on >= start & acq.src$acquired_on < e
 acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F), ]
 
 
-##===============================
+##============================================
 ##
 ##  Propensity Scores for Alternatives
 ##
-##-------------------------------
+##--------------------------------------------
 
+##--------------------------------------------
 ## Load updated compustat data
+##--------------------------------------------
 csfunda.file <- file.path('compustat','fundamentals-annual-UPDATED.csv')
 if (!file.exists(csfunda.file)) { ## if file not exists, then run script to create it
   source(file.path(getwd(),'R','acqlogit','acqlogit_compustat_update.R'))
@@ -221,30 +223,33 @@ csa2.all <- cb$readCsv(csfunda.file)
 minyr <- min(unique(csa2.all$fyear), na.rm = T)
 csa2 <- csa2.all[which(csa2.all$fyear != minyr & !is.na(csa2.all$fyear)), ]
 
+##--------------------------------------------
 ## LOAD SEGMENTS DATA FOR DIVERSIFICATION
+##--------------------------------------------
 seg <- read.csv(file.path(getwd(),'compustat','segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 # segcus <- read.csv(file.path(getwd(),'compustat','segments-customer.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 col.seg <- c('conm','tic','datadate','srcdate','stype','snms','soptp1','geotp','sic','SICS1','SICS2','sales','revts','nis')
-seg2 <- seg[seg$soptp1!='MARKET',col.seg] ## exclude geographic MARKET segments; include PD_SRVC product/service segments
+seg2 <- seg[seg$soptp1=='PD_SRVC',col.seg] ## exclude geographic MARKET segments; include PD_SRVC product/service segments
 seg2$date <- sapply(seg2$datadate, function(x){
   x <- as.character(x)
   return(sprintf('%s-%s-%s',str_sub(x,1,4),str_sub(x,5,6),str_sub(x,7,8)))
 })
-seg2$year <- sapply(seg$date, function(x)as.integer(str_sub(x,1,4)))
-print(head(seg2[which(seg2$tic=='GOOGL'),],12))
+seg2$year <- sapply(seg2$date, function(x)as.integer(str_sub(x,1,4)))
 
-View(seg2[which(seg2$tic=='GOOGL'),])
+# ###
+# print(head(seg2[which(seg2$tic=='GOOGL'),],12))
+# View(seg2[which(seg2$tic=='GOOGL'),])
 
-##============================================
+##--------------------------------------------
 ##  MERGE Compustat Data into Compnet Dataframe 
 ##--------------------------------------------
 ## EGO GRAPH VERTEX DATARAME MERGE WITH COMPUSTAT DATA
-g.pd.df <- as_data_frame(g.pd, what = 'vertices')
+g.full.pd.df <- as_data_frame(g.full.pd, what = 'vertices')
 ## rename graph vertex name to company_name_unique
-names(g.pd.df)[which(names(g.pd.df)=='name')] <- 'company_name_unique'
+names(g.full.pd.df)[which(names(g.full.pd.df)=='name')] <- 'company_name_unique'
 ## crunchbase ipo data fields for crunchbase compnet firms
 ipocols <- c('company_name_unique','stock_symbol','stock_exchange_symbol','went_public_on')
-g.pd.df <- merge(g.pd.df, cb$co_ipo[,ipocols], by.x='company_name_unique', by.y='company_name_unique', all.x=T, all.y=F)
+g.full.pd.df <- merge(g.full.pd.df, cb$co_ipo[,ipocols], by.x='company_name_unique', by.y='company_name_unique', all.x=T, all.y=F)
 
 
 ##============================================
@@ -301,13 +306,21 @@ for (conm in names(cs.conm_cb.stock)) {
 ## MERGE COMPUSTAT DATA INTO CRUNCHBASE DATA
 ##-------------------------------
 ## merge in COMPUSTAT data by stock_exchange symbol
-csa2.tmp <- csa2[csa2$stock_symbol %in% g.pd.df$stock_symbol & !is.na(csa2$stock_symbol),]
-df.cs <- merge(g.pd.df, csa2.tmp, by.x='stock_symbol',by.y='stock_symbol', all.x=T, all.y=T)
+csa2.tmp <- csa2[csa2$stock_symbol %in% g.full.pd.df$stock_symbol & !is.na(csa2$stock_symbol),]
+df.cs <- merge(g.full.pd.df, csa2.tmp, by.x='stock_symbol',by.y='stock_symbol', all.x=T, all.y=F)
 
-
-
-# ## merged graph vertex dataframe
-# mg.df <- merge(g.pd.df, csa2, by.x='company_name_unique',by.y=,all.x=T,all.y=F)
+## SEGMENTS DATA company_name_unique to merge 
+df.conm.u <- data.frame()
+for (conm in unique(df.cs$conm)) {
+  names <- df.cs[which(df.cs$conm==conm),'company_name_unique']
+  df.conm.u <- rbind(df.conm.u, data.frame(conm=conm, company_name_unique=unique(names)[1]) )
+}
+## drop NA
+df.conm.u <- na.omit(df.conm.u)
+## MERGE IN company_name_unique
+seg3 <- merge(seg2, df.conm.u, by.x='conm', by.y='conm', all.x=T, all.y=F)
+## filter only segments data for firms with company_name_unique matched from CrunchBase data
+seg4 <- seg3[which(!is.na(seg3$company_name_unique)),]
 
 
 
@@ -582,7 +595,7 @@ for (j in 1:nrow(acq.src.allpd)) {
     }))
     ##
     ctrl.col <- c('company_name_unique','datayear','act','emp','ebitda','m2b','che')
-    ctrl.idx <- which(df.cs$datayear == df.acq.j$acquired_year-1)
+    ctrl.idx <- which(df.cs$datayear == (df.acq.j$acquired_year-1) )
     if (length(ctrl.idx)==0) 
       next
     prop.data <- merge(prop.data, df.cs[ctrl.idx,ctrl.col], by.x='company_name_unique',by.y='company_name_unique',all.x=T,all.y=F)
@@ -611,6 +624,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   cat('done.\n')
   
 
+  
   
   
   ##--------------------------------------
@@ -668,11 +682,13 @@ for (j in 1:nrow(acq.src.allpd)) {
   cat('done.\n')
   ##---------------------------------------------
   
+  
   ##---------------------------------------------
   ## MERGE IN PUBLIC FIRM FINANCIAL CONTROLS
+  ##---------------------------------------------
   cat('adding public firm financial controls...')
   ctrl.col <- c('company_name_unique','datayear','act','emp','ebitda','m2b','che')
-  ctrl.idx <- which(df.cs$datayear == df.acq.j$acquired_year-1 )
+  ctrl.idx <- which(df.cs$datayear == (df.acq.j$acquired_year-1) )
   if (length(ctrl.idx)==0)
     next
   df.alt <- merge(df.alt, df.cs[ctrl.idx,ctrl.col], by.x='company_name_unique',by.y='company_name_unique',all.x=T,all.y=F)
@@ -682,8 +698,10 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.alt$cash <- df.alt$che / df.alt$act
   cat('done.\n')
 
+  
   ##---------------------------------------------
   ## RIVALS RECENT ACQUISITIONS
+  ##---------------------------------------------
   cat('computing acquirers rivals recent acquisitions...')
   df.alt$rival.acq.1 <- NA
   df.alt$rival.acq.2 <- NA
@@ -704,8 +722,10 @@ for (j in 1:nrow(acq.src.allpd)) {
   }
   cat('done.\n')
   
+  
   ##---------------------------------------------
   ## COMPUTE PRODUCT SIMILARITY OF COUNTERFACTUAL acquirer|target TO ACTUAL target|acquirer
+  ##---------------------------------------------
   cat('computing product similarity...')
   df.alt$ij.sim <- NA
   df.alt$ij.cossim <- NA
@@ -736,12 +756,24 @@ for (j in 1:nrow(acq.src.allpd)) {
   }
   cat('done.\n')
   
+  
   ##---------------------------------------------
   ## Diversification Control
+  ##---------------------------------------------
+  df.alt$div <- NA
+  for (di in 1:nrow(df.alt))
+  {
+    x = df.alt[di,]
+    df.seg <- seg4[which(seg4$year==(df.acq.j$acquired_year-1) & seg4$company_name_unique==x$company_name_unique),]
+    if (nrow(df.seg)==0) next
+    sm <- sum(df.seg$sales)
+    df.alt$div[di] <- sum(sapply(df.seg$sales, function(x) ifelse(x==0, 0, (x/sm) * log( 1/(x/sm) )) ))
+  }
   
   
   ##---------------------------------------------
   ## CACHE ALTERNATIVES DATAFRAME
+  ##---------------------------------------------
   l[[lidx]]$df.alt <- df.alt
   
   ##---------------------------------------------
@@ -796,16 +828,21 @@ for (j in 1:nrow(acq.src.allpd)) {
         ## COUNTERFACTUAL NETWORK `r` for different target jx
         g.cf.r <- g.cf[[ df.alt$company_name_unique[jx] ]]
         
+        ## COUNTERFACTUAL NETWORK COVARIATES
+        cf.closeness <- igraph::closeness(g.cf.r, vids = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
+        cf.degree <- igraph::degree(g.cf.r, v = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
+        cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
+        
         ## PAIRING DATAFRAME
         cat('  network synergies\n')
         df.tmp.dyad <- data.frame(
-          # event features
+          ###------  event metadata ------
           y = ifelse(as.integer(df.alt$event[ix]) & as.integer(df.alt$event[jx]), 1, 0),
           t = j,
           date = date_j,
           i = df.alt$company_name_unique[ix],
           j = df.alt$company_name_unique[jx],
-          # acquirer covars
+          ###------  acquirer covars ------
           i.age = 2018 - df.alt$founded_year[ix],
           # i.pow.n1 = pow.n1,
           # i.pow.n3 = pow.n3,
@@ -816,7 +853,18 @@ for (j in 1:nrow(acq.src.allpd)) {
           i.num.mmc.comps = ifelse(is.missing(df.alt$num.mmc.comps[ix]), NA, df.alt$num.mmc.comps[ix]),
           i.constraint = df.alt$constraint[ix],
           i.acq.experience = df.alt$acq.experience[ix],
-          # target covars 
+          i.rival.acq.1 = df.alt$rival.acq.1[ix],
+          i.rival.acq.2 = df.alt$rival.acq.2[ix],
+          i.rival.acq.3 = df.alt$rival.acq.3[ix],
+          i.div = df.alt$div[ix],
+          i.ij.sim = df.alt$ij.sim[ix],
+          i.ij.cossim = df.alt$ij.cossim[ix],
+          i.ln_asset = df.alt$ln_asset[ix],
+          i.ln_emp = df.alt$ln_emp[ix],
+          i.roa = df.alt$roa[ix],
+          i.cash = df.alt$cash[ix],
+          i.m2b = df.alt$m2b[ix],
+          ###------  target covars ------ 
           j.age = 2018 - df.alt$founded_year[jx],
           j.deg = df.alt$deg[jx],
           j.fm.mmc.sum = ifelse(is.missing(df.alt$fm.mmc.sum[jx]), NA, df.alt$fm.mmc.sum[jx]),
@@ -827,7 +875,9 @@ for (j in 1:nrow(acq.src.allpd)) {
           j.rival.acq.1 = df.alt$rival.acq.1[jx],
           j.rival.acq.2 = df.alt$rival.acq.2[jx],
           j.rival.acq.3 = df.alt$rival.acq.3[jx],
-          # dyadic covars
+          j.ij.sim = df.alt$ij.sim[jx],
+          j.ij.cossim = df.alt$ij.cossim[jx],
+          ###------ dyadic covars: acquisition pairing ------
           ij.same.region = ifelse(df.alt$region[ix] == df.alt$region[jx], 1, 0),
           ij.same.state = ifelse(df.alt$state_code[ix] == df.alt$state_code[jx], 1, 0),
           ij.same.country = ifelse(df.alt$country_code[ix] == df.alt$country_code[jx], 1, 0),
@@ -838,12 +888,12 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.diff.num.mkts = ifelse(any(is.missing(df.alt$num.mkts[ix]), is.missing(df.alt$num.mkts[jx])), NA, as.numeric(df.alt$num.mkts[ix]) - as.numeric(df.alt$num.mkts[jx])),
           ij.diff.constraint = as.numeric(df.alt$constraint[ix]) - as.numeric(df.alt$constraint[jx]),
           ij.diff.acq.experience = as.numeric(df.alt$acq.experience[ix]) - as.numeric(df.alt$acq.experience[jx]),
-          # network synergies
-          # ij.syn.pow.n1 = igraph::power_centrality(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1) - pow.n1,
-          # ij.syn.pow.n3 = igraph::power_centrality(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3) - pow.n3,
-          ij.syn.closeness = igraph::closeness(g.cf.r, vids = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))                       - df.alt$closeness[ix],
-          ij.syn.degree = igraph::degree(g.cf.r, v = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))                                - df.alt$deg[ix],
-          ij.syn.constraint = igraph::constraint(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))                    - df.alt$constraint[ix]
+          ###------  network synergies ------
+          # ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
+          # ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
+          ij.syn.closeness = (cf.closeness - df.alt$closeness[ix]) / df.alt$closeness[ix],
+          ij.syn.degree = (cf.degree - df.alt$deg[ix]) / df.alt$deg[ix],
+          ij.syn.constraint = (cf.constraint  - df.alt$constraint[ix]) / df.alt$constraint[ix]
         )
         df.reg <- rbind(df.reg, df.tmp.dyad)
       }
