@@ -988,11 +988,11 @@ library(stringr)
   ##
   aaf$getFmMmc <- function(g, membership)
   {
-    cat('computing firm-to-maret MMC...\n')
+    cat('computing firm-to-maret MMC:\n')
     markets <- unique(membership)
     markets <- markets[order(markets)]
     adj <- igraph::as_adjacency_matrix(g, sparse = F)
-    cat('create firm-market incidence matrix...')
+    cat('  creating firm-market incidence matrix...')
     #### 1. 
     ## Create [Firm x Market] incidence matrix
     ## markets of each firm (which markets they are in based on NC membership of their rivals)
@@ -1008,7 +1008,7 @@ library(stringr)
     m.ms <- as.matrix(df.ms)
     cat('done.\n')
     
-    cat('create firm-firm MMC sum matrix...')
+    cat('  creating firm-firm MMC sum matrix...')
     #### 2. 
     ## Create [Firm x Firm] MMC matrix (each M[i,j] = count of markets in contact)
     m.mmc <- m.ms %*% t(m.ms)
@@ -1016,13 +1016,13 @@ library(stringr)
     diag(m.mmc) <- 0
     cat('done.\n')
     
-    cat('collecting MMC firms j...')
+    cat('  collecting MMC firms j...')
     #### 3. 
     ## Get MMC competitors list {j} for each firm i (the competitors with which they have MMC)
     js <- lapply(1:nrow(m.mmc), FUN = function(i)which(m.mmc[i, ] > 1))
     cat('done.\n')
     
-    cat('computing FM-MMC numerator...')
+    cat('  computing FM-MMC numerator...')
     #### 4. 
     ## numerator computation:  Sum_m{Sum_j{D_imt * D_jmt}}
     numerator <- ldply(1:nrow(df.ms), function(i){
@@ -1042,7 +1042,7 @@ library(stringr)
     })
     cat('done.\n')
     
-    cat('computing FM-MMC denominator...')
+    cat('  computing FM-MMC denominator...')
     #### 5. 
     ## denominator computation:  Sum_m{D_imt * N_mmc_t}
     denominator <- ldply(1:nrow(df.ms), function(i){
@@ -1065,7 +1065,7 @@ library(stringr)
     })
     cat('done.\n')
     
-    cat('computing elementwise FM-MMC...')
+    cat('  computing elementwise FM-MMC...')
     #### 6. 
     ## compute FM-MMC elementwise by component dfs
     fm.mmc <- numerator / denominator
@@ -1079,6 +1079,63 @@ library(stringr)
   
   
   
+  ##
+  # Computes the number of MMC competitors for each firm i in 
+  #   competition network 'g' with niche clusters defined in 'memberships'
+  #
+  # @param {igraph} g                 The competition network igraph object
+  # @param {array int[]} membership   The niche cluster memberships
+  #
+  # @return {int[]} The number of MMC competitors for each firm
+  ##
+  aaf$getNumMmcRivalsByMembership <- function(g, membership)
+  {
+    cat('computing number of MMC rivals:\n')
+    markets <- unique(membership)
+    markets <- markets[order(markets)]
+    adj <- igraph::as_adjacency_matrix(g, sparse = F)
+    cat('  creating firm-market incidence matrix...')
+    #### 1. 
+    ## Create [Firm x Market] incidence matrix
+    ## markets of each firm (which markets they are in based on NC membership of their rivals)
+    df.ms <- ldply(1:nrow(adj), function(i){
+      i.nbr <- unname(which( adj[i, ] == 1 ))  ## rivals (neighbors in the network) ## i.nbr <- as.integer(igraph::neighbors(g, V(g)[i]))  
+      i.ms <- unique(membership[i.nbr])  ## markets of firm i (the markets of the rivals of firm i)
+      i.ms.row <- rep(0, length(markets)) ## dummy row for [Firm x Market] matrix
+      i.ms.row[ i.ms ] <- 1 ## assign [Firm x Market] matrix row value to 1
+      names(i.ms.row) <- sapply(1:length(markets),function(x)paste0('m',x))
+      return(i.ms.row)
+    })
+    ## convert df to matrix
+    m.ms <- as.matrix(df.ms)
+    cat('done.\n')
+    
+    cat('  creating firm-firm MMC sum matrix...')
+    #### 2. 
+    ## Create [Firm x Firm] MMC matrix (each M[i,j] = count of markets in contact)
+    m.mmc <- m.ms %*% t(m.ms)
+    ## set diagonals to 0 (firms don't compete with themselves)
+    diag(m.mmc) <- 0
+    cat('done.\n')
+    
+    cat('  collecting MMC firms j...')
+    #### 3. 
+    ## Get MMC competitors list {j} for each firm i (the competitors with which they have MMC)
+    js <- lapply(1:nrow(m.mmc), FUN = function(i)which(m.mmc[i, ] > 1))
+    cat('done.\n')
+    
+    cat('  filtering MMC rivals...')
+    #### 4. 
+    ## Filter the MMC competitors list to only those who are also neighbors (rivals) in network
+    nb.js <- lapply(1:length(js), FUN = function(i){
+      nbrs <- as.integer(igraph::neighbors(g, v = i))
+      return(js[[i]][which(js[[i]] %in% nbrs)])
+    })
+    cat('done.\n')
+    
+    ## number of MMC rivals for each firm i = length of mmc rivals vector for each element i in list 
+    return(sapply(nb.js,length))
+  }
   
   
   

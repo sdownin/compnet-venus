@@ -306,6 +306,7 @@ df.cs <- merge(g.pd.df, csa2.tmp, by.x='stock_symbol',by.y='stock_symbol', all.x
 ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
 for (j in 1:nrow(acq.src.allpd)) {
   
+  df.acq.j <- acq.src.allpd[j,]  ## this acquisition row in the acquisition dataframe
   date_j <- acq.src.allpd$acquired_on[j]
   ## g.pd            d2 updated each acquisition
   ## g.pd.orig       d2 original
@@ -336,6 +337,9 @@ for (j in 1:nrow(acq.src.allpd)) {
     return(length(x[x>0]))
   })
   
+  ## MMC degree: number of mmc dyads linked to each firm i
+  V(g.pd)$num.mmc.comps <- acf$getNumMmcRivalsByMembership(g.pd, as.integer(V(g.pd)$nc))
+  
   ## GET  DATAFRAME VARS
   
   ## Acquirer d2 original org.vid
@@ -353,6 +357,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   # 
   xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
   xi.num.mkts <-  V(g.pd)$num.mkts[xi]
+  num.mmc.comps <-  V(g.pd)$num.mmc.comps[xi]
   ## 
   xj <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j]])
   xj.orig <- ifelse( !is.na(xj.orig.vid), as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid]), NA)
@@ -393,7 +398,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   
   tmp <- df.targ.alt[df.targ.alt$company_name_unique %in% names(targ.vids.d2), ]
   ## select based on ownership status
-  tmp <- if (df.targ$is.public == 1) {tmp[tmp$is.public == 1,]} else {tmp[tmp$is.public == 0,]}
+  tmp <- tmp[tmp$is.public == df.targ$is.public, ]
   # tmp.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
   tmp.alt <- tmp  ## keep all alternative targets
   ## combine target and alternatives for target set
@@ -405,33 +410,10 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.targ.alt$num.mkts <- sapply(df.targ.alt$company_name_unique, function(name){
     ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mkts[which(V(g.pd)$name == name)] , NA)
   })
-  
-  # ##-------------------------------
-  # ## SYNERGIES
-  # ##-------------------------------
-  # ## ACQUIRER's POSITION
-  # acquirer <- acq.src.allpd$acquirer_name_unique[j]
-  # pow.n1 <- igraph::power_centrality(g.pd, nodes = which(V(g.pd)$name==acquirer), exponent = -0.1)
-  # pow.n2 <- igraph::power_centrality(g.pd, nodes = which(V(g.pd)$name==acquirer), exponent = -0.2)
-  # pow.n3 <- igraph::power_centrality(g.pd, nodes = which(V(g.pd)$name==acquirer), exponent = -0.3)
-  # pow.n4 <- igraph::power_centrality(g.pd, nodes = which(V(g.pd)$name==acquirer), exponent = -0.4)
-  # pow.n5 <- igraph::power_centrality(g.pd, nodes = which(V(g.pd)$name==acquirer), exponent = -0.5)
-  # ##  Counterfactual target graphs
-  # gcf <- lapply(df.targ.alt$company_name_unique, function(name){
-  #   tmp.acq.df <- data.frame(
-  #     acquirer_uuid = acq.src.allpd$acquirer_uuid[j],
-  #     acquiree_uuid = cb$co$company_uuid[cb$co$company_name_unique==name],
-  #     acquired_on = acq.src.allpd$acquired_on[j]
-  #   )
-  #   return(acf$nodeCollapseGraph(g.pd, tmp.acq.df))
-  # })
-  
-  # ## SET POSITION
-  # df.acq.alt$pow.n1 <- igraph::power_centrality(g.pd, nodes = sapply(df.acq.alt$company_name_unique,function(name)which(V(g.pd)$name==name)), exponent = -0.1)
-  # df.acq.alt$pow.n2 <- igraph::power_centrality(g.pd, nodes = sapply(df.acq.alt$company_name_unique,function(name)which(V(g.pd)$name==name)), exponent = -0.2)
-  # df.acq.alt$pow.n3 <- igraph::power_centrality(g.pd, nodes = sapply(df.acq.alt$company_name_unique,function(name)which(V(g.pd)$name==name)), exponent = -0.3)
-  # 
-  
+  df.targ.alt$num.mmc.comps <- sapply(df.targ.alt$company_name_unique, function(name){
+    ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)] , NA)
+  })
+
   ##-------------------------------------
   ##  FILTER ALTERNATIVE TARGETS BY CONDITIONS
   ##-------------------------------------
@@ -458,15 +440,34 @@ for (j in 1:nrow(acq.src.allpd)) {
   idx.t.j <- which(bool.t.j)
   if (length(idx.t.j)==0)
     next  ## SKIP IF NO MATCHED ALTERNATIVES
+  ## Select counterfactual alternatives (if more than 5 suitable alternatives)
+  if (length(idx.t.j)>6)
+  {
+    # ## RANDOMLY SAMPLE 5 alternatives 
+    # set.seed(1111)
+    # ## Alternative firms company_name_unique
+    # alt.firm.j <- df.targ.alt$company_name_unique[ sample(idx.t.j, size=min(5, length(idx.t.j)), replace=F) ]
+    # ## Propensity Score ranked selection
+    prop.data <- df.targ.alt
+    prop.data$y <- as.integer(prop.data$d == 0)
+    prop.data$age <- 2018 - prop.data$founded_year
+    prop.data$deg <- igraph::degree(g.full.pd, v = which(V(g.full.pd)$name %in% prop.data$company_name_unique))
+    prop.data$acqs <- unname(sapply(prop.data$company_name_unique, function(name){
+      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= df.acq.j$acquired_on))
+    }))
+    prop.fit <- glm(y ~ d + age + deg + acqs, family=binomial(link='probit'), data=prop.data)
+    prop.data$pred <- prop.fit$fitted.values
+    prop.data <- prop.data[order(prop.data$pred,decreasing = T),]
+    prop.alt.names <- prop.data$company_name_unique[prop.data$y==0]
+    .n <- min(5, length(prop.alt.names))
+    alt.firm.j <- prop.alt.names[1:.n]
+  } else {
+    alt.firm.j <- df.targ.alt$company_name_unique[which(df.targ.alt$d>0)]
+  }
   ##----------------------------------------------------------
-  ## RANDOMLY SAMPLE 5 alternatives 
-  ##   TODO: REPLACE BY PROBIT MODEL FOR TOP PROPENSITY SCORES (???)
-  set.seed(1111)
-  ## Alternative firms company_name_unique
-  alt.firm.j <- df.targ.alt$company_name_unique[ sample(idx.t.j, size=min(5, length(idx.t.j)), replace=F) ]
   ## DATA SAMPLE OF ALL ACQUIRERS (REAL + 5 ALTERNATIVES)
   df.targ.alt <- df.targ.alt[df.targ.alt$company_name_unique==acq.src.allpd$acquiree_name_unique[j] | df.targ.alt$company_name_unique %in% alt.firm.j, ]
-  ##----------------------------------------------------------
+  l[[lidx]]$df.targ.alt <- df.targ.alt
   cat('done.\n')
 
   
@@ -518,11 +519,9 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.acq.alt$num.mkts <- sapply(df.acq.alt$company_name_unique, function(name){
       ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mkts[which(V(g.pd)$name == name)]) , NA)
     })
-  # ## SET POSITION
-  # df.acq.alt$pow.n1 <- igraph::power_centrality(g.pd, nodes = sapply(df.acq.alt$company_name_unique,function(name)which(V(g.pd)$name==name)), exponent = -0.1)
-  # df.acq.alt$pow.n2 <- igraph::power_centrality(g.pd, nodes = sapply(df.acq.alt$company_name_unique,function(name)which(V(g.pd)$name==name)), exponent = -0.2)
-  # df.acq.alt$pow.n3 <- igraph::power_centrality(g.pd, nodes = sapply(df.acq.alt$company_name_unique,function(name)which(V(g.pd)$name==name)), exponent = -0.3)
-
+  df.acq.alt$num.mmc.comps <- sapply(df.acq.alt$company_name_unique, function(name){
+      ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)]) , NA)
+    })
   cat('done.\n')
 
   ##-------------------------------------
@@ -552,16 +551,48 @@ for (j in 1:nrow(acq.src.allpd)) {
   if (length(idx.t.i)==0)
     next  ## SKIP IS NO ALTERNATIVE ACQUIRERS
   ##----------------------------------------------------------
-  ## RANDOMLY SAMPLE 5 alternatives 
-  ##   TODO: REPLACE BY PROBIT MODEL FOR TOP PROPENSITY SCORES (???)
-  set.seed(1111)
-  ## Alternative firms company_name_unique
-  alt.firm.i <- df.acq.alt$company_name_unique[ sample(idx.t.i, size=min(5, length(idx.t.i)), replace=F) ]
+  ## Select counterfactual alternatives (if more than 5 suitable alternatives)
+  if (length(idx.t.i)>6)
+  {
+    # ## RANDOMLY SAMPLE 5 alternatives 
+    # set.seed(1111)
+    # ## Alternative firms company_name_unique
+    # alt.firm.i <- df.acq.alt$company_name_unique[ sample(idx.t.i, size=min(5, length(idx.t.i)), replace=F) ]
+    # ## Propensity Score ranked selection
+    prop.data <- df.acq.alt
+    prop.data$y <- as.integer(prop.data$d == 0)
+    prop.data$age <- 2018 - prop.data$founded_year
+    prop.data$deg <- igraph::degree(g.full.pd, v = which(V(g.full.pd)$name %in% prop.data$company_name_unique))
+    prop.data$acqs <- unname(sapply(prop.data$company_name_unique, function(name){
+      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= df.acq.j$acquired_on))
+    }))
+    ##
+    ctrl.col <- c('company_name_unique','datayear','act','emp','ebitda','m2b','che')
+    ctrl.idx <- which(df.cs$datayear == df.acq.j$acquired_year)
+    prop.data <- merge(prop.data, df.cs[ctrl.idx,ctrl.col], by.x='company_name_unique',by.y='company_name_unique',all.x=T,all.y=F)
+    prop.data$ln_asset <- log(prop.data$act)
+    prop.data$ln_emp <- log(prop.data$emp)
+    prop.data$roa <- prop.data$ebitda / prop.data$act
+    prop.data$cash <- prop.data$che / prop.data$act
+    ##
+    prop.fit <- glm(y ~ d + age + deg + acqs + ln_asset + ln_emp + roa + cash + m2b, family=binomial(link='probit'), data=prop.data)
+    ##
+    prop.data$idx <- 1:nrow(prop.data)
+    df.fitted <- data.frame(idx=as.integer(names(fitted)), pred=prop.fit$fitted.values)
+    prop.data <- merge(prop.data, df.fitted, by.x='idx', by.y='idx', all.x=T, all.y=T)
+    ##
+    prop.data <- prop.data[order(prop.data$pred,decreasing = T),]
+    prop.alt.names <- prop.data$company_name_unique[prop.data$y==0]
+    .n <- min(5, length(prop.alt.names))
+    alt.firm.i <- prop.alt.names[1:.n]
+  } else {
+    alt.firm.i <- df.acq.alt$company_name_unique[which(df.acq.alt$d>0)]
+  }
+  ##----------------------------------------------------------
   ## DATA SAMPLE OF ALL ACQUIRERS (REAL + 5 ALTERNATIVES)
   df.acq.alt <- df.acq.alt[df.acq.alt$company_name_unique==acq.src.allpd$acquirer_name_unique[j] | df.acq.alt$company_name_unique %in% alt.firm.i, ]
-  ##----------------------------------------------------------
+  l[[lidx]]$df.acq.alt <- df.acq.alt
   cat('done.\n')
-  
   
 
   ##--------------------------------------
