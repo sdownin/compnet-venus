@@ -325,7 +325,31 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##
 ## COMPUTE PROPOENSITY SCORES
 ##
+##    Yearly propensity scores computation
+##    node collapse update network once for all acquisition per year
+##
+##    TODO ***
+##
 ##-----------------------------------
+## At this point all acquisitions preceding first year are already node-collapsed
+years <- sort(unique(acq.src.allpd$acquired_year))
+g.prop <- g.pd
+for (year in years) {
+  acq.yr <- acq.src.allpd[which(acq.src.allpd$acquired_year == year),]
+  a.df <- data.frame() ## acquirers df
+  t.df <- data.frame() ## targets df
+  for (i in 1:nrow(acq.src.allpd)) 
+  {
+    ## TARGETS
+    
+    ## ACQUIRERS
+  }
+  g.prop <- acf$nodeCollapseGraph(g.prop, acquisitions = acq.yr)
+}
+
+## TARGETS
+prop.fit <- glm(y ~ d + age + deg + acqs, family=binomial(link='probit'), data=prop.data)
+
 ## ACQUIRERS
 prop.data$idx <- 1:nrow(prop.data)
 df.fitted <- data.frame(idx=as.integer(names(prop.fit$fitted.values)), pred=prop.fit$fitted.values)
@@ -335,7 +359,7 @@ prop.data <- prop.data[order(prop.data$pred,decreasing = T),]
 prop.alt.names <- prop.data$company_name_unique[prop.data$y==0]
 
 
-## TARGETS
+
 
 ##----------------------------------
 ## YEAR PERIODS: DEFINE NICHE CLUSTERS
