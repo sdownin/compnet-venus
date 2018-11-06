@@ -338,6 +338,16 @@ g.full.prop <- g.full.pd.orig  ## full netowrk to node collapse for propensity s
 a.df <- data.frame() ## acquirers df
 t.df <- data.frame() ## targets df
 
+
+# ##---- RELAOD FROM SAVED -------------
+# l.prop <- readRDS(sprintf('acqlogit_propensity_score_comp_list_%s.rds',name_i))
+# g.prop <- l.prop$g.prop
+# g.full.prop <- l.prop$g.full.prop
+# a.df <- l.prop$a.df
+# t.df <- l.prop$t.df
+# years <- years[which(years >= 2009)]
+# ##------------------------------------
+
 for (year in years) 
 {
   cat(sprintf('\nyear %s\n\n',year))
@@ -411,6 +421,12 @@ for (year in years)
     df.targ.alt$num.mmc.comps <- sapply(df.targ.alt$company_name_unique, function(name){
       ifelse(name %in% V(g.prop)$name, V(g.prop)$num.mmc.comps[which(V(g.prop)$name == name)] , NA)
     })
+    df.targ.alt$deg <- sapply(df.targ.alt$company_name_unique, function(name){
+      ifelse(name %in% V(g.prop)$name, igraph::degree(g.prop,which(V(g.prop)$name==name)) , NA)
+    })
+    df.targ.alt$acqs <- unname(sapply(df.targ.alt$company_name_unique, function(name){
+      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+    }))
     ##-------------------------------------
     ##  FILTER ALTERNATIVE TARGETS BY CONDITIONS
     ##-------------------------------------
@@ -437,7 +453,9 @@ for (year in years)
     idx.t.j <- which(bool.t.j)
     if (length(idx.t.j) == 0)
       next  ## SKIP IF NO MATCHED ALTERNATIVES
-    
+    ## ADD ACTUAL TARGET INDEX
+    idx.t.j <- c(idx.t.j, which(df.targ.alt$company_name_unique == acq.yr.i$acquiree_name_unique))
+    ## ACQUISITION UUID
     df.targ.alt$acquisition_uuid <- acq.yr.i$acquisition_uuid
 
     ##======================================
@@ -487,6 +505,12 @@ for (year in years)
     df.acq.alt$num.mmc.comps <- sapply(df.acq.alt$company_name_unique, function(name){
       ifelse(name %in% V(g.prop)$name, as.numeric(V(g.prop)$num.mmc.comps[which(V(g.prop)$name == name)]) , NA)
     })
+    df.acq.alt$deg <- sapply(df.acq.alt$company_name_unique, function(name){
+      ifelse(name %in% V(g.prop)$name, igraph::degree(g.prop,which(V(g.prop)$name==name)) , NA)
+    })
+    df.acq.alt$acqs <- unname(sapply(df.acq.alt$company_name_unique, function(name){
+      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+    }))
     
     ##-------------------------------------
     ##  FILTER ALTERNATIVE ACQUIRERS BY CONDITIONS
@@ -514,6 +538,9 @@ for (year in years)
     idx.t.i <- which(bool.t.i)
     if (length(idx.t.i)==0)
       next  ## SKIP IS NO ALTERNATIVE ACQUIRERS
+    ## ADD ACTUAL ACQUIRER INDEX
+    idx.t.i <- c(idx.t.i, which(df.acq.alt$company_name_unique == acq.yr.i$acquirer_name_unique))
+    ## ACQUISITION UUID
     df.acq.alt$acquisition_uuid <- acq.yr.i$acquisition_uuid
     
     ## APPEND COUNTERFACTUALS FOR ACQUIRER AND TARGET SETS
@@ -530,6 +557,55 @@ for (year in years)
           file = sprintf('acqlogit_propensity_score_comp_list_%s.rds',name_i))
   
 }
+
+##=============================
+## TARGET
+##-----------------------------
+prop.data <- t.df
+prop.data$y <- as.integer(prop.data$d == 0)
+prop.data$age <- 2018 - prop.data$founded_year
+
+prop.fit <- glm(y ~ d + age + deg + acqs, family=binomial(link='probit'), data=prop.data)
+
+prop.data$pred <- prop.fit$fitted.values
+prop.data <- prop.data[order(prop.data$pred,decreasing = T),]
+prop.alt.names <- prop.data$company_name_unique[prop.data$y==0]
+.n <- min(5, length(prop.alt.names))
+alt.firm.j <- prop.alt.names[1:.n]
+
+
+##=============================
+## ALTERNATIVE
+##-----------------------------
+# ## Propensity Score ranked selection
+prop.data <- a.df
+prop.data$y <- as.integer(prop.data$d == 0)
+prop.data$age <- 2018 - prop.data$founded_year
+##
+## TODO 
+##  LOOP:  MERGE IN COMPUSTAT FINANCIAL BY ACQUISITION YEAR (t-1)
+##
+ctrl.col <- c('company_name_unique','datayear','act','emp','ebitda','m2b','che')
+ctrl.idx <- which(df.cs$datayear == (df.acq.j$acquired_year-1) )
+if (length(ctrl.idx)==0)
+  next
+prop.data <- merge(prop.data, df.cs[ctrl.idx,ctrl.col], by.x='company_name_unique',by.y='company_name_unique',all.x=T,all.y=F)
+prop.data$ln_asset <- log(prop.data$act)
+prop.data$ln_emp <- log(prop.data$emp)
+prop.data$roa <- prop.data$ebitda / prop.data$act
+prop.data$cash <- prop.data$che / prop.data$act
+##
+prop.fit <- glm(y ~ ln_asset + ln_emp + roa + cash + m2b, family=binomial(link='probit'), data=prop.data)
+##
+prop.data$idx <- 1:nrow(prop.data)
+df.fitted <- data.frame(idx=as.integer(names(prop.fit$fitted.values)), pred=prop.fit$fitted.values)
+prop.data <- merge(prop.data, df.fitted, by.x='idx', by.y='idx', all.x=T, all.y=T)
+##
+prop.data <- prop.data[order(prop.data$pred,decreasing = T),]
+prop.alt.names <- prop.data$company_name_unique[prop.data$y==0]
+.n <- min(5, length(prop.alt.names))
+alt.firm.i <- prop.alt.names[1:.n]
+
 
 
 # ## Select counterfactual alternatives (if more than 5 suitable alternatives)

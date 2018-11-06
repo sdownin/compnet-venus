@@ -1073,7 +1073,7 @@ library(stringr)
       ## firm i market indices
       i.ms <- which(df.ms[i,] > 0)
       ## comps j in markets m that i is in 
-      js.i.ms <- df.ms[ js[[i]] , i.ms ]
+      js.i.ms <- df.ms[ js[[i]] , i.ms, drop=FALSE]  ## drop=FALSE necessary
       if (length(js.i.ms) > 0) {
         ## the MMC counts of compj in each market that j is in & i is in
         js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
@@ -1083,6 +1083,31 @@ library(stringr)
       }
       return(tmp)
     })
+    
+    # ltmp <- list()
+    # for (i in 1:nrow(df.ms)) {
+    #   tmp <- rep(0, ncol(df.ms))
+    #   ## firm i market indices
+    #   i.ms <- which(df.ms[i,] > 0)
+    #   if (length(i.ms)>0) {
+    #     ## comps j in markets m that i is in
+    #     js.i.ms <- df.ms[ js[[i]] , i.ms, drop=FALSE ]
+    #     if (length(js.i.ms) > 0) {
+    #       ## the MMC counts of compj in each market that j is in & i is in
+    #       js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
+    #       if (length(dim(js.i.ms.cnt))!=2){
+    #         cat(sprintf('length of dim(js.i.ms.cnt) != 2\n row %s in ldply for numerator',i))
+    #         break
+    #       } else {
+    #         js.i.ms.sum <- colSums(js.i.ms.cnt)
+    #       }
+    #       ## assign the MMC iteraction sums in i's markets with js who are MMC comps
+    #       tmp[ i.ms ] <- js.i.ms.sum
+    #     }
+    #   }
+    #   ltmp[[i]] <- tmp
+    # }
+    
     cat('done.\n')
     
     cat('  computing FM-MMC denominator...')
@@ -1094,7 +1119,7 @@ library(stringr)
       i.ms <- which(df.ms[i,] > 0)
       D_imt <- length(i.ms)
       ## comps j in markets m that i is in 
-      js.i.ms <- df.ms[ js[[i]] , i.ms ]
+      js.i.ms <- df.ms[ js[[i]] , i.ms, drop=FALSE]  ## drop=FALSE necessary
       if (length(js.i.ms) > 0) {
         ## the MMC counts of compj in each market m that j is in & i is in
         js.i.ms.cnt <- js.i.ms * m.mmc[i, js[[i]] ]
