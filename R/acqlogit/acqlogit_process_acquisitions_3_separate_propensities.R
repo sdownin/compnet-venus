@@ -719,15 +719,16 @@ for (j in 1:nrow(acq.src.allpd)) {
   cat(sprintf('\n\nstart %s end %s : acquisition %s (%.2f%s)\n\n',start,end,j,100*j/nrow(acq.src.allpd),'%'))
   
   ##-------------------------------------------
-  ## NODE COLLAPSE PREVIOUS ACQUISITION update network
+  ## NODE COLLAPSE PREVIOUS ACQUISITION IF IT WAS SKIPPED 
   ##-------------------------------------------
   if (do.node.collapse & j > 1) {
     cat(sprintf('node collapsing previous skipped acquisition %s:\n',(j-1)))
     g.pd <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[(j-1),])
     g.full.pd <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[(j-1),])
-    ## FLAG TO NOT RUN NODE COLLAPSE AT START OF NEXT LOOP SINCE IT WAS ALREADY PROCESSED HERE
+    ## FLAG TO NODE COLLAPSE NEXT LOOP
     do.node.collapse <- TRUE
-  } else {
+  } else { ## DONT NODE COLLAPSE PREVIOUS ACQUISITION IF IT WAS ALREADY NODE COLLAPSED (NOT SKIPPED)
+    ## FLAG TO NODE COLLAPSE NEXT LOOP
     do.node.collapse <- TRUE
   }
   
