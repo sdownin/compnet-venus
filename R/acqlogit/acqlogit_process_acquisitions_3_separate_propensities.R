@@ -638,6 +638,21 @@ prop.data$pred <- predict.glm(prop.fit, prop.data,type = 'response')
 t.prop <- prop.data
 
 
+## CHECK TARGET PROPENSITY MODEL PERFORMANCE
+check.prop <- t.prop
+uuids <- unique(t.prop$acquisition_uuid) 
+df.check <- data.frame()
+for (uuid in uuids) {
+  tmp <- check.prop[which(check.prop$acquisition_uuid==uuid),]
+  tmp <- tmp[order(tmp$pred, decreasing = T), ]
+  df.check <- rbind(df.check, data.frame(uuid=uuid,n=nrow(tmp),r=which(tmp$y==1)))
+}
+df.check$p <- (df.check$n - df.check$r + 1) / df.check$n 
+hist(df.check$p,main='1 = top propensity (good); 0 = bottom propensity (bad)')
+cat(sprintf('Proportion of events in top 2:  %.3f\n',length(which(df.check$r<=2))/nrow(df.check)))
+cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3))/nrow(df.check)))
+
+
 
 ##=============================
 ## ACQUIRER
@@ -670,6 +685,23 @@ prop.data$pred <- predict.glm(prop.fit, prop.data, type = 'response')
 a.prop <- prop.data
 
 
+## CHECK ACQUIRER PROPENSITY MODEL PERFORMANCE
+check.prop <- a.prop
+uuids <- unique(t.prop$acquisition_uuid) 
+df.check <- data.frame()
+for (uuid in uuids) {
+  tmp <- check.prop[which(check.prop$acquisition_uuid==uuid),]
+  tmp <- tmp[order(tmp$pred, decreasing = T), ]
+  df.check <- rbind(df.check, data.frame(uuid=uuid,n=nrow(tmp),r=which(tmp$y==1)))
+}
+df.check$p <- (df.check$n - df.check$r + 1) / df.check$n 
+hist(df.check$p,main='1 = top propensity (good); 0 = bottom propensity (bad)')
+cat(sprintf('Proportion of events in top 2:  %.3f\n',length(which(df.check$r<=2))/nrow(df.check)))
+cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3))/nrow(df.check)))
+
+
+
+## SAVE LIST OF PROPENSITY SCORE DATAFRAMES
 saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
              g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
              a.df=a.df, t.df=t.df, a.df.ctrl=a.df.ctrl, a.prop=a.prop, t.prop=t.prop),
@@ -678,15 +710,26 @@ saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop,
 
 
 
+##---------------------------------------------
+## LOAD DATA AFTER PROPENSITIES ARE COMPUTED
+##---------------------------------------------
+l.prop <- readRDS(sprintf('acqlogit_propensity_score_comp_list_%s_PATCH_20181107.rds',name_i))
+g.prop <- l.prop$g.prop
+g.full.prop <- l.prop$g.full.prop
+# g.prop.nc <- l.prop$g.prop.nc ## ?
+# g.full.prop.nc <- l.prop$g.full.prop.nc ## ?
+a.df <- l.prop$a.df
+a.df.ctrl <- l.prop$a.df.ctrl
+t.df <- l.prop$t.df
+a.prop <- l.prop$a.prop
+t.prop <- l.prop$t.prop
 
 
 
 
-
-
-
-##----------------------------------
+##=============================================
 ## YEAR PERIODS: DEFINE NICHE CLUSTERS
+##---------------------------------------------
 l <- list()
 df.mmc <- data.frame()
 df.rem <- data.frame()
@@ -696,6 +739,8 @@ timeval <- timeval.last <- 0
 
 g.pd.nc <- g.pd.orig            ## ego network to node collapse for network covariates
 g.full.pd.nc <- g.full.pd.orig  ## full netowrk to node collapse for network covariates
+
+
 
 ##===============================
 ##
@@ -762,10 +807,12 @@ for (j in 1:nrow(acq.src.allpd)) {
   
 
   ## Subset Year Period Network
+  cat('  subsetting network edges for year period of acquisition...')
   g.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.pd.nc), year_j, year_j-1, isolates.remove = F))
   g.full.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.full.pd.nc), year_j, year_j-1, isolates.remove = F))
   V(g.pd)$name <- V(g.pd)$vertex.names
   V(g.full.pd)$name <- V(g.full.pd)$vertex.names
+  cat('done.')
   
   ## GET FIRM x FRIM MMC MATRIX TO USE IN FM-MMC COMPUTATION
   m.mmc <- acf$getFirmFirmMmc(g.pd, as.integer(V(g.pd)$nc))
@@ -792,7 +839,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## acquirer  d2 t=j id
   xi <- which(V(g.pd)$name==acq.src.allpd$acquirer_name_unique[j])
   ## target  d2 t=j id
-  xj <- which(V(g.pd)$name==acq.src.allpd$acquirer_name_unique[j])
+  xj <- which(V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j])
   # acquirer id in original graph (at start of period)
   xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.allpd$acquirer_name_unique[j]])
   xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
@@ -801,7 +848,6 @@ for (j in 1:nrow(acq.src.allpd)) {
   xi.num.mkts <-  V(g.pd)$num.mkts[xi]
   num.mmc.comps <-  V(g.pd)$num.mmc.comps[xi]
   ## 
-  xj <- as.integer(V(g.pd)[V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j]])
   xj.orig <- ifelse( !is.na(xj.orig.vid), as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid]), NA)
   xj.orig <- ifelse(length(xj.orig) > 1, xj.orig, NA)
   xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
@@ -811,7 +857,6 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## TARGET ALTERNATIVES SET
   ##
   ##--------------------------------------
-  cat('target set ...')
   ## SELECT FROM PROPENSITY SCORES (if alternatives more than 5)
   t.prop.j <- t.prop[which(t.prop$acquisition_uuid==df.acq.j$acquisition_uuid),]
   t.prop.j <- t.prop.j[order(t.prop.j$pred, decreasing = T), ]
@@ -828,6 +873,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   targ.id <- which(V(g.full.pd)$name == acq.src.allpd$acquiree_name_unique[j])
   ## START TARGET ALTERNATIVES DATAFRAME
   df.targ.alt <- cb$co[which(cb$co$company_name_unique %in% alt.targ.names),]
+  ## MERGE IN y and d
+  df.targ.alt <- merge(df.targ.alt, t.prop.j[,c('company_name_unique','y','d')], by.x='company_name_unique',by.y='company_name_unique',all.x=T,all.y=F)
 
   ## ipo status
   df.targ.alt$is.public <- sapply(1:nrow(df.targ.alt), function(x){
@@ -890,7 +937,6 @@ for (j in 1:nrow(acq.src.allpd)) {
   ##----------------------------------------------------------
   ## DATA SAMPLE OF ALL ACQUIRERS (REAL + 5 ALTERNATIVES)
   l[[lidx]]$df.targ.alt <- df.targ.alt
-  cat('done.\n')
 
   
   
@@ -899,7 +945,6 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## ACQUIRER ALTERNATIVES SET
   ##
   ##--------------------------------------
-  cat('target set ...')
   ## SELECT FROM PROPENSITY SCORES (if alternatives more than 5)
   a.prop.j <- a.prop[which(a.prop$acquisition_uuid==df.acq.j$acquisition_uuid),]
   a.prop.j <- a.prop.j[order(a.prop.j$pred, decreasing = T), ]
@@ -916,6 +961,9 @@ for (j in 1:nrow(acq.src.allpd)) {
   acq.id <- which(V(g.full.pd)$name == acq.src.allpd$acquirer_name_unique[j])
   ## START TARGET ALTERNATIVES DATAFRAME
   df.acq.alt <- cb$co[which(cb$co$company_name_unique %in% alt.acq.names),]
+  ## MERGE IN y and d
+  df.acq.alt <- merge(df.acq.alt, a.prop.j[,c('company_name_unique','y','d')], by.x='company_name_unique',by.y='company_name_unique',all.x=T,all.y=F)
+  
   
   ## ipo status
   df.acq.alt$is.public <- sapply(1:nrow(df.acq.alt), function(x){
@@ -926,7 +974,7 @@ for (j in 1:nrow(acq.src.allpd)) {
     return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
   })
   ## target had IPO
-  df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.pd)$name[acq.id]), ]
+  df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.full.pd)$name[acq.id]), ]
   
   if (nrow(df.acq) == 0)
     next
@@ -948,13 +996,28 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.acq.alt$num.mmc.comps <- sapply(df.acq.alt$company_name_unique, function(name){
       ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)]) , NA)
     })
-  cat('done.\n')
+  ## ACQUISITIONS
+  df.acq.alt$acqs <- unname(sapply(df.acq.alt$company_name_unique, function(name){
+    length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
+  }))
+  ## USE EGO and GLOBAL NETWORK for DEGREE
+  df.acq.alt$deg <- sapply(df.acq.alt$company_name_unique, function(name){
+    ifelse(name %in% V(g.pd)$name, igraph::degree(g.pd,which(V(g.pd)$name==name)) , NA)
+  })
+  df.acq.alt$deg.full <- sapply(df.acq.alt$company_name_unique, function(name){
+    ifelse(name %in% V(g.full.pd)$name, igraph::degree(g.full.pd,which(V(g.full.pd)$name==name)) , NA)
+  })
+  
+  ## KEEP SAME DIMENSIONS AS TARGET DATAFRAME
+  df.acq.alt$fund.v.cnt <- NA
+  df.acq.alt$fund.v.amt <- NA
+  df.acq.alt$fund.cnt <- NA
+  df.acq.alt$fund.amt <- NA
   
   ##----------------------------------------------------------
   ## DATA SAMPLE OF ALL ACQUIRERS (REAL + 5 ALTERNATIVES)
   l[[lidx]]$df.acq.alt <- df.acq.alt
-  cat('done.\n')
-  
+
 
   
   
@@ -991,25 +1054,24 @@ for (j in 1:nrow(acq.src.allpd)) {
   tmp.cov <- data.frame(
     company_name_unique = unlist(V(g.diff)$name[vids.diff]),
     closeness = unname(igraph::closeness(g.diff, vids = vids.diff,normalized = T)),
-    deg = unname(igraph::degree(g.diff, v = vids.diff)),
     constraint = unname(unlist(igraph::constraint(g.diff, nodes = vids.diff)))
   )
   df.alt <- merge(df.alt, tmp.cov, by = 'company_name_unique', all.x = T, all.y = F)
-  ## acquisition experience
-  df.alt$acq.experience <- unlist(sapply(1:nrow(df.alt), function(x){ return(
-    nrow(acq.src.allpd[which(acq.src.allpd$acquirer_name_unique == df.alt$company_name_unique[x]
-                             & acq.src.allpd$acquired_on <= date_j), ]) / j ## scale experience to num observed acquisitions
-  )}))
-  ## local covars in pd graph
-  df.alt$fm.mmc.sum <- sapply(df.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)]), NA)
-  })
-  df.alt$num.mkts  <-  sapply(df.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mkts[which(V(g.pd)$name == name)]), NA)
-  })
-  df.alt$num.mmc.comps  <-  sapply(df.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)]), NA)
-  })
+  # ## acquisition experience
+  # df.alt$acq.experience <- unlist(sapply(1:nrow(df.alt), function(x){ return(
+  #   nrow(acq.src.allpd[which(acq.src.allpd$acquirer_name_unique == df.alt$company_name_unique[x]
+  #                            & acq.src.allpd$acquired_on <= date_j), ]) / j ## scale experience to num observed acquisitions
+  # )}))
+  # ## local covars in pd graph
+  # df.alt$fm.mmc.sum <- sapply(df.alt$company_name_unique, function(name){
+  #   ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)]), NA)
+  # })
+  # df.alt$num.mkts  <-  sapply(df.alt$company_name_unique, function(name){
+  #   ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mkts[which(V(g.pd)$name == name)]), NA)
+  # })
+  # df.alt$num.mmc.comps  <-  sapply(df.alt$company_name_unique, function(name){
+  #   ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)]), NA)
+  # })
   
   cat('done.\n')
   ##---------------------------------------------
@@ -1125,6 +1187,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   })
   names(g.cf) <- df.targ.alt$company_name_unique
 
+  ##---------------------------------------------
+  ##  APPEND PAIRING COVARIATES TO REGRESSION DATAFRAME
   ##---------------------------------------------
   cat('appending dyadic regression dataframe...\n')
 
