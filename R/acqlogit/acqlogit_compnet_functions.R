@@ -1029,36 +1029,36 @@ library(stringr)
   #
   # @return {data.frame float[N x M]} The FM-MMC values in [0,1] for N firms,  M markets
   ##
-  aaf$getFmMmc <- function(g, membership, m.mmc)
+  aaf$getFmMmc <- function(g, membership)
   {
-    # cat('computing firm-to-maret MMC:\n')
-    # markets <- unique(membership)
-    # markets <- markets[order(markets)]
-    # adj <- igraph::as_adjacency_matrix(g, sparse = F)
-    # cat('  creating firm-market incidence matrix...')
-    # #### 1. 
-    # ## Create [Firm x Market] incidence matrix
-    # ## markets of each firm (which markets they are in based on NC membership of their rivals)
-    # df.ms <- ldply(1:nrow(adj), function(i){
-    #   i.nbr <- unname(which( adj[i, ] == 1 ))  ## rivals (neighbors in the network) ## i.nbr <- as.integer(igraph::neighbors(g, V(g)[i]))  
-    #   i.ms <- unique(membership[i.nbr])  ## markets of firm i (the markets of the rivals of firm i)
-    #   i.ms.row <- rep(0, length(markets)) ## dummy row for [Firm x Market] matrix
-    #   i.ms.row[ i.ms ] <- 1 ## assign [Firm x Market] matrix row value to 1
-    #   names(i.ms.row) <- sapply(1:length(markets),function(x)paste0('m',x))
-    #   return(i.ms.row)
-    # })
-    # ## convert df to matrix
-    # m.ms <- as.matrix(df.ms)
-    # cat('done.\n')
-    # 
-    # cat('  creating firm-firm MMC sum matrix...')
-    # #### 2. 
-    # ## Create [Firm x Firm] MMC matrix (each M[i,j] = count of markets in contact)
-    # m.mmc <- m.ms %*% t(m.ms)
-    # ## set diagonals to 0 (firms don't compete with themselves)
-    # diag(m.mmc) <- 0
-    # cat('done.\n')
     cat('computing firm-to-maret MMC:\n')
+    markets <- unique(membership)
+    markets <- markets[order(markets)]
+    adj <- igraph::as_adjacency_matrix(g, sparse = F)
+    cat('  creating firm-market incidence matrix...')
+    #### 1.
+    ## Create [Firm x Market] incidence matrix
+    ## markets of each firm (which markets they are in based on NC membership of their rivals)
+    df.ms <- ldply(1:nrow(adj), function(i){
+      i.nbr <- unname(which( adj[i, ] == 1 ))  ## rivals (neighbors in the network) ## i.nbr <- as.integer(igraph::neighbors(g, V(g)[i]))
+      i.ms <- unique(membership[i.nbr])  ## markets of firm i (the markets of the rivals of firm i)
+      i.ms.row <- rep(0, length(markets)) ## dummy row for [Firm x Market] matrix
+      i.ms.row[ i.ms ] <- 1 ## assign [Firm x Market] matrix row value to 1
+      names(i.ms.row) <- sapply(1:length(markets),function(x)paste0('m',x))
+      return(i.ms.row)
+    })
+    ## convert df to matrix
+    m.ms <- as.matrix(df.ms)
+    cat('done.\n')
+
+    cat('  creating firm-firm MMC sum matrix...')
+    #### 2.
+    ## Create [Firm x Firm] MMC matrix (each M[i,j] = count of markets in contact)
+    m.mmc <- m.ms %*% t(m.ms)
+    ## set diagonals to 0 (firms don't compete with themselves)
+    diag(m.mmc) <- 0
+    cat('done.\n')
+
     cat('  collecting MMC firms j...')
     #### 3. 
     ## Get MMC competitors list {j} for each firm i (the competitors with which they have MMC)
