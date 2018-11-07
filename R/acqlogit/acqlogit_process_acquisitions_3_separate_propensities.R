@@ -891,12 +891,9 @@ for (j in 1:nrow(acq.src.allpd)) {
     next
   
   ## select based on ownership status  
-  tmp <- df.targ.alt[which(df.targ.alt$is.public == df.targ$is.public),]
-  # tmp.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
-  tmp.alt <- tmp  ## keep all alternative targets
-  ## combine target and alternatives for target set
-  df.targ.alt <- rbind(tmp.alt, df.targ)
-  ## add MMC
+  df.targ.alt <- df.targ.alt[which(df.targ.alt$is.public == df.targ$is.public),]
+
+    ## add MMC
   df.targ.alt$fm.mmc.sum <- sapply(df.targ.alt$company_name_unique, function(name){
       ifelse(name %in% V(g.pd)$name, V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)] , NA)
     })
@@ -979,13 +976,10 @@ for (j in 1:nrow(acq.src.allpd)) {
   if (nrow(df.acq) == 0)
     next
   
-  tmp <- df.acq.alt
+
   ## select based on ownership status
-  tmp <- df.acq.alt[which(df.acq.alt$is.public == df.acq$is.public), ]
-  # tmp.acq.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
-  tmp.acq.alt <- tmp ## keep all
-  ## combine target and alternatives for target set
-  df.acq.alt <- rbind(tmp.acq.alt, df.acq)
+  df.acq.alt <- df.acq.alt[which(df.acq.alt$is.public == df.acq$is.public), ]
+
   ## set MMC
   df.acq.alt$fm.mmc.sum <- sapply(df.acq.alt$company_name_unique, function(name){
       ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)]) , NA)
@@ -1226,6 +1220,8 @@ for (j in 1:nrow(acq.src.allpd)) {
         
         ## COUNTERFACTUAL NETWORK COVARIATES
         cat('  network counterfactuals\n')
+        # cf.m.mmc <- acf$getFirmFirmMmc(g.cf.r, as.integer(V(g.cf.r)$nc))
+        # cf.num.mmc.comps <- acf$getNumMmcRivalsByMembership(g.cf.r, as.integer(V(g.cf.r)$nc), cf.m.mmc)
         cf.closeness <- igraph::closeness(g.cf.r, vids = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
         cf.degree <- igraph::degree(g.cf.r, v = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
         cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
@@ -1248,7 +1244,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           i.num.mkts = ifelse(is.missing(df.alt$num.mkts[ix]), NA, df.alt$num.mkts[ix]),
           i.num.mmc.comps = ifelse(is.missing(df.alt$num.mmc.comps[ix]), NA, df.alt$num.mmc.comps[ix]),
           i.constraint = df.alt$constraint[ix],
-          i.acq.experience = df.alt$acq.experience[ix],
+          i.acqs = df.alt$acqs[ix],
           i.rival.acq.1 = df.alt$rival.acq.1[ix],
           i.rival.acq.2 = df.alt$rival.acq.2[ix],
           i.rival.acq.3 = df.alt$rival.acq.3[ix],
@@ -1267,7 +1263,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           j.num.mkts = ifelse(is.missing(df.alt$num.mkts[jx]), NA, df.alt$num.mkts[jx]),
           j.num.mmc.comps = ifelse(is.missing(df.alt$num.mmc.comps[jx]), NA, df.alt$num.mmc.comps[jx]),
           j.constraint = df.alt$constraint[jx],
-          j.acq.experience = df.alt$acq.experience[jx],
+          j.acqs = df.alt$acqs[jx],
           j.rival.acq.1 = df.alt$rival.acq.1[jx],
           j.rival.acq.2 = df.alt$rival.acq.2[jx],
           j.rival.acq.3 = df.alt$rival.acq.3[jx],
@@ -1282,11 +1278,13 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.diff.deg = as.numeric(df.alt$deg[ix]) - as.numeric(df.alt$deg[jx]),
           ij.diff.fm.mmc.sum = ifelse(any(is.missing(df.alt$fm.mmc.sum[ix]),is.missing(df.alt$fm.mmc.sum[jx])), NA, as.numeric(df.alt$fm.mmc.sum[ix]) - as.numeric(df.alt$fm.mmc.sum[jx])),
           ij.diff.num.mkts = ifelse(any(is.missing(df.alt$num.mkts[ix]), is.missing(df.alt$num.mkts[jx])), NA, as.numeric(df.alt$num.mkts[ix]) - as.numeric(df.alt$num.mkts[jx])),
+          ij.diff.num.mmc.comps = ifelse(any(is.missing(df.alt$num.mmc.comps[ix]), is.missing(df.alt$num.mmc.comps[jx])), NA, as.numeric(df.alt$num.mmc.comps[ix]) - as.numeric(df.alt$num.mmc.comps[jx])),
           ij.diff.constraint = as.numeric(df.alt$constraint[ix]) - as.numeric(df.alt$constraint[jx]),
-          ij.diff.acq.experience = as.numeric(df.alt$acq.experience[ix]) - as.numeric(df.alt$acq.experience[jx]),
+          ij.diff.acq.experience = as.numeric(df.alt$acqs[ix]) - as.numeric(df.alt$acqs[jx]),
           ###------  network synergies ------
           # ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
           # ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
+          # ij.syn.num.mmc.comps = (cf.num.mmc.comps - df.alt$num.mmc.comps[ix]) / df.alt$num.mmc.comps[ix],
           ij.syn.closeness = (cf.closeness - df.alt$closeness[ix]) / df.alt$closeness[ix],
           ij.syn.degree = (cf.degree - df.alt$deg[ix]) / df.alt$deg[ix],
           ij.syn.constraint = (cf.constraint  - df.alt$constraint[ix]) / df.alt$constraint[ix]
@@ -1316,10 +1314,15 @@ for (j in 1:nrow(acq.src.allpd)) {
   }
   
   gc()
-}
+  
+} ## end loop
 
 ## final save
 saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
+
+
+##---------------------------------------------------------
+
 
 
 
