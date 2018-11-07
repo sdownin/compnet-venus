@@ -704,6 +704,9 @@ g.full.pd.nc <- g.full.pd.orig  ## full netowrk to node collapse for network cov
 ##-------------------------------
 
 ## ACQUISITION EVENTS:  UPDATE MMC & DYNAMIC EFFs
+
+do.node.collapse <- TRUE ## START WITH FALSE AND SET TO TRUE ON FIRST LOOP
+
 for (j in 1:nrow(acq.src.allpd)) {
   
   df.acq.j <- acq.src.allpd[j,]  ## this acquisition row in the acquisition dataframe
@@ -715,20 +718,36 @@ for (j in 1:nrow(acq.src.allpd)) {
   
   cat(sprintf('\n\nstart %s end %s : acquisition %s (%.2f%s)\n\n',start,end,j,100*j/nrow(acq.src.allpd),'%'))
   
-  ##===========================================
-  ## FILTER
+  ##-------------------------------------------
+  ## NODE COLLAPSE PREVIOUS ACQUISITION update network
+  ##-------------------------------------------
+  if (do.node.collapse & j > 1) {
+    cat(sprintf('node collapsing previous skipped acquisition %s:\n',(j-1)))
+    g.pd <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[(j-1),])
+    g.full.pd <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[(j-1),])
+    ## FLAG TO NOT RUN NODE COLLAPSE AT START OF NEXT LOOP SINCE IT WAS ALREADY PROCESSED HERE
+    do.node.collapse <- TRUE
+  } else {
+    do.node.collapse <- TRUE
+  }
+  
+  ##------------------------------------------- 
+  ## CHECKS TO SKIP ACQUISITION
   ##------------------------------------------- 
   ## ACQUISITION MUST BE IN PROPENSITY SCORES DATAFRAMES
   if ( !(df.acq.j$acquisition_uuid %in% a.prop$acquisition_uuid) | 
        !(df.acq.j$acquisition_uuid %in% t.prop$acquisition_uuid) ) {
     next 
   }
-  
+  # SKIP IF ALL ACQUIRER ALTERNATIVES HAVE NO COMPUSTAT FINANICALS (check m2b all NA)
+  if (all(is.na(a.prop$m2b[which(a.prop$acquisition_uuid==df.acq.j$acquisition_uuid)]))) 
+    next
+  ## SKIP IF EITHER ACQUIRER OR TARGET IS NOT IN NETWORK
   if ( !(acq.src.allpd$acquiree_name_unique[j] %in% V(g.full.pd.orig)$name) ) 
     next
   if ( !(acq.src.allpd$acquirer_name_unique[j] %in% V(g.pd)$name) ) 
     next
-  ## skip if acquirer is not public
+  ## SKIP IF ACQUIRER IS NOT PUBLIC
   isPublicAcq <- (acq.src.allpd$acquirer_name_unique[j] %in% cb$co_ipo$company_name_unique 
                   & cb$co_ipo$went_public_on[cb$co_ipo$company_name_unique==acq.src.allpd$acquirer_name_unique[j]] <= acq.src.allpd$acquired_on[j])
   if (length(isPublicAcq)==0)
@@ -744,7 +763,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## Subset Year Period Network
   g.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.pd.nc), year_j, year_j-1, isolates.remove = F))
   g.full.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.full.pd.nc), year_j, year_j-1, isolates.remove = F))
-  
+  V(g.pd)$name <- V(g.pd)$vertex.names
+  V(g.full.pd)$name <- V(g.full.pd)$vertex.names
   
   ## GET FIRM x FRIM MMC MATRIX TO USE IN FM-MMC COMPUTATION
   m.mmc <- acf$getFirmFirmMmc(g.pd, as.integer(V(g.pd)$nc))
@@ -803,6 +823,9 @@ for (j in 1:nrow(acq.src.allpd)) {
     alt.targ.names <- t.prop.j$company_name_unique
   }
   
+  ## ACTUAL TARGET ID
+  targ.id <- which(V(g.full.pd)$name == acq.src.allpd$acquiree_name_unique[j])
+  ## START TARGET ALTERNATIVES DATAFRAME
   df.targ.alt <- cb$co[which(cb$co$company_name_unique %in% alt.targ.names),]
 
   ## ipo status
@@ -819,26 +842,49 @@ for (j in 1:nrow(acq.src.allpd)) {
   if (nrow(df.targ) == 0)
     next
   
-  tmp <- df.targ.alt[df.targ.alt$company_name_unique %in% names(targ.vids.d2), ]
-  ## select based on ownership status
-  tmp <- tmp[tmp$is.public == df.targ$is.public, ]
+  ## select based on ownership status  
+  tmp <- df.targ.alt[which(df.targ.alt$is.public == df.targ$is.public),]
   # tmp.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
   tmp.alt <- tmp  ## keep all alternative targets
   ## combine target and alternatives for target set
   df.targ.alt <- rbind(tmp.alt, df.targ)
   ## add MMC
   df.targ.alt$fm.mmc.sum <- sapply(df.targ.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)] , NA)
-  })
+      ifelse(name %in% V(g.pd)$name, V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)] , NA)
+    })
   df.targ.alt$num.mkts <- sapply(df.targ.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mkts[which(V(g.pd)$name == name)] , NA)
-  })
+      ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mkts[which(V(g.pd)$name == name)] , NA)
+    })
   df.targ.alt$num.mmc.comps <- sapply(df.targ.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)] , NA)
-  })
-  
-  
-  
+      ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)] , NA)
+    })
+  ## ACQUISITIONS
+  df.targ.alt$acqs <- unname(sapply(df.targ.alt$company_name_unique, function(name){
+      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
+    }))
+  ## VENTURE FUNDING
+  df.targ.alt$fund.v.cnt <- unname(sapply(df.targ.alt$company_name_unique, function(name){
+      length(which(cb$co_rou$company_name_unique==name & cb$co_rou$announced_on <= date_j & cb$co_rou$funding_round_type=='venture'))
+    }))
+  df.targ.alt$fund.v.amt <- unname(sapply(df.targ.alt$company_name_unique, function(name){
+      idx <- which(cb$co_rou$company_name_unique==name & cb$co_rou$announced_on <= date_j & cb$co_rou$funding_round_type=='venture')
+      return(sum(cb$co_rou$raised_amount_usd[idx], na.rm = T))
+    }))
+  ## ALL FUNDING
+  df.targ.alt$fund.cnt <- unname(sapply(df.targ.alt$company_name_unique, function(name){
+      length(which(cb$co_rou$company_name_unique==name & cb$co_rou$announced_on <= date_j))
+    }))
+  df.targ.alt$fund.amt <- unname(sapply(df.targ.alt$company_name_unique, function(name){
+      idx <- which(cb$co_rou$company_name_unique==name & cb$co_rou$announced_on <= date_j)
+      return(sum(cb$co_rou$raised_amount_usd[idx], na.rm = T))
+    }))
+  ## USE EGO and GLOBAL NETWORK for DEGREE
+  df.targ.alt$deg <- sapply(df.targ.alt$company_name_unique, function(name){
+      ifelse(name %in% V(g.pd)$name, igraph::degree(g.pd,which(V(g.pd)$name==name)) , NA)
+    })
+  df.targ.alt$deg.full <- sapply(df.targ.alt$company_name_unique, function(name){
+      ifelse(name %in% V(g.full.pd)$name, igraph::degree(g.full.pd,which(V(g.full.pd)$name==name)) , NA)
+    })
   
   ##----------------------------------------------------------
   ## DATA SAMPLE OF ALL ACQUIRERS (REAL + 5 ALTERNATIVES)
@@ -852,20 +898,24 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## ACQUIRER ALTERNATIVES SET
   ##
   ##--------------------------------------
-  cat('acquirer set ...')
-  ## acquirer alternative set vids
-  acq.id <- which(V(g.pd)$name == acq.src.allpd$acquirer_name_unique[j])
-  acq.vids.d2 <- igraph::neighborhood(graph = g.pd, order = 2, nodes = acq.id)[[1]]
-  acq.vids.d2 <- acq.vids.d2[which( !(names(acq.vids.d2) %in% V(g.pd)$name[acq.id]))]
-  acq.vids.d1 <- igraph::neighborhood(graph = g.pd, order = 1, nodes = acq.id)[[1]]
-  acq.vids.d1 <- acq.vids.d2[which( !(names(acq.vids.d1) %in% V(g.pd)$name[acq.id]))]
-  ## acquirer alternatives dataframe
-  # length(acq.vids.d1)
-  df.acq.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(acq.vids.d1),names(acq.vids.d2),V(g.pd)$name[acq.id])), ]
-  df.acq.alt$d <- sapply(df.acq.alt$company_name_unique, function(x){ return(
-    ifelse(x ==  V(g.pd)$name[acq.id], 0, 
-           ifelse(x %in% names(acq.vids.d1), 1,   2))
-  )})
+  cat('target set ...')
+  ## SELECT FROM PROPENSITY SCORES (if alternatives more than 5)
+  a.prop.j <- a.prop[which(a.prop$acquisition_uuid==df.acq.j$acquisition_uuid),]
+  a.prop.j <- a.prop.j[order(a.prop.j$pred, decreasing = T), ]
+  if (nrow(a.prop.j)>6) {
+    idx.1 <- which(a.prop.j$y==1)
+    idx.0 <- which(a.prop.j$y==0)
+    idx.0.sample <- idx.0[1:min(5,length(idx.0))]
+    alt.acq.names <- a.prop.j$company_name_unique[c(idx.1, idx.0.sample)]
+  } else {
+    alt.acq.names <- a.prop.j$company_name_unique
+  }
+  
+  ## ACTUAL TARGET ID
+  acq.id <- which(V(g.full.pd)$name == acq.src.allpd$acquirer_name_unique[j])
+  ## START TARGET ALTERNATIVES DATAFRAME
+  df.acq.alt <- cb$co[which(cb$co$company_name_unique %in% alt.acq.names),]
+  
   ## ipo status
   df.acq.alt$is.public <- sapply(1:nrow(df.acq.alt), function(x){
     isNotOperating <- df.acq.alt$status[x] != 'operating'
@@ -880,9 +930,9 @@ for (j in 1:nrow(acq.src.allpd)) {
   if (nrow(df.acq) == 0)
     next
   
-  tmp <- df.acq.alt[df.acq.alt$company_name_unique %in% names(acq.vids.d2), ]
+  tmp <- df.acq.alt
   ## select based on ownership status
-  if (df.acq$is.public == 1) {tmp <- tmp[tmp$is.public == 1,]} else {tmp <- tmp[tmp$is.public == 0,]}
+  tmp <- df.acq.alt[which(df.acq.alt$is.public == df.acq$is.public), ]
   # tmp.acq.alt <- tmp[sample(1:nrow(tmp),size = min(9,nrow(tmp)),replace = F), ]
   tmp.acq.alt <- tmp ## keep all
   ## combine target and alternatives for target set
@@ -898,76 +948,9 @@ for (j in 1:nrow(acq.src.allpd)) {
       ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)]) , NA)
     })
   cat('done.\n')
-
-  ##-------------------------------------
-  ##  FILTER ALTERNATIVE ACQUIRERS BY CONDITIONS
-  ##-------------------------------------
-  ## target's categories
-  cats.i <- str_split(cb$co$category_group_list[cb$co$company_name_unique==acq.src.allpd$acquirer_name_unique[j]], pattern = '[|]')[[1]]
-  ## CHECK MACHING CONDITIONS FOR ALTERNATIVE ACQUIRERS (NOT ACTUAL)
-  bool.t.i <- sapply(df.acq.alt$company_name_unique, function(xi){
-    ## ACTUAL ACQUIRER
-    if (xi == acq.src.allpd$acquirer_name_unique[j])
-      return(FALSE)
-    ## CHECK 0. ALREADY FILTERED df.targ.alt BY COMPETITION NETWORK NEIGHBORHOOD
-    ## CHECK 1. AT LEAST ONE SAME CATEGORY
-    cats.xi <- str_split(cb$co$category_group_list[cb$co$company_name_unique==xi], pattern = '[|]')[[1]]
-    chk1 <- any(cats.xi %in% cats.i)
-    ## CHECK 2. WAS ACQUISITION TARGET IN NEXT 5 YEARS
-    dt0 <- as.character(acq.src.allpd$acquired_on[j])
-    parts <- str_split(dt0,'[-]')[[1]]
-    dt5 <- sprintf('%04d-%s-%s',as.numeric(parts[1]) + 5,parts[2],parts[3])
-    chk2 <- any(cb$co_acq$acquired_on >= dt0 & cb$co_acq$acquired_on < dt5 & cb$co_acq$acquirer_name_unique==xi)
-    return(all(chk1,chk2))
-  })
-  if (length(bool.t.i)==0)
-    next
-  idx.t.i <- which(bool.t.i)
-  if (length(idx.t.i)==0)
-    next  ## SKIP IS NO ALTERNATIVE ACQUIRERS
-  ##----------------------------------------------------------
-  ## Select counterfactual alternatives (if more than 5 suitable alternatives)
-  if (length(idx.t.i)>6)
-  {
-    # ## RANDOMLY SAMPLE 5 alternatives 
-    # set.seed(1111)
-    # ## Alternative firms company_name_unique
-    # alt.firm.i <- df.acq.alt$company_name_unique[ sample(idx.t.i, size=min(5, length(idx.t.i)), replace=F) ]
-    # ## Propensity Score ranked selection
-    prop.data <- df.acq.alt[idx.t.i,]
-    prop.data$y <- as.integer(prop.data$d == 0)
-    prop.data$age <- 2018 - prop.data$founded_year
-    prop.data$deg <- igraph::degree(g.full.pd, v = which(V(g.full.pd)$name %in% prop.data$company_name_unique))
-    prop.data$acqs <- unname(sapply(prop.data$company_name_unique, function(name){
-      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= df.acq.j$acquired_on))
-    }))
-    ##
-    ctrl.col <- c('company_name_unique','datayear','act','emp','ebitda','m2b','che')
-    ctrl.idx <- which(df.cs$datayear == (df.acq.j$acquired_year-1) )
-    if (length(ctrl.idx)==0) 
-      next
-    prop.data <- merge(prop.data, df.cs[ctrl.idx,ctrl.col], by.x='company_name_unique',by.y='company_name_unique',all.x=T,all.y=F)
-    prop.data$ln_asset <- log(prop.data$act)
-    prop.data$ln_emp <- log(prop.data$emp)
-    prop.data$roa <- prop.data$ebitda / prop.data$act
-    prop.data$cash <- prop.data$che / prop.data$act
-    ##
-    prop.fit <- glm(y ~ ln_asset + ln_emp + roa + cash + m2b, family=binomial(link='probit'), data=prop.data)
-    ##
-    prop.data$idx <- 1:nrow(prop.data)
-    df.fitted <- data.frame(idx=as.integer(names(prop.fit$fitted.values)), pred=prop.fit$fitted.values)
-    prop.data <- merge(prop.data, df.fitted, by.x='idx', by.y='idx', all.x=T, all.y=T)
-    ##
-    prop.data <- prop.data[order(prop.data$pred,decreasing = T),]
-    prop.alt.names <- prop.data$company_name_unique[prop.data$y==0]
-    .n <- min(5, length(prop.alt.names))
-    alt.firm.i <- prop.alt.names[1:.n]
-  } else {
-    alt.firm.i <- df.acq.alt$company_name_unique[which(df.acq.alt$d>0)]
-  }
+  
   ##----------------------------------------------------------
   ## DATA SAMPLE OF ALL ACQUIRERS (REAL + 5 ALTERNATIVES)
-  df.acq.alt <- df.acq.alt[df.acq.alt$company_name_unique==acq.src.allpd$acquirer_name_unique[j] | df.acq.alt$company_name_unique %in% alt.firm.i, ]
   l[[lidx]]$df.acq.alt <- df.acq.alt
   cat('done.\n')
   
@@ -1252,11 +1235,14 @@ for (j in 1:nrow(acq.src.allpd)) {
   ##---------------------------------------
 
   
-  ##--------------------------------------------------------------------------    
+  ##=================================  
   ## NODE COLLAPSE update network
+  ##---------------------------------
   cat(sprintf('node collapsing acquisition %s:\n',j))
   g.pd <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[j,])
   g.full.pd <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[j,])
+  ## FLAG TO NOT RUN NODE COLLAPSE AT START OF NEXT LOOP SINCE IT WAS ALREADY PROCESSED HERE
+  do.node.collapse <- FALSE
   
   ## save incrementally
   if (lidx %% 10 == 0) {   
