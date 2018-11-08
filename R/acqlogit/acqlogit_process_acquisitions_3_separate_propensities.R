@@ -359,9 +359,9 @@ for (year in years)
   ##====================================
   ## YEAR PERIOD SUBSET NETWORK  
   ##------------------------------------
-  ## 2. Subset Year Period Network
-  g.prop <- asIgraph(acf$makePdNetwork(asNetwork(g.prop.nc), year, year-1, isolates.remove = F))
-  g.full.prop <- asIgraph(acf$makePdNetwork(asNetwork(g.full.prop.nc), year, year-1, isolates.remove = F))
+  ## Period network removes competitive relations ended < year OR started >= year+1
+  g.prop <- asIgraph(acf$makePdNetwork(asNetwork(g.prop.nc), year, year+1, isolates.remove = F))
+  g.full.prop <- asIgraph(acf$makePdNetwork(asNetwork(g.full.prop.nc), year, year+1, isolates.remove = F))
   
   ## GET FIRM x FRIM MMC MATRIX TO USE IN FM-MMC COMPUTATION
   m.mmc <- acf$getFirmFirmMmc(g.prop, as.integer(V(g.prop)$nc))
@@ -434,7 +434,9 @@ for (year in years)
       ifelse(name %in% V(g.prop)$name, V(g.prop)$num.mmc.comps[which(V(g.prop)$name == name)] , NA)
     })
     df.targ.alt$acqs <- unname(sapply(df.targ.alt$company_name_unique, function(name){
-      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+      x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+      n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+      return(x/n)
     }))
     ## VENTURE FUNDING
     df.targ.alt$fund.v.cnt <- unname(sapply(df.targ.alt$company_name_unique, function(name){
@@ -536,7 +538,9 @@ for (year in years)
       ifelse(name %in% V(g.prop)$name, as.numeric(V(g.prop)$num.mmc.comps[which(V(g.prop)$name == name)]) , NA)
     })
     df.acq.alt$acqs <- unname(sapply(df.acq.alt$company_name_unique, function(name){
-      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+      x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+      n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+      return(x/n)
     }))
     ## USE GLOBAL NETWORK
     df.acq.alt$deg <- sapply(df.acq.alt$company_name_unique, function(name){
@@ -761,7 +765,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## g.pd.orig       d2 original
   ## g.full.pd.orig  global network within timeframe start, end
   
-  cat(sprintf('\n\nstart %s end %s : acquisition %s (%.2f%s)\n\n',start,end,j,100*j/nrow(acq.src.allpd),'%'))
+  cat(sprintf('\n\n%s : acquisition %s (%.2f%s)\n\n',date_j,j,100*j/nrow(acq.src.allpd),'%'))
   
   ##-------------------------------------------
   ## NODE COLLAPSE PREVIOUS ACQUISITION IF IT WAS SKIPPED 
@@ -778,7 +782,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   }
   
   ##------------------------------------------- 
-  ## CHECKS TO SKIP ACQUISITION
+  ## CHECKS TO SKIP THIS ACQUISITION
   ##------------------------------------------- 
   ## ACQUISITION MUST BE IN PROPENSITY SCORES DATAFRAMES
   if ( !(df.acq.j$acquisition_uuid %in% a.prop$acquisition_uuid) | 
@@ -808,8 +812,9 @@ for (j in 1:nrow(acq.src.allpd)) {
 
   ## Subset Year Period Network
   cat('  subsetting network edges for year period of acquisition...')
-  g.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.pd.nc), year_j, year_j-1, isolates.remove = F))
-  g.full.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.full.pd.nc), year_j, year_j-1, isolates.remove = F))
+  ## Period network removes competitive relations ended < year_j OR started >= year_j+1
+  g.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.pd.nc), year_j, year_j+1, isolates.remove = F))
+  g.full.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.full.pd.nc), year_j, year_j+1, isolates.remove = F))
   V(g.pd)$name <- V(g.pd)$vertex.names
   V(g.full.pd)$name <- V(g.full.pd)$vertex.names
   cat('done.')
@@ -1047,7 +1052,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## global covars
   tmp.cov <- data.frame(
     company_name_unique = unlist(V(g.diff)$name[vids.diff]),
-    closeness = unname(igraph::closeness(g.diff, vids = vids.diff,normalized = T)),
+    closeness = unname(igraph::closeness(g.diff, vids = vids.diff,normalized = TRUE)),
     constraint = unname(unlist(igraph::constraint(g.diff, nodes = vids.diff)))
   )
   df.alt <- merge(df.alt, tmp.cov, by = 'company_name_unique', all.x = T, all.y = F)
@@ -1222,7 +1227,7 @@ for (j in 1:nrow(acq.src.allpd)) {
         cat('  network counterfactuals\n')
         # cf.m.mmc <- acf$getFirmFirmMmc(g.cf.r, as.integer(V(g.cf.r)$nc))
         # cf.num.mmc.comps <- acf$getNumMmcRivalsByMembership(g.cf.r, as.integer(V(g.cf.r)$nc), cf.m.mmc)
-        cf.closeness <- igraph::closeness(g.cf.r, vids = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
+        cf.closeness <- igraph::closeness(g.cf.r, vids = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), normalized = TRUE)
         cf.degree <- igraph::degree(g.cf.r, v = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
         cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
         
@@ -1240,6 +1245,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           # i.pow.n3 = pow.n3,
           i.closeness = df.alt$closeness[ix],
           i.deg = df.alt$deg[ix],
+          i.deg.full = df.alt$deg.full[ix],
           i.fm.mmc.sum = ifelse(is.missing(df.alt$fm.mmc.sum[ix]), NA, df.alt$fm.mmc.sum[ix]),
           i.num.mkts = ifelse(is.missing(df.alt$num.mkts[ix]), NA, df.alt$num.mkts[ix]),
           i.num.mmc.comps = ifelse(is.missing(df.alt$num.mmc.comps[ix]), NA, df.alt$num.mmc.comps[ix]),
@@ -1259,6 +1265,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           ###------  target covars ------ 
           j.age = 2018 - df.alt$founded_year[jx],
           j.deg = df.alt$deg[jx],
+          j.deg.full = df.alt$deg.full[jx],
           j.fm.mmc.sum = ifelse(is.missing(df.alt$fm.mmc.sum[jx]), NA, df.alt$fm.mmc.sum[jx]),
           j.num.mkts = ifelse(is.missing(df.alt$num.mkts[jx]), NA, df.alt$num.mkts[jx]),
           j.num.mmc.comps = ifelse(is.missing(df.alt$num.mmc.comps[jx]), NA, df.alt$num.mmc.comps[jx]),
@@ -1267,6 +1274,10 @@ for (j in 1:nrow(acq.src.allpd)) {
           j.rival.acq.1 = df.alt$rival.acq.1[jx],
           j.rival.acq.2 = df.alt$rival.acq.2[jx],
           j.rival.acq.3 = df.alt$rival.acq.3[jx],
+          j.fund.v.cnt <- df.alt$j.fund.v.cnt[jx],
+          j.fund.v.amt <- df.alt$j.fund.v.amt[jx],
+          j.fund.cnt <- df.alt$j.fund.cnt[jx],
+          j.fund.amt <- df.alt$j.fund.amt[jx],
           j.ij.sim = df.alt$ij.sim[jx],
           j.ij.cossim = df.alt$ij.cossim[jx],
           ###------ dyadic covars: acquisition pairing ------
@@ -1276,11 +1287,12 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.same.employee.range = ifelse(df.alt$employee_count[ix] == df.alt$employee_count[jx], 1, 0),
           ij.dist = ifelse( class(ij.dist)=='matrix' & nrow(ij.dist)>0 & ncol(ij.dist)>0, ij.dist[1,1], Inf),
           ij.diff.deg = as.numeric(df.alt$deg[ix]) - as.numeric(df.alt$deg[jx]),
+          ij.diff.deg.full = as.numeric(df.alt$deg.full[ix]) - as.numeric(df.alt$deg.full[jx]),
           ij.diff.fm.mmc.sum = ifelse(any(is.missing(df.alt$fm.mmc.sum[ix]),is.missing(df.alt$fm.mmc.sum[jx])), NA, as.numeric(df.alt$fm.mmc.sum[ix]) - as.numeric(df.alt$fm.mmc.sum[jx])),
           ij.diff.num.mkts = ifelse(any(is.missing(df.alt$num.mkts[ix]), is.missing(df.alt$num.mkts[jx])), NA, as.numeric(df.alt$num.mkts[ix]) - as.numeric(df.alt$num.mkts[jx])),
           ij.diff.num.mmc.comps = ifelse(any(is.missing(df.alt$num.mmc.comps[ix]), is.missing(df.alt$num.mmc.comps[jx])), NA, as.numeric(df.alt$num.mmc.comps[ix]) - as.numeric(df.alt$num.mmc.comps[jx])),
           ij.diff.constraint = as.numeric(df.alt$constraint[ix]) - as.numeric(df.alt$constraint[jx]),
-          ij.diff.acq.experience = as.numeric(df.alt$acqs[ix]) - as.numeric(df.alt$acqs[jx]),
+          ij.diff.acqs = as.numeric(df.alt$acqs[ix]) - as.numeric(df.alt$acqs[jx]),
           ###------  network synergies ------
           # ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
           # ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
