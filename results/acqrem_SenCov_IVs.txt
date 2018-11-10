@@ -1,0 +1,47 @@
+##  [1] mmc.sum,     mmc.sum.sq,   num.mkts,    deg,          pow.n4,  
+##  [6] pow.n3,      pow.n2,       pow.n1,      pow.1,        pow.2,
+## [11] pow.3,       pow.4,        betweenness, constraint,   eig
+
+1: c(1,2,3,4,  6)
+pow.n3
+
+2: c(1,2,3,4,  6)
+pow.n3
+
+3;  c(1,2,3,4,  14)
+constraint
+
+4:  c(1,2,3,4,  13)
+betweenness
+
+5: c(1,2,3,4,  6)
+pow.n3
+
+6: c(1,2,3,4,  6)
+pow.n3
+
+62: c(1,2,3,4,  6)
+pow.n3
+
+7: c(1,2,3,4,  6)
+pow.n3
+
+8: c(1,2,3,4,  6, 14)
+pow.n3, constraint
+
+9: c(1,2,3,4,  6)
+pow.n3
+
+10:  c(1,2,3,4,  6, 14)
+pow.n3, constraint
+
+11:  c(1,2,3,4,  14)
+constraint
+
+12: c(1,2,3,4, 6, 14)
+pow.n3, constraint
+
+13:  c(1,2,3,4, 6, 14)
+pow.n3, constraint
+
+

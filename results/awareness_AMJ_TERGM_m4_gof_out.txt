@@ -1,0 +1,30 @@
+
+
+##------ Sun Dec 10 21:30:03 2017 ------##
+
+
+
+##------ Wed Nov 15 12:21:22 2017 ------##
+
+
+
+##------ Sun Dec 10 21:44:21 2017 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 8 cores
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   583 583 583 583 583 583
+nets (col)   583 583 583 583 583 583
+mmc (row)    583 583 583 583 583 583
+mmc (col)    583 583 583 583 583 583
+memory (row) 583 583 583 583 583 583
+memory (col) 583 583 583 583 583 583
+             t=2 t=3 t=4 t=5 t=6 t=7
+nets (row)   583 583 583 583 583 583
+nets (col)   583 583 583 583 583 583
+mmc (row)    583 583 583 583 583 583
+mmc (col)    583 583 583 583 583 583
+memory (row) 583 583 583 583 583 583
+memory (col) 583 583 583 583 583 583
+  Skipping this statistic for the following reason: Error in as.matrix(mat) != t(as.matrix(mat)): non-conformable arrays

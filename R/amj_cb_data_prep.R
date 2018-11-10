@@ -6,6 +6,11 @@
 #
 # @export [list] cb
 #
+#
+# ## update founded_on,closed_on dates  - Jin-Su's Email 2018-04-23
+# ## C:\\Users\\T430\\Google Drive\\PhD\\Dissertation\\competition networks\\compnet2\\founded_on_date_edit
+# co.date <- cb$readCsv('founded_on_date_edit/missing_companies_20180330.csv')
+#
 ##########################################################################################
 #.libPaths('C:/Users/sdowning/Documents/R/win-library/3.2')
 library(plyr, quietly = T)
