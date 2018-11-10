@@ -362,6 +362,8 @@ for (year in years)
   ## Period network removes competitive relations ended < year OR started >= year+1
   g.prop <- asIgraph(acf$makePdNetwork(asNetwork(g.prop.nc), year, year+1, isolates.remove = F))
   g.full.prop <- asIgraph(acf$makePdNetwork(asNetwork(g.full.prop.nc), year, year+1, isolates.remove = F))
+  V(g.prop)$name <- V(g.prop)$vertex.names
+  V(g.full.prop)$name <- V(g.full.prop)$vertex.names
   
   ## GET FIRM x FRIM MMC MATRIX TO USE IN FM-MMC COMPUTATION
   m.mmc <- acf$getFirmFirmMmc(g.prop, as.integer(V(g.prop)$nc))
@@ -384,7 +386,10 @@ for (year in years)
   for (i in 1:nrow(acq.yr)) 
   {
     acq.yr.i <- acq.yr[i,]
-    cat(sprintf(' acquisition %s: %s --> %s\n',i,acq.yr.i$acquirer_name_unique,acq.yr.i$acquiree_name_unique))
+    cat(sprintf(' %s: %s --> %s\n',i,acq.yr.i$acquirer_name_unique,acq.yr.i$acquiree_name_unique))
+    
+    if ( ! acq.yr.i$acquiree_name_unique %in% V(g.full.prop)$name)
+      next
     
     ##=====================================
     ## TARGETS
@@ -588,12 +593,12 @@ for (year in years)
   ## NODE COLLAPSE  THE NC GRAPHS
   g.prop.nc <- acf$nodeCollapseGraph(g.prop.nc, acquisitions = acq.yr)
   g.full.prop.nc <- acf$nodeCollapseGraph(g.full.prop.nc, acquisitions = acq.yr)
-  
+
   ## CACHE DATA
   saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
                g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
                a.df=a.df, t.df=t.df),
-          file = sprintf('acqlogit_propensity_score_comp_list_%s.rds',name_i))
+          file = sprintf('acqlogit_data/acqlogit_propensity_score_comp_list_%s.rds',name_i))
   
 }
 
@@ -635,12 +640,18 @@ for (year in years)
 prop.data <- t.df
 prop.data$y <- as.integer(prop.data$d == 0)
 prop.data$age <- 2018 - prop.data$founded_year
+# tmp <- cb$co_acq[,c('acquisition_uuid','acquired_on')]
+# names(tmp) <- c('acquisition_uuid','acquisition_date')
+# prop.data <- merge(prop.data, tmp, by='acquisition_uuid',all.x=T,all.y=F)
+# prop.data$acquisition_year_f <- factor(sapply(prop.data$acquisition_date,function(x)str_sub(x,1,4)))
 ## fit
-prop.fit <- glm(y ~ age + I(age^2) + deg2 + I(deg2^2) + acqs + fund.v.cnt + I(fund.v.amt/1e7), family=binomial(link='probit'), data=prop.data)
+prop.fit <- glm(y ~  age + I(age^2) + acqs + fund.v.cnt + I(fund.v.amt/1e7), family=binomial(link='probit'), data=prop.data)
 prop.data$pred <- predict.glm(prop.fit, prop.data,type = 'response')
 ## TARGET PROPENSITY SCORE DATA
 t.prop <- prop.data
 
+## check proportion of predicted values
+dim(t.prop[which(!is.na(t.prop$pred)),])[1] / dim(t.prop)[1]
 
 ## CHECK TARGET PROPENSITY MODEL PERFORMANCE
 check.prop <- t.prop
@@ -682,11 +693,14 @@ prop.data <- a.df.ctrl
 prop.data$y <- as.integer(prop.data$d == 0)
 prop.data$age <- 2018 - prop.data$founded_year
 ## FIT
-prop.fit <- glm(y ~ ln_asset + ln_emp + roa + cash + m2b, 
+prop.fit <- glm(y ~ ln_asset + roa + cash + m2b, 
                 family=binomial(link='probit'), data=prop.data[which(!is.na(prop.data$m2b)),])
 prop.data$pred <- predict.glm(prop.fit, prop.data, type = 'response')
 ## ACQUIRER PROPENSITY SCORE DATA
 a.prop <- prop.data
+
+## check proportion of predicted values
+dim(a.prop[which(!is.na(a.prop$pred)),])[1] / dim(a.prop)[1]
 
 
 ## CHECK ACQUIRER PROPENSITY MODEL PERFORMANCE
@@ -709,7 +723,7 @@ cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3)
 saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
              g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
              a.df=a.df, t.df=t.df, a.df.ctrl=a.df.ctrl, a.prop=a.prop, t.prop=t.prop),
-        file = sprintf('acqlogit_propensity_score_comp_list_%s_PATCH.rds',name_i))
+        file = sprintf('acqlogit_data/acqlogit_propensity_score_comp_list_%s_PATCH.rds',name_i))
 
 
 
@@ -717,7 +731,7 @@ saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop,
 ##---------------------------------------------
 ## LOAD DATA AFTER PROPENSITIES ARE COMPUTED
 ##---------------------------------------------
-l.prop <- readRDS(sprintf('acqlogit_propensity_score_comp_list_%s_PATCH_20181107.rds',name_i))
+l.prop <- readRDS(sprintf('acqlogit_data/acqlogit_propensity_score_comp_list_%s_PATCH.rds',name_i))
 g.prop <- l.prop$g.prop
 g.full.prop <- l.prop$g.full.prop
 # g.prop.nc <- l.prop$g.prop.nc ## ?
@@ -863,9 +877,11 @@ for (j in 1:nrow(acq.src.allpd)) {
   ##
   ##--------------------------------------
   ## SELECT FROM PROPENSITY SCORES (if alternatives more than 5)
-  t.prop.j <- t.prop[which(t.prop$acquisition_uuid==df.acq.j$acquisition_uuid),]
+  t.prop.j <- t.prop[which(t.prop$acquisition_uuid==df.acq.j$acquisition_uuid & !is.na(t.prop$pred)),]
   t.prop.j <- t.prop.j[order(t.prop.j$pred, decreasing = T), ]
-  if (nrow(t.prop.j)>6) {
+  if (nrow(t.prop.j)==0) {
+    next
+  } else if (nrow(t.prop.j)>6) {
     idx.1 <- which(t.prop.j$y==1)
     idx.0 <- which(t.prop.j$y==0)
     idx.0.sample <- idx.0[1:min(5,length(idx.0))]
@@ -948,9 +964,11 @@ for (j in 1:nrow(acq.src.allpd)) {
   ##
   ##--------------------------------------
   ## SELECT FROM PROPENSITY SCORES (if alternatives more than 5)
-  a.prop.j <- a.prop[which(a.prop$acquisition_uuid==df.acq.j$acquisition_uuid),]
+  a.prop.j <- a.prop[which(a.prop$acquisition_uuid==df.acq.j$acquisition_uuid & !is.na(a.prop$pred)),]
   a.prop.j <- a.prop.j[order(a.prop.j$pred, decreasing = T), ]
-  if (nrow(a.prop.j)>6) {
+  if (nrow(a.prop.j)==0) {
+    next
+  } else if (nrow(a.prop.j)>6) {
     idx.1 <- which(a.prop.j$y==1)
     idx.0 <- which(a.prop.j$y==0)
     idx.0.sample <- idx.0[1:min(5,length(idx.0))]
