@@ -65,6 +65,7 @@ df.sub$ij.age.diff <- df.sub$i.age - df.sub$j.age
 dists.nonInf <- df.sub$ij.dist[df.sub$ij.dist < Inf]
 df.sub$ij.dist[df.sub$ij.dist == Inf] <- round(sd(dists.nonInf)) + max(dists.nonInf) ## 1 SD above max
 
+df.sub$ij.syn.closeness2 <- df.sub$ij.syn.closeness * 1e4
 
 ## COUNTERFACTUAL ACQUISITION PAIRING SIMILARITY
 df.sub$ij.sim <- NA
@@ -144,14 +145,16 @@ mg0 <- mclogit(
     ij.dist +
     j.constraint + i.constraint +
     ij.syn.constraint +
-    ij.syn.degree
+    ij.syn.degree +
+    ij.syn.closeness2 
   ,
   data = df.sub)
 summary(mg0)
 
 mg1 <- mclogit(
-  cbind(y,t) ~  i.ln_asset + i.cash + i.roa + i.m2b + i.div +
-    j.age + I(j.age^2) +  i.age +
+  cbind(y,t) ~  
+    i.ln_asset + i.cash + i.roa + i.m2b + i.div +
+    j.age +  i.age + I(j.age^2) +
     i.deg.full + j.deg.full +
     ij.same.region +  
     i.fm.mmc.sum + i.acqs + j.acqs +
@@ -160,6 +163,7 @@ mg1 <- mclogit(
     j.constraint + i.constraint +
     ij.syn.constraint +
     ij.syn.degree +
+    ij.syn.closeness2 +
     I(i.fm.mmc.sum^2)
   ,
   data = df.sub)
@@ -176,6 +180,7 @@ mg2 <- mclogit(
     j.constraint + i.constraint +
     ij.syn.constraint +
     ij.syn.degree +
+    ij.syn.closeness2 +
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.constraint
   ,
@@ -194,8 +199,9 @@ mg3 <- mclogit(
     j.constraint + i.constraint +
     ij.syn.constraint +
     ij.syn.degree +
+    ij.syn.closeness2 +
     I(i.fm.mmc.sum^2) + 
-    I(i.fm.mmc.sum^2):ij.syn.degree
+    I(i.fm.mmc.sum^2):ij.syn.closeness2
   ,
   data = df.sub)
 summary(mg3)
@@ -211,18 +217,38 @@ mg4 <- mclogit(
     j.constraint + i.constraint +
     ij.syn.constraint +
     ij.syn.degree +
+    ij.syn.closeness2 +
     I(i.fm.mmc.sum^2) + 
-    I(i.fm.mmc.sum^2):ij.syn.constraint + 
     I(i.fm.mmc.sum^2):ij.syn.degree
   ,
   data = df.sub)
 summary(mg4)
 
-tabmost <- mtable(mg0,mg1,mg2,mg3,mg4)
+mg5 <- mclogit(
+  cbind(y,t) ~  i.ln_asset + i.cash + i.roa + i.m2b + i.div +
+    j.age + I(j.age^2) +  i.age +
+    i.deg.full + j.deg.full +
+    ij.same.region +  
+    i.fm.mmc.sum + i.acqs + j.acqs +
+    ij.cossim + 
+    ij.dist +
+    j.constraint + i.constraint +
+    ij.syn.constraint +
+    ij.syn.degree +
+    ij.syn.closeness2 +
+    I(i.fm.mmc.sum^2) + 
+    I(i.fm.mmc.sum^2):ij.syn.constraint + 
+    I(i.fm.mmc.sum^2):ij.syn.closeness2 + 
+    I(i.fm.mmc.sum^2):ij.syn.degree
+  ,
+  data = df.sub)
+summary(mg5)
+
+tabmost <- mtable(mg0,mg1,mg2,mg3,mg4,mg5)
 print(tabmost)
 ## SAVE FILE
 memisc::write.mtable(tabmost, 
-        file = "acqlogit_data/acqlogit_reg_table_313_ibm_OrgSci20181107.tsv")
+        file = "acqlogit_data/acqlogit_reg_table_289_ibm_OrgSci20181111.tsv")
 
 
 ## Chisq Deviance Test

@@ -2,9 +2,9 @@
 #
 # MMC Network & Acquisitions
 #
-# Create acquisition logit model covariates arrays
+# Create propensity scores for alternative acquirer-target pairings
 #
-# @author   Stephen Downing <sdowning.bm02g@nctu.edu.tw>
+# @author   sdowning.bm02g@nctu.edu.tw
 #
 # @export [list] cb
 #
@@ -15,7 +15,6 @@
 #
 ##########################################################################################
 
-setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 # .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 library(network, quietly = T)
 library(texreg, quietly = T)
@@ -24,38 +23,53 @@ library(plyr, quietly = T)
 library(reshape2)
 library(intergraph)
 
-data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
+# ##========================
+# ## SETTINGS
+# ##------------------------
+# name_i <- 'ibm'       ## focal firm name
+# d <- 3                ## distance threshold for focal firm ego network
+# years <- 2007:2017    ## years to subset
+# ##------------------------
+# graph_file <- 'g_full.graphml'
+# ##------------------------
 
-## LOAD Scripts and Data
-acf <- source(file.path(getwd(),'R','acqlogit','acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
-cb  <- source(file.path(getwd(),'R','acqlogit','acqlogit_cb_data_prep.R'))$value      ## DATA 
 
-is.missing <- function(x)
-{
-  if(is.null(x)) 
-    return(TRUE)
-  return(is.na(x) | is.nan(x) | x == '')
-}
+# ## DIRECTORIES
+# .script_dir  <- '/home/sdowning/compnet/R/acqlogit'
+# .work_dir    <- '/home/sdowning/acqlogit'
+# .data_dir    <- file.path(.work_dir,'data')
+# .results_dir <- file.path(.work_dir,'results')
 
-##=======================================
-##  PREP DATA and LOAD GRAPH
-##---------------------------------------
-## comptetition network
-g.full <- read.graph('g_full.graphml', format='graphml')
+# ## LOAD Scripts and Data
+# acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
+# cb  <- source(file.path(.script_dir,'acqlogit_cb_data_prep.R'))$value      ## DATA 
 
-## add comp net vertex IDs to acquisitions dataframe
-co_acq <- cb$co_acq
-gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), 
-                  acquirer_name_unique=V(g.full)$name,
-                  acquirer_net_uuid=V(g.full)$company_uuid)
-co_acq <- merge(co_acq, gdf, by='acquirer_name_unique', all.x = T, all.y = F)
-gdf <- data.frame(acquiree_vid=as.integer(V(g.full)), 
-                  acquiree_name_unique=V(g.full)$name,
-                  acquiree_net_uuid=V(g.full)$company_uuid)
-co_acq <- merge(co_acq, gdf, by='acquiree_name_unique', all.x=T, all.y = F)
-
-## SORT CO_ACQ BY acquisition date
-co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
+# is.missing <- function(x)
+# {
+#   if(is.null(x)) 
+#     return(TRUE)
+#   return(is.na(x) | is.nan(x) | x == '')
+# }
+# 
+# ##=======================================
+# ##  PREP DATA and LOAD GRAPH
+# ##---------------------------------------
+# ## comptetition network
+# g.full <- read.graph(file.path(.data_dir, graph_file), format='graphml')
+# 
+# ## add comp net vertex IDs to acquisitions dataframe
+# co_acq <- cb$co_acq
+# gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), 
+#                   acquirer_name_unique=V(g.full)$name,
+#                   acquirer_net_uuid=V(g.full)$company_uuid)
+# co_acq <- merge(co_acq, gdf, by='acquirer_name_unique', all.x = T, all.y = F)
+# gdf <- data.frame(acquiree_vid=as.integer(V(g.full)), 
+#                   acquiree_name_unique=V(g.full)$name,
+#                   acquiree_net_uuid=V(g.full)$company_uuid)
+# co_acq <- merge(co_acq, gdf, by='acquiree_name_unique', all.x=T, all.y = F)
+# 
+# ## SORT CO_ACQ BY acquisition date
+# co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 
 ##==========================================
@@ -134,11 +148,6 @@ co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 ##
 ##--------------------------------------------------------------
 
-## SETTINGS
-name_i <- 'ibm'
-d <- 2
-years <- 2007:2017
-
 ## get date periods and ego network based on settings
 times <- sapply(years, function(x)paste0(x,'-01-01'))
 start <- times[1]
@@ -156,19 +165,30 @@ g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)  ## full 
 ## CHECK NETWORK PERIOD SIZES
 sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
 
+##--------------------------------------------------
+## FIRST TIME: PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
+##--------------------------------------------------
+g.pd.file <- file.path(.data_dir,sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end))
+g.full.pd.file <- file.path(.data_dir,sprintf('g_full_NCINIT_%s_%s.rds',start,end))
+acqs.init <- co_acq[co_acq$acquired_on < start, ]
+if (!file.exists(file.path(g.pd.file))) {
+  cat(sprintf('preprocessing ego net acquisition before start of timeframe: t < %s ...', start))
+  g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
+  igraph::write.graph(g.pd, file=g.pd.file, format = 'graphml')
+  cat('done.\n')
+}
+if (!file.exists(file.path(g.pd.file))) {
+  cat(sprintf('preprocessing global net acquisition before start of timeframe: t < %s ...', start))
+  g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
+  igraph::write.graph(g.full.pd, file=g.full.pd.file, format = 'graphml')
+  cat('done.\n')
+}
 
-# ## FIRST TIME: PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
-# acqs.init <- co_acq[co_acq$acquired_on < start, ]
-# g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
-# g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
-
-# ## SAVE INITIALIZED EGO NETWORK AND GLOBAL NETWORK
-# igraph::write.graph(g.pd, file=sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end), format = 'graphml')
-# igraph::write.graph(g.full.pd, file=sprintf('g_full_NCINIT_%s_%s.rds',start,end), format = 'graphml')
-
+##--------------------------------------------------
 ## AFTER FIRST TIME:  LOAD IN EGO NETWORK AND GLOBAL NETWORK
-g.pd <- igraph::read.graph(sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end), format='graphml')
-g.full.pd <- igraph::read.graph(sprintf('g_full_NCINIT_%s_%s.rds',start,end), format='graphml')
+##--------------------------------------------------
+g.pd <- igraph::read.graph(g.pd.file, format='graphml')
+g.full.pd <- igraph::read.graph(g.full.pd.file, format='graphml')
 
 
 ## Full timeframe Clusters
@@ -197,9 +217,9 @@ g.full.pd.orig <- g.full.pd
 ##--------------------------------------------
 ## Load updated compustat data
 ##--------------------------------------------
-csfunda.file <- file.path('compustat','fundamentals-annual-UPDATED.csv')
+csfunda.file <- file.path(.data_dir,'compustat','fundamentals-annual-UPDATED.csv')
 if (!file.exists(csfunda.file)) { ## if file not exists, then run script to create it
-  source(file.path(getwd(),'R','acqlogit','acqlogit_compustat_update.R'))
+  source(file.path(.script_dir,'acqlogit_compustat_update.R'))
 }
 csa2.all <- cb$readCsv(csfunda.file)
 minyr <- min(unique(csa2.all$fyear), na.rm = T)
@@ -208,7 +228,7 @@ csa2 <- csa2.all[which(csa2.all$fyear != minyr & !is.na(csa2.all$fyear)), ]
 ##--------------------------------------------
 ## LOAD SEGMENTS DATA FOR DIVERSIFICATION
 ##--------------------------------------------
-seg <- read.csv(file.path(getwd(),'compustat','segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
+seg <- read.csv(file.path(.data_dir,'compustat','segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 # segcus <- read.csv(file.path(getwd(),'compustat','segments-customer.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 col.seg <- c('conm','tic','datadate','srcdate','stype','snms','soptp1','geotp','sic','SICS1','SICS2','sales','revts','nis')
 seg2 <- seg[seg$soptp1=='PD_SRVC',col.seg] ## exclude geographic MARKET segments; include PD_SRVC product/service segments
@@ -455,10 +475,10 @@ for (year in years)
       idx <- which(cb$co_rou$company_name_unique==name & cb$co_rou$announced_on <= acq.yr.i$acquired_on)
       return(sum(cb$co_rou$raised_amount_usd[idx], na.rm = T))
     }))
-    ## USE GLOBAL NETWORK for DEGREE
-    df.targ.alt$deg <- sapply(df.targ.alt$company_name_unique, function(name){
-      ifelse(name %in% V(g.prop)$name, igraph::degree(g.full.prop,which(V(g.full.prop)$name==name)) , NA)
-    })
+    # ## USE GLOBAL NETWORK for DEGREE
+    # df.targ.alt$deg <- sapply(df.targ.alt$company_name_unique, function(name){
+    #   ifelse(name %in% V(g.prop)$name, igraph::degree(g.full.prop,which(V(g.full.prop)$name==name)) , NA)
+    # })
     
     ##-------------------------------------
     ##  FILTER ALTERNATIVE TARGETS BY CONDITIONS
@@ -543,10 +563,10 @@ for (year in years)
       n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
       return(x/n)
     }))
-    ## USE GLOBAL NETWORK
-    df.acq.alt$deg <- sapply(df.acq.alt$company_name_unique, function(name){
-      ifelse(name %in% V(g.prop)$name, igraph::degree(g.full.prop,which(V(g.full.prop)$name==name)) , NA)
-    })
+    # ## USE GLOBAL NETWORK
+    # df.acq.alt$deg <- sapply(df.acq.alt$company_name_unique, function(name){
+    #   ifelse(name %in% V(g.prop)$name, igraph::degree(g.full.prop,which(V(g.full.prop)$name==name)) , NA)
+    # })
     
     ##-------------------------------------
     ##  FILTER ALTERNATIVE ACQUIRERS BY CONDITIONS
@@ -586,15 +606,16 @@ for (year in years)
     
   }
 
-  ## NODE COLLAPSE  THE NC GRAPHS
-  g.prop.nc <- acf$nodeCollapseGraph(g.prop.nc, acquisitions = acq.yr)
-  g.full.prop.nc <- acf$nodeCollapseGraph(g.full.prop.nc, acquisitions = acq.yr)
+  ## NOTE: DO NOT NEED TO NODE COLLAPSE FOR PROPENSITY SCORE PREDICTORS (not using degree)
+  ## ## NODE COLLAPSE  THE NC GRAPHS
+  ## g.prop.nc <- acf$nodeCollapseGraph(g.prop.nc, acquisitions = acq.yr)
+  ## g.full.prop.nc <- acf$nodeCollapseGraph(g.full.prop.nc, acquisitions = acq.yr)
 
   ## CACHE DATA
   saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
                g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
                a.df=a.df, t.df=t.df),
-          file = sprintf('acqlogit_data/acqlogit_propensity_score_comp_list_%s.rds',name_i))
+          file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s.rds',name_i)))
   
 }
 
@@ -719,7 +740,7 @@ cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3)
 saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
              g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
              a.df=a.df, t.df=t.df, a.df.ctrl=a.df.ctrl, a.prop=a.prop, t.prop=t.prop),
-        file = sprintf('acqlogit_data/acqlogit_propensity_score_comp_list_%s_PATCH.rds',name_i))
+        file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_ctrl.rds',name_i)))
 
 
 

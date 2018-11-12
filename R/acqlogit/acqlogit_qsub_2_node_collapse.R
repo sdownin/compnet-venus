@@ -15,7 +15,6 @@
 #
 ##########################################################################################
 
-setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 # .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 library(network, quietly = T)
 library(texreg, quietly = T)
@@ -24,108 +23,53 @@ library(plyr, quietly = T)
 library(reshape2)
 library(intergraph)
 
-data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
-
-## LOAD Scripts and Data
-acf <- source(file.path(getwd(),'R','acqlogit','acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
-cb  <- source(file.path(getwd(),'R','acqlogit','acqlogit_cb_data_prep.R'))$value      ## DATA 
-
-is.missing <- function(x)
-{
-  if(is.null(x)) 
-    return(TRUE)
-  return(is.na(x) | is.nan(x) | x == '')
-}
-
-##=======================================
-##  PREP DATA and LOAD GRAPH
-##---------------------------------------
-## comptetition network
-g.full <- read.graph('g_full.graphml', format='graphml')
-
-## add comp net vertex IDs to acquisitions dataframe
-co_acq <- cb$co_acq
-gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), 
-                  acquirer_name_unique=V(g.full)$name,
-                  acquirer_net_uuid=V(g.full)$company_uuid)
-co_acq <- merge(co_acq, gdf, by='acquirer_name_unique', all.x = T, all.y = F)
-gdf <- data.frame(acquiree_vid=as.integer(V(g.full)), 
-                  acquiree_name_unique=V(g.full)$name,
-                  acquiree_net_uuid=V(g.full)$company_uuid)
-co_acq <- merge(co_acq, gdf, by='acquiree_name_unique', all.x=T, all.y = F)
-
-## SORT CO_ACQ BY acquisition date
-co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
+# ##========================
+# ## SETTINGS
+# ##------------------------
+# name_i <- 'ibm'       ## focal firm name
+# d <- 3                ## distance threshold for focal firm ego network
+# years <- 2007:2017    ## years to subset
+# ##------------------------
+# graph_file <- 'g_full.graphml'
+# ##------------------------
 
 
-##==========================================
-## CHECK EGO FIRM NETWORK PROPERTIES 
-##------------------------------------------
-# # 
-# # ## filter acquisitions in recent period (if necessary)
-# # co_acq_d <- co_acq[which(co_acq$acquired_on >= '1988-01-01'), ]
-# # 
-# # ## acquisition filtered by comp net firms union (either aquirer or acquired)
-# # ## 14208
-# # co_acq_g_u <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.full)$name
-# #                            | co_acq$acquiree_name_unique %in% V(g.full)$name), ]
+# ## DIRECTORIES
+# .script_dir  <- '/home/sdowning/compnet/R/acqlogit'
+# .work_dir    <- '/home/sdowning/acqlogit'
+# .data_dir    <- file.path(.work_dir,'data')
+# .results_dir <- file.path(.work_dir,'results')
+
+# ## LOAD Scripts and Data
+# acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
+# cb  <- source(file.path(.script_dir,'acqlogit_cb_data_prep.R'))$value      ## DATA 
 # 
-# ## acquisition filtered by comp net firms intersection (both aquirer and acquired)
-# ## 3442
-# co_acq_g_i <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.full)$name
-#                            & co_acq$acquiree_name_unique %in% V(g.full)$name), ]
-# ## acquisition filtered by comp net firms intersection, recent date (>=2010)
-# ## 2786
-# co_acq_g_i_d <- co_acq_g_i[which(co_acq_g_i$acquired_on >= '1988-01-01'), ]
+# is.missing <- function(x)
+# {
+#   if(is.null(x)) 
+#     return(TRUE)
+#   return(is.na(x) | is.nan(x) | x == '')
+# }
 # 
-# ## check top filtered acquirers
-# cnt <- plyr::count(co_acq_g_i_d$acquirer_name_unique)
-# cnt <- cnt[order(cnt$freq, decreasing = T),]
-# head(cnt, 20)
-# # Top Acquirers:             x   freq
-# # 545                   google   88
-# # 599                      ibm   58
-# # 815                microsoft   47
-# # 1496                   yahoo   46
-# # 77                       aol   43
-# # 944                   oracle   39
-# # 64                    amazon   34
-# # 88                     apple   32
-# # 453                 facebook   31
-# # 403                     ebay   28
-# # 259                    cisco   27
-# # 1109              salesforce   26
-# # 1362                 twitter   24
-# # 578          hewlett-packard   21
-# # 414                      emc   19
-# # 640                    intel   18
-# # 556                  groupon   17
-# # 421  endurance-international   16
-# # 1250                symantec   15
-# # 1347             tripadvisor   15
+# ##=======================================
+# ##  PREP DATA and LOAD GRAPH
+# ##---------------------------------------
+# ## comptetition network
+# g.full <- read.graph(file.path(.data_dir,graph_file), format='graphml')
 # 
-# ## Check Acquisitions distribution by network distance included
-# df.ego <- data.frame()
-# name_i <- 'ibm'
-# for (d in 1:6) {
-#   g.ego <- igraph::make_ego_graph(graph = g.full, 
-#                                   nodes = V(g.full)[V(g.full)$name==name_i], 
-#                                   order = d, mode = 'all')[[1]]
-#   mem <- igraph::multilevel.community(g.ego)$membership
-#   mem.cnt <- plyr::count(mem)
-#   mem.cnt <- mem.cnt[order(mem.cnt$freq, decreasing = T), ]
-#   dim(mem.cnt)
-#   ##  
-#   acq.src <- co_acq_d[which(co_acq_d$acquirer_name_unique %in% V(g.ego)$name), ]
-#   acq.src.trg <- co_acq_d[which(co_acq_d$acquirer_name_unique %in% V(g.ego)$name
-#                                 & co_acq_d$acquiree_name_unique %in% V(g.ego)$name), ]
-#   ##
-#   df.tmp <- data.frame(d=d,v=vcount(g.ego),e=ecount(g.ego),
-#                        acq.src=nrow(acq.src),acq.src.trg=nrow(acq.src.trg),
-#                        r.in.out=round(nrow(acq.src.trg)/(nrow(acq.src)+nrow(acq.src.trg)),3),
-#                        first.comp=min(E(g.ego)$relation_began_on))
-#   df.ego <- rbind(df.ego, df.tmp)
-# }; df.ego 
+# ## add comp net vertex IDs to acquisitions dataframe
+# co_acq <- cb$co_acq
+# gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), 
+#                   acquirer_name_unique=V(g.full)$name,
+#                   acquirer_net_uuid=V(g.full)$company_uuid)
+# co_acq <- merge(co_acq, gdf, by='acquirer_name_unique', all.x = T, all.y = F)
+# gdf <- data.frame(acquiree_vid=as.integer(V(g.full)), 
+#                   acquiree_name_unique=V(g.full)$name,
+#                   acquiree_net_uuid=V(g.full)$company_uuid)
+# co_acq <- merge(co_acq, gdf, by='acquiree_name_unique', all.x=T, all.y = F)
+# 
+# ## SORT CO_ACQ BY acquisition date
+# co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 
 ##--------------------------------------------------------------
@@ -133,11 +77,6 @@ co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 ##            CREATE FIRM NETWORK PERIOD LISTS  
 ##
 ##--------------------------------------------------------------
-
-## SETTINGS
-name_i <- 'ibm'
-d <- 2
-years <- 2007:2017
 
 ## get date periods and ego network based on settings
 times <- sapply(years, function(x)paste0(x,'-01-01'))
@@ -156,19 +95,30 @@ g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)  ## full 
 ## CHECK NETWORK PERIOD SIZES
 sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
 
+##--------------------------------------------------
+## FIRST TIME: PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
+##--------------------------------------------------
+g.pd.file <- file.path(.data_dir,sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end))
+g.full.pd.file <- file.path(.data_dir,sprintf('g_full_NCINIT_%s_%s.rds',start,end))
+acqs.init <- co_acq[co_acq$acquired_on < start, ]
+if (!file.exists(file.path(g.pd.file))) {
+  cat(sprintf('preprocessing ego net acquisition before start of timeframe: t < %s ...', start))
+  g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
+  igraph::write.graph(g.pd, file=g.pd.file, format = 'graphml')
+  cat('done.\n')
+}
+if (!file.exists(file.path(g.pd.file))) {
+  cat(sprintf('preprocessing global net acquisition before start of timeframe: t < %s ...', start))
+  g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
+  igraph::write.graph(g.full.pd, file=g.full.pd.file, format = 'graphml')
+  cat('done.\n')
+}
 
-# ## FIRST TIME: PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
-# acqs.init <- co_acq[co_acq$acquired_on < start, ]
-# g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
-# g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
-
-# ## SAVE INITIALIZED EGO NETWORK AND GLOBAL NETWORK
-# igraph::write.graph(g.pd, file=sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end), format = 'graphml')
-# igraph::write.graph(g.full.pd, file=sprintf('g_full_NCINIT_%s_%s.rds',start,end), format = 'graphml')
-
+##--------------------------------------------------
 ## AFTER FIRST TIME:  LOAD IN EGO NETWORK AND GLOBAL NETWORK
-g.pd <- igraph::read.graph(sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end), format='graphml')
-g.full.pd <- igraph::read.graph(sprintf('g_full_NCINIT_%s_%s.rds',start,end), format='graphml')
+##--------------------------------------------------
+g.pd <- igraph::read.graph(g.pd.file, format='graphml')
+g.full.pd <- igraph::read.graph(g.full.pd.file, format='graphml')
 
 
 ## Full timeframe Clusters
@@ -197,9 +147,9 @@ g.full.pd.orig <- g.full.pd
 ##--------------------------------------------
 ## Load updated compustat data
 ##--------------------------------------------
-csfunda.file <- file.path('compustat','fundamentals-annual-UPDATED.csv')
+csfunda.file <- file.path(.data_dir,'compustat','fundamentals-annual-UPDATED.csv')
 if (!file.exists(csfunda.file)) { ## if file not exists, then run script to create it
-  source(file.path(getwd(),'R','acqlogit','acqlogit_compustat_update.R'))
+  source(file.path(.script_dir,'acqlogit_compustat_update.R'))
 }
 csa2.all <- cb$readCsv(csfunda.file)
 minyr <- min(unique(csa2.all$fyear), na.rm = T)
@@ -208,7 +158,7 @@ csa2 <- csa2.all[which(csa2.all$fyear != minyr & !is.na(csa2.all$fyear)), ]
 ##--------------------------------------------
 ## LOAD SEGMENTS DATA FOR DIVERSIFICATION
 ##--------------------------------------------
-seg <- read.csv(file.path(getwd(),'compustat','segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
+seg <- read.csv(file.path(.data_dir,'compustat','segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 # segcus <- read.csv(file.path(getwd(),'compustat','segments-customer.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 col.seg <- c('conm','tic','datadate','srcdate','stype','snms','soptp1','geotp','sic','SICS1','SICS2','sales','revts','nis')
 seg2 <- seg[seg$soptp1=='PD_SRVC',col.seg] ## exclude geographic MARKET segments; include PD_SRVC product/service segments
@@ -829,8 +779,8 @@ for (j in 1:nrow(acq.src.allpd)) {
                                      to= which(V(g.full.pd)$name == df.alt$company_name_unique[jx]) )
         ## AQUIRER POSITION
         cat('  power centralities\n')
-        # pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
-        # pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
+        pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
+        pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
 
         ## COUNTERFACTUAL NETWORK `r` for different target jx
         g.cf.r <- g.cf[[ df.alt$company_name_unique[jx] ]]
@@ -839,9 +789,11 @@ for (j in 1:nrow(acq.src.allpd)) {
         cat('  network counterfactuals\n')
         # cf.m.mmc <- acf$getFirmFirmMmc(g.cf.r, as.integer(V(g.cf.r)$nc))
         # cf.num.mmc.comps <- acf$getNumMmcRivalsByMembership(g.cf.r, as.integer(V(g.cf.r)$nc), cf.m.mmc)
-        cf.closeness <- igraph::closeness(g.cf.r, vids = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), normalized = TRUE)
-        cf.degree <- igraph::degree(g.cf.r, v = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
-        cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]))
+        cf.closeness <- igraph::closeness(g.cf.r, vids = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), normalized = TRUE)
+        cf.degree <- igraph::degree(g.cf.r, v = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]))
+        cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]))
+        cf.pow.n1 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
+        cf.pow.n3 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
         
         ## PAIRING DATAFRAME
         df.tmp.dyad <- data.frame(
@@ -862,6 +814,8 @@ for (j in 1:nrow(acq.src.allpd)) {
           i.num.mkts = ifelse(is.missing(df.alt$num.mkts[ix]), NA, df.alt$num.mkts[ix]),
           i.num.mmc.comps = ifelse(is.missing(df.alt$num.mmc.comps[ix]), NA, df.alt$num.mmc.comps[ix]),
           i.constraint = df.alt$constraint[ix],
+          i.pow.n1 = pow.n1,
+          i.pow.n3 = pow.n3,
           i.acqs = df.alt$acqs[ix],
           i.rival.acq.1 = df.alt$rival.acq.1[ix],
           i.rival.acq.2 = df.alt$rival.acq.2[ix],
@@ -906,8 +860,8 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.diff.constraint = as.numeric(df.alt$constraint[ix]) - as.numeric(df.alt$constraint[jx]),
           ij.diff.acqs = as.numeric(df.alt$acqs[ix]) - as.numeric(df.alt$acqs[jx]),
           ###------  network synergies ------
-          # ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
-          # ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
+          ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
+          ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
           # ij.syn.num.mmc.comps = (cf.num.mmc.comps - df.alt$num.mmc.comps[ix]) / df.alt$num.mmc.comps[ix],
           ij.syn.closeness = (cf.closeness - df.alt$closeness[ix]) / df.alt$closeness[ix],
           ij.syn.degree = (cf.degree - df.alt$deg[ix]) / df.alt$deg[ix],
@@ -934,28 +888,26 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## save incrementally
   if (lidx %% 10 == 0) {   
     # saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
-    saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
+    saveRDS(list(l=l,df.reg=df.reg), 
+            file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i)))
   }
   
   gc()
   
 } ## end loop
 
+
+
 ## final save
-saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
+saveRDS(list(l=l,df.reg=df.reg), 
+        file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i)))
 
 
-##---------------------------------------------------------
-
-
-
-
-tmp <- readRDS(sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i))
-l <- tmp$l
-df.reg <- tmp$df.reg
 
 ## save regression dataframe to seprate table file
-write.csv(df.reg, file = sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_df_%s.csv",name_i), row.names = F)
+write.csv(df.reg, 
+          file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_df_%s.csv",name_i)),
+          row.names = F)
 
 
 

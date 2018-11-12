@@ -2,7 +2,7 @@
 #
 # AMJ 2018 SPECIAL ISSUE COMPETITION NETWORKS AND AWARENESS
 #
-# @author   Stephen Downing <sdowning.bm02g@nctu.edu.tw>
+# @author   sdowning.bm02g@nctu.edu.tw
 #
 # @export [list] cb
 #
@@ -23,19 +23,29 @@ library(stringr, quietly = T)
 ##  - function name beginning with "." not cached in "Global Environment"
 .main.cbdp <- function()
 {
-  ## cache working dir to reset at end
-  orig_work_dir <- getwd()
+
+  ## DATAFILE FOR CB DATA LIST OBJECT
+  tmp_cb_file  <- 'cb_v2.rds'  ## v2:  founded_on date updated
 
   ## DIRECTORIES
-  tmp_data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/crunchbase_export_20161024"
-  tmp_owler_data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet-awareness-tutorial/data"
-  tmp_work_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet-awareness-tutorial"
+  tmp_data_dir <- "/home/sdowning/data/crunchbase_export_20161024"
+  tmp_work_dir <- "/home/sdowning/acqlogit"
   
-  ## set <NA> strings
-  na.strings <- c(NA, 'NA', '')
+  ## if file already saved, load and return
+  if (file.exists(file.path(tmp_data_dir, tmp_cb_file))) {
+    cb <- readRDS(file.path(tmp_data_dir, tmp_cb_file))
+    return(cb)
+  }
+  
+  
+  ## cache working dir to reset at end
+  orig_work_dir <- getwd()
   
   ## SET WORING DIR
   setwd(tmp_work_dir)
+  
+  ## set <NA> strings
+  na.strings <- c(NA, 'NA', '')
   
   ##
   # CRUNCHBASE DATA LIST OBJECT
@@ -589,7 +599,10 @@ library(stringr, quietly = T)
   ##==========================
   ## COMPANIES
   ##--------------------------
-  ## update founded_on,closed_on dates  - Jin-Su's Email 2018-04-23
+  ##
+  ## v2: update founded_on,closed_on dates
+  ##     Jin-Su's Email 2018-04-23
+  ## 
   co.date <- cb$readCsv(file.path(tmp_data_dir,'founded_on_date_edit','missing_companies_20180330.csv'))
   names(co.date) <- c('com_uuid','com_name','com_founded_on_UPDATE','com_closed_on_UPDATE','com_status','note')
   ## fix date formatting  '12/13/2011' ==> '2011-12-31'
@@ -786,7 +799,11 @@ library(stringr, quietly = T)
 
   ## RESET original working dir
   setwd(orig_work_dir)
-  cat('done.\n')
+
+  ## SAVING SERIALIZED
+  saveRDS(cb, file.path(tmp_data_dir, tmp_cb_file)) 
+  
+  cat('done.\n')  
   
   ## RETURN cb list
   return(cb)
