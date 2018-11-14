@@ -97,8 +97,8 @@ sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[
 ##--------------------------------------------------
 ## FIRST TIME: PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
 ##--------------------------------------------------
-g.pd.file <- file.path(.data_dir,sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end))
-g.full.pd.file <- file.path(.data_dir,sprintf('g_full_NCINIT_%s_%s.rds',start,end))
+g.pd.file <- file.path(.data_dir,sprintf('g_%s_d%s_NCINIT_%s_%s.graphml',name_i,d,start,end))
+g.full.pd.file <- file.path(.data_dir,sprintf('g_full_NCINIT_%s_%s.graphml',start,end))
 acqs.init <- co_acq[co_acq$acquired_on < start, ]
 if (!file.exists(file.path(g.pd.file))) {
   cat(sprintf('preprocessing ego net acquisition before start of timeframe: t < %s ...', start))

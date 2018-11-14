@@ -33,11 +33,11 @@ graph_file <- 'g_full.graphml'
 .data_dir    <- file.path(.work_dir,'data')
 .results_dir <- file.path(.work_dir,'results')
 
-cat('\nqsub_0: sourcing functions and data scripts\n')
+cat('\n\nqsub_0: sourcing functions and data scripts\n')
 
 ## LOAD Scripts and Data
-acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
-cb  <- source(file.path(.script_dir,'acqlogit_cb_data_prep.R'))$value      ## DATA 
+acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'), local=TRUE)$value ## FUNCTIONS 
+cb  <- source(file.path(.script_dir,'acqlogit_cb_data_prep.R'), local=TRUE)$value      ## DATA 
 
 
 is.missing <- function(x)
@@ -71,11 +71,11 @@ co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 ## 1. Propensity scores
 cat('qsub_0: sourcing propensity scores script\n')
-source(file.path(.script_dir, 'acqlogit_qsub_1_propensity_scores.R'))
+source(file.path(.script_dir, 'acqlogit_qsub_1_propensity_scores.R'), local=TRUE)
 
 ## 2. Node Collapse (compute covarites)
 cat('qsub_0: sourcing node collapse script\n')
-source(file.path(.script_dir, 'acqlogit_qsub_2_node_collapse.R'))
+source(file.path(.script_dir, 'acqlogit_qsub_2_node_collapse.R'), local=TRUE)
 
 cat('completed successfully.\n')
 

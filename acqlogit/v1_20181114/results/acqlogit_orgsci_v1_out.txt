@@ -1,7 +1,28 @@
-Fatal error: cannot open file '/home/sdowning/compnet/R/acqlogit/aclogit_qsub_0_run.R': No such file or directory
 
-loading dataframes...preparing CrunchBase data
-reshaping acquisitions dataframe...qsub_0: sourcing functions and data scripts
 
-loading dataframes...preparing CrunchBase data
-reshaping acquisitions dataframe...
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
