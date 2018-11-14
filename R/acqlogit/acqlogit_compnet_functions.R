@@ -9,7 +9,6 @@
 library(igraph)
 library(network)
 library(intergraph)
-library(xergm)
 library(stringr)
 
 .acf.main <- function()

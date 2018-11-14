@@ -15,7 +15,6 @@
 #
 ##########################################################################################
 
-# .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 library(network, quietly = T)
 library(texreg, quietly = T)
 library(igraph, quietly = T)

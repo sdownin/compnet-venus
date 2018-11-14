@@ -1,0 +1,7 @@
+Fatal error: cannot open file '/home/sdowning/compnet/R/acqlogit/aclogit_qsub_0_run.R': No such file or directory
+
+loading dataframes...preparing CrunchBase data
+reshaping acquisitions dataframe...qsub_0: sourcing functions and data scripts
+
+loading dataframes...preparing CrunchBase data
+reshaping acquisitions dataframe...
