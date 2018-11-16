@@ -38,6 +38,7 @@ library(intergraph)
 # .work_dir    <- '/home/sdowning/acqlogit'
 # .data_dir    <- file.path(.work_dir,'data')
 # .results_dir <- file.path(.work_dir,'results')
+.compustat_dir <- '/home/sdowning/data/compustat'
 
 # ## LOAD Scripts and Data
 # acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
@@ -95,27 +96,12 @@ g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)  ## full 
 sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
 
 ##--------------------------------------------------
-## FIRST TIME: PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
+##   LOAD IN EGO NETWORK AND GLOBAL NETWORK
 ##--------------------------------------------------
 g.pd.file <- file.path(.data_dir,sprintf('g_%s_d%s_NCINIT_%s_%s.graphml',name_i,d,start,end))
 g.full.pd.file <- file.path(.data_dir,sprintf('g_full_NCINIT_%s_%s.graphml',start,end))
-acqs.init <- co_acq[co_acq$acquired_on < start, ]
-if (!file.exists(file.path(g.pd.file))) {
-  cat(sprintf('preprocessing ego net acquisition before start of timeframe: t < %s ...', start))
-  g.pd <- acf$nodeCollapseGraph(g.pd, acqs.init)  #remove.isolates ?
-  igraph::write.graph(g.pd, file=g.pd.file, format = 'graphml')
-  cat('done.\n')
-}
-if (!file.exists(file.path(g.pd.file))) {
-  cat(sprintf('preprocessing global net acquisition before start of timeframe: t < %s ...', start))
-  g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
-  igraph::write.graph(g.full.pd, file=g.full.pd.file, format = 'graphml')
-  cat('done.\n')
-}
 
-##--------------------------------------------------
-## AFTER FIRST TIME:  LOAD IN EGO NETWORK AND GLOBAL NETWORK
-##--------------------------------------------------
+cat(sprintf('qsub_2: loading graphml files %s %s',g.pd.file, g.full.pd.file))
 g.pd <- igraph::read.graph(g.pd.file, format='graphml')
 g.full.pd <- igraph::read.graph(g.full.pd.file, format='graphml')
 
@@ -146,9 +132,10 @@ g.full.pd.orig <- g.full.pd
 ##--------------------------------------------
 ## Load updated compustat data
 ##--------------------------------------------
-csfunda.file <- file.path(.data_dir,'compustat','fundamentals-annual-UPDATED.csv')
+csfunda.file <- file.path(.compustat_dir,'fundamentals-annual-UPDATED.csv')
 if (!file.exists(csfunda.file)) { ## if file not exists, then run script to create it
-  source(file.path(.script_dir,'acqlogit_compustat_update.R'))
+  stop(sprintf('stop: cannot find csfunda.file %s',csfunda.file))
+  #source(file.path(.script_dir,'acqlogit_compustat_update.R'))
 }
 csa2.all <- cb$readCsv(csfunda.file)
 minyr <- min(unique(csa2.all$fyear), na.rm = T)
@@ -157,7 +144,7 @@ csa2 <- csa2.all[which(csa2.all$fyear != minyr & !is.na(csa2.all$fyear)), ]
 ##--------------------------------------------
 ## LOAD SEGMENTS DATA FOR DIVERSIFICATION
 ##--------------------------------------------
-seg <- read.csv(file.path(.data_dir,'compustat','segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
+seg <- read.csv(file.path(.compustat_dir,'segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 # segcus <- read.csv(file.path(getwd(),'compustat','segments-customer.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 col.seg <- c('conm','tic','datadate','srcdate','stype','snms','soptp1','geotp','sic','SICS1','SICS2','sales','revts','nis')
 seg2 <- seg[seg$soptp1=='PD_SRVC',col.seg] ## exclude geographic MARKET segments; include PD_SRVC product/service segments
@@ -271,7 +258,7 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##---------------------------------------------
 ## LOAD DATA AFTER PROPENSITIES ARE COMPUTED
 ##---------------------------------------------
-l.prop <- readRDS(sprintf('acqlogit_data/acqlogit_propensity_score_comp_list_%s_PATCH.rds',name_i))
+l.prop <- readRDS(file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_d%s_ctrl.rds',name_i,d)))
 g.prop <- l.prop$g.prop
 g.full.prop <- l.prop$g.full.prop
 # g.prop.nc <- l.prop$g.prop.nc ## ?
@@ -326,8 +313,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   ##-------------------------------------------
   if (do.node.collapse & j > 1) {
     cat(sprintf('node collapsing previous skipped acquisition %s:\n',(j-1)))
-    g.pd <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[(j-1),])
-    g.full.pd <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[(j-1),])
+    g.pd.nc <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[(j-1),])
+    g.full.pd.nc <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[(j-1),])
     ## FLAG TO NODE COLLAPSE NEXT LOOP
     do.node.collapse <- TRUE
   } else { ## DONT NODE COLLAPSE PREVIOUS ACQUISITION IF IT WAS ALREADY NODE COLLAPSED (NOT SKIPPED)
@@ -441,6 +428,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.targ.alt$is.public <- sapply(1:nrow(df.targ.alt), function(x){
     isNotOperating <- df.targ.alt$status[x] != 'operating'
     ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.targ.alt$company_name_unique[x])]
+    ipo.date <- min(ipo.date, na.rm=TRUE)
     if (length(ipo.date)<1) 
       return(0)
     return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
@@ -529,6 +517,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.acq.alt$is.public <- sapply(1:nrow(df.acq.alt), function(x){
     isNotOperating <- df.acq.alt$status[x] != 'operating'
     ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.acq.alt$company_name_unique[x])]
+    ipo.date <- min(ipo.date, na.rm=TRUE)
     if (length(ipo.date)<1) 
       return(0)
     return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
@@ -804,8 +793,8 @@ for (j in 1:nrow(acq.src.allpd)) {
           j = df.alt$company_name_unique[jx],
           ###------  acquirer covars ------
           i.age = 2018 - df.alt$founded_year[ix],
-          # i.pow.n1 = pow.n1,
-          # i.pow.n3 = pow.n3,
+          i.pow.n1 = pow.n1,
+          i.pow.n3 = pow.n3,
           i.closeness = df.alt$closeness[ix],
           i.deg = df.alt$deg[ix],
           i.deg.full = df.alt$deg.full[ix],
@@ -813,8 +802,6 @@ for (j in 1:nrow(acq.src.allpd)) {
           i.num.mkts = ifelse(is.missing(df.alt$num.mkts[ix]), NA, df.alt$num.mkts[ix]),
           i.num.mmc.comps = ifelse(is.missing(df.alt$num.mmc.comps[ix]), NA, df.alt$num.mmc.comps[ix]),
           i.constraint = df.alt$constraint[ix],
-          i.pow.n1 = pow.n1,
-          i.pow.n3 = pow.n3,
           i.acqs = df.alt$acqs[ix],
           i.rival.acq.1 = df.alt$rival.acq.1[ix],
           i.rival.acq.2 = df.alt$rival.acq.2[ix],
@@ -879,16 +866,15 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## NODE COLLAPSE update network
   ##---------------------------------
   cat(sprintf('node collapsing acquisition %s:\n',j))
-  g.pd <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[j,])
-  g.full.pd <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[j,])
+  g.pd.nc <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[j,])
+  g.full.pd.nc <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[j,])
   ## FLAG TO NOT RUN NODE COLLAPSE AT START OF NEXT LOOP SINCE IT WAS ALREADY PROCESSED HERE
   do.node.collapse <- FALSE
   
   ## save incrementally
   if (lidx %% 10 == 0) {   
-    # saveRDS(list(l=l,df.reg=df.reg), file = sprintf("acqlogit_compnet_covs_list_%s.rds",name_i))
     saveRDS(list(l=l,df.reg=df.reg), 
-            file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i)))
+            file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d)))
   }
   
   gc()
@@ -899,13 +885,13 @@ for (j in 1:nrow(acq.src.allpd)) {
 
 ## final save
 saveRDS(list(l=l,df.reg=df.reg), 
-        file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s.rds",name_i)))
+        file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d)))
 
 
 
 ## save regression dataframe to seprate table file
 write.csv(df.reg, 
-          file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_df_%s.csv",name_i)),
+          file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_df_%s_d%s.csv",name_i,d)),
           row.names = F)
 
 

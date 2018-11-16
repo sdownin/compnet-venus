@@ -1,0 +1,55 @@
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network file
+qsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+preprocessing ego net acquisition before start of timeframe: t < 2007-01-01 ...processing acquisitions: 177 ...
+10: microsoft --> valence-technology
+20: aol --> timewarner
+30: electronicarts --> pogo-com
+40: ebay --> paypal
+50: syniverse-technologies --> mach
+60: realnetworks --> gamehouse
+70: j2-global-communications --> evoice
+80: yahoo --> musicmatch
+90: homeaway --> a1vacations
+100: siemens --> myrio
+110: newscorporation --> myspace
+120: ebay --> skype
+130: yahoo --> delicious
+140: the-walt-disney-company --> pixar
+150: mcafee --> siteadvisor
+160: vocus --> prweb
+170: microsoft --> colloquis
+done.
+done.
+
+year 2007
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:

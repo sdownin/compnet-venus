@@ -4,7 +4,7 @@
 ##   to subset columns for controls and add Market-to-Book ratio
 ##
 ###
-setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
+#setwd("C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2")
 # .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 library(parallel)
 library(network, quietly = T)
@@ -15,6 +15,9 @@ library(lattice, quietly = T)
 library(latticeExtra, quietly = T)
 library(ggplot2, quietly = T)
 library(reshape2)
+
+.cs.update <- function()
+{
 
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
 
@@ -146,3 +149,7 @@ csa2$m2b <- apply(csa2[,c('mcap_c','bve')], 1, function(x){
 ## SAVE updated compustat data
 write.csv(csa2, file=file.path('compustat','fundamentals-annual-UPDATED.csv'), row.names = F)
 
+}
+
+## run
+.cs.update()

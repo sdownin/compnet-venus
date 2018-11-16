@@ -37,6 +37,7 @@ library(intergraph)
 # .work_dir    <- '/home/sdowning/acqlogit'
 # .data_dir    <- file.path(.work_dir,'data')
 # .results_dir <- file.path(.work_dir,'results')
+.compustat_dir <- '/home/sdowning/data/compustat'
 
 # ## LOAD Scripts and Data
 # acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
@@ -157,8 +158,8 @@ g.ego <- igraph::make_ego_graph(graph = g.full,
                                 order = d, mode = 'all')[[1]]
 
 ## NETWORKS IN TIMEFRAME TO PROCESS NODE COLLAPSE AND POCESS COVARIATES
-g.pd      <- acf$makePdGraph(g.ego, start, end, isolates.remove=TRUE)   ## ego network
-g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)  ## full network
+g.pd      <- acf$makePdGraph(g.ego, start, end, isolates.remove=FALSE)   ## ego network
+g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=FALSE)  ## full network
 
 ## CHECK NETWORK PERIOD SIZES
 sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
@@ -175,7 +176,7 @@ if (!file.exists(file.path(g.pd.file))) {
   igraph::write.graph(g.pd, file=g.pd.file, format = 'graphml')
   cat('done.\n')
 }
-if (!file.exists(file.path(g.pd.file))) {
+if (!file.exists(file.path(g.full.pd.file))) {
   cat(sprintf('preprocessing global net acquisition before start of timeframe: t < %s ...', start))
   g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
   igraph::write.graph(g.full.pd, file=g.full.pd.file, format = 'graphml')
@@ -215,9 +216,11 @@ g.full.pd.orig <- g.full.pd
 ##--------------------------------------------
 ## Load updated compustat data
 ##--------------------------------------------
-csfunda.file <- file.path(.data_dir,'compustat','fundamentals-annual-UPDATED.csv')
+csfunda.file <- file.path(.compustat_dir,'fundamentals-annual-UPDATED.csv')
 if (!file.exists(csfunda.file)) { ## if file not exists, then run script to create it
-  source(file.path(.script_dir,'acqlogit_compustat_update.R'))
+  cat(sprintf('stop: cannot find csfunda.file %s\n',csfunda.file))
+  stop(sprintf('stop: cannot find csfunda.file %s',csfunda.file))
+  #source(file.path(.script_dir,'acqlogit_compustat_update.R'))
 }
 csa2.all <- cb$readCsv(csfunda.file)
 minyr <- min(unique(csa2.all$fyear), na.rm = T)
@@ -226,7 +229,7 @@ csa2 <- csa2.all[which(csa2.all$fyear != minyr & !is.na(csa2.all$fyear)), ]
 ##--------------------------------------------
 ## LOAD SEGMENTS DATA FOR DIVERSIFICATION
 ##--------------------------------------------
-seg <- read.csv(file.path(.data_dir,'compustat','segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
+seg <- read.csv(file.path(.compustat_dir,'segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 # segcus <- read.csv(file.path(getwd(),'compustat','segments-customer.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 col.seg <- c('conm','tic','datadate','srcdate','stype','snms','soptp1','geotp','sic','SICS1','SICS2','sales','revts','nis')
 seg2 <- seg[seg$soptp1=='PD_SRVC',col.seg] ## exclude geographic MARKET segments; include PD_SRVC product/service segments
@@ -424,6 +427,7 @@ for (year in years)
     df.targ.alt$is.public <- sapply(1:nrow(df.targ.alt), function(x){
       isNotOperating <- df.targ.alt$status[x] != 'operating'
       ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.targ.alt$company_name_unique[x])]
+      ipo.date <- min(ipo.date, na.rm=TRUE)
       if (length(ipo.date)<1) 
         return(0)
       return(ifelse( isNotOperating & ipo.date <= acq.yr.i$acquired_on, 1, 0))
@@ -529,6 +533,7 @@ for (year in years)
     df.acq.alt$is.public <- sapply(1:nrow(df.acq.alt), function(x){
       isNotOperating <- df.acq.alt$status[x] != 'operating'
       ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.acq.alt$company_name_unique[x])]
+      ipo.date <- min(ipo.date, na.rm=TRUE)
       if (length(ipo.date)<1) 
         return(0)
       return(ifelse( isNotOperating & ipo.date <= acq.yr.i$acquired_on, 1, 0))
@@ -613,7 +618,7 @@ for (year in years)
   saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
                g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
                a.df=a.df, t.df=t.df),
-          file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s.rds',name_i)))
+          file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_d%s.rds',name_i,d)))
   
 }
 
@@ -738,7 +743,7 @@ cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3)
 saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
              g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
              a.df=a.df, t.df=t.df, a.df.ctrl=a.df.ctrl, a.prop=a.prop, t.prop=t.prop),
-        file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_ctrl.rds',name_i)))
+        file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_d%s_ctrl.rds',name_i,d)))
 
 
 

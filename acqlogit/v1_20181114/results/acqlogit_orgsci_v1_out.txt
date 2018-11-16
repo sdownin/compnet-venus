@@ -26,3 +26,1854 @@ collecting edges to remove...done.
 collecting vertices to remove...done.
 collecting edges to remove...done.
 collecting vertices to remove...done.
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+preprocessing ego net acquisition before start of timeframe: t < 2007-01-01 ...processing acquisitions: 24 ...
+10: experian --> cheetahmail
+20: mckesson --> relayhealth
+done.
+done.
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+preprocessing ego net acquisition before start of timeframe: t < 2007-01-01 ...processing acquisitions: 28 ...
+10: experian --> cheetahmail
+20: aol --> truveo
+done.
+done.
+preprocessing global net acquisition before start of timeframe: t < 2007-01-01 ...processing acquisitions: 194 ...
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+10: amazon --> imdb
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+20: taleo --> ilogos
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+30: microsoft --> bungie-software
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+40: aol --> infointeractive
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+50: iac --> ticketmaster
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+60: nokia --> sega
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+70: iac --> tripadvisor
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+80: ignentertainment --> rottentomatoes
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+90: dow-jones --> marketwatch
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+100: homeaway --> greatrentals-com
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+110: neustar --> ultradns
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+120: incisivemedia --> clickz
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+130: hewlett-packard --> peregrine-systems
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+140: sonicwall --> lasso
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+150: integreon --> bowne
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+160: verisign-2 --> m-qube
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+170: mckesson --> relayhealth
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+180: oracle --> siebel
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+190: discoverycommunications --> petfinder
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+simplifying edges...done.
+done.
+done.
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+cannot find csfunda.file /home/sdowning/compnet/acqlogit/v1_20181114/data/compustat/fundamentals-annual-UPDATED.csv
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+stop: cannot find csfunda.file /home/sdowning/compnet/acqlogit/v1_20181114/data/compustat/fundamentals-annual-UPDATED.csv
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+
+year 2007
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: cisco --> ironport
+ 2: yahoo --> mybloglog
+   appending counterfactuals.
+ 3: ebay --> stubhub
+   appending counterfactuals.
+ 4: obopay --> billmonk
+   appending counterfactuals.
+ 5: symantec --> altiris
+ 6: omniture --> touch-clarity
+ 7: google --> adscape
+ 8: citysearch --> insiderpages
+   appending counterfactuals.
+ 9: cisco --> webex
+ 10: diebold --> solutionary
+   appending counterfactuals.
+ 11: hewlett-packard --> tabblo
+   appending counterfactuals.
+ 12: ebay --> microplace
+ 13: ybrant-digital --> volomp
+ 14: software-ag --> webmethods
+ 15: comcast --> fandango
+   appending counterfactuals.
+ 16: experian --> hitwise
+ 17: yahoo --> right-media
+   appending counterfactuals.
+ 18: amazon --> dpreview
+ 19: adobe-systems --> sence7
+ 20: aol --> thirdscreenmedia
+   appending counterfactuals.
+ 21: aol --> adtech
+   appending counterfactuals.
+ 22: ebay --> gumtree
+ 23: fox-interactive-media --> flektor
+   appending counterfactuals.
+ 24: fox-interactive-media --> photobucket
+ 25: ebay --> stumbleupon
+   appending counterfactuals.
+ 26: google --> panoramio
+ 27: google --> feedburner
+ 28: tibco-software --> spotfire
+ 29: demandmedia --> expertvillage
+   appending counterfactuals.
+ 30: cybersource --> authorize-net
+ 31: google --> grandcentral
+   appending counterfactuals.
+ 32: nokia --> twango
+   appending counterfactuals.
+ 33: hearstcorporation --> ugo-entertainment
+   appending counterfactuals.
+ 34: google --> postini
+   appending counterfactuals.
+ 35: hewlett-packard --> opsware
+   appending counterfactuals.
+ 36: aol --> tacoda
+   appending counterfactuals.
+ 37: microsoft --> adecn
+   appending counterfactuals.
+ 38: hearstcorporation --> kaboodle
+   appending counterfactuals.
+ 39: reuters --> starmine
+ 40: microsoft --> parlano
+ 41: yahoo --> bluelithium
+ 42: ibm --> datamirror
+   appending counterfactuals.
+ 43: yahoo --> www-buzztracker-com
+ 44: yahoo --> zimbra
+   appending counterfactuals.
+ 45: sugar --> shopstyle
+ 46: emc --> mozy
+   appending counterfactuals.
+ 47: interwoven --> optimost
+ 48: microsoft --> jellyfish
+   appending counterfactuals.
+ 49: sap --> business-objects-sa
+   appending counterfactuals.
+ 50: google --> jaiku
+   appending counterfactuals.
+ 51: thestreet --> bankingmyway
+   appending counterfactuals.
+ 52: dell --> equallogic
+ 53: symantec --> vontu
+ 54: aol --> quigo
+   appending counterfactuals.
+ 55: aol --> yedda
+   appending counterfactuals.
+ 56: intuit --> homestead-technologies
+   appending counterfactuals.
+ 57: adknowledge --> cubics
+   appending counterfactuals.
+ 58: microsoft --> multimap
+   appending counterfactuals.
+ 59: newscorporation --> dow-jones
+   appending counterfactuals.
+
+year 2008
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: microsoft --> fast-search-transfer
+   appending counterfactuals.
+ 2: oracle --> bea-systems
+   appending counterfactuals.
+ 3: sun-microsystems --> mysql
+   appending counterfactuals.
+ 4: amazon --> without-a-box
+ 5: hewlett-packard --> exstream-software
+ 6: amazon --> audible
+ 7: ibm --> cognos
+   appending counterfactuals.
+ 8: yahoo --> maven-networks
+   appending counterfactuals.
+ 9: aol --> goowy
+   appending counterfactuals.
+ 10: yahoo --> foxytunes
+   appending counterfactuals.
+ 11: comcast --> vehix
+ 12: microsoft --> danger
+   appending counterfactuals.
+ 13: dell --> messageone
+   appending counterfactuals.
+ 14: onesite --> social-platform
+ 15: emc --> pi-corporation
+   appending counterfactuals.
+ 16: mzinga --> prosperotechnologies
+   appending counterfactuals.
+ 17: demandmedia --> pluck
+   appending counterfactuals.
+ 18: emc --> document-sciences
+ 19: adconion-media-group --> frontline-direct
+ 20: microsoft --> credentica
+ 21: google --> doubleclick
+   appending counterfactuals.
+ 22: aol --> bebo
+   appending counterfactuals.
+ 23: microsoft --> rapt
+   appending counterfactuals.
+ 24: bmc-software --> bladelogic
+ 25: hearstcorporation --> answerology
+ 26: markettools --> customersat
+   appending counterfactuals.
+ 27: aol --> sphere
+   appending counterfactuals.
+ 28: emc --> iomega
+   appending counterfactuals.
+ 29: microsoft --> farecast
+   appending counterfactuals.
+ 30: aol --> sphere-2
+   appending counterfactuals.
+ 31: informatica --> identity-systems
+ 32: ibm --> diligent-board-member-services
+ 33: sony --> gracenote
+   appending counterfactuals.
+ 34: apple --> pa-semi
+   appending counterfactuals.
+ 35: gannett --> shoplocal
+   appending counterfactuals.
+ 36: electronicarts --> rupture
+   appending counterfactuals.
+ 37: hewlett-packard --> eds
+ 38: accenture --> origin-digital
+ 39: comcast --> plaxo
+   appending counterfactuals.
+ 40: ask-com --> lexico-publishing-group
+ 41: condenast --> ars-technica
+ 42: whitepages-com --> snapvine
+ 43: symantec --> swapdrive
+ 44: netsuite --> openair
+   appending counterfactuals.
+ 45: microsoft --> navic-networks
+ 46: red-hat --> identyx
+   appending counterfactuals.
+ 47: nec --> netcracker-technology
+   appending counterfactuals.
+ 48: nokia --> plazes
+   appending counterfactuals.
+ 49: amazon --> fabric-com
+ 50: aol --> evoice
+ 51: microsoft --> powerset
+   appending counterfactuals.
+ 52: xandros --> linspire
+ 53: nokia --> navteq
+ 54: twitter --> summize
+   appending counterfactuals.
+ 55: cisco --> pure-networks
+ 56: interwoven --> discovery-mining
+   appending counterfactuals.
+ 57: microsoft --> datallegro
+   appending counterfactuals.
+ 58: google --> omnisio
+   appending counterfactuals.
+ 59: amazon --> abebooks
+   appending counterfactuals.
+ 60: oracle --> skywire-software
+ 61: aol --> socialthing
+   appending counterfactuals.
+ 62: sas --> ideas
+ 63: comcast --> dailycandy
+ 64: symantec --> pc-tools
+   appending counterfactuals.
+ 65: amazon --> shelfari
+   appending counterfactuals.
+ 66: technorati --> blogcritics
+ 67: cisco --> postpath
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+
+year 2007
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: cisco --> ironport
+ 2: yahoo --> mybloglog
+   appending counterfactuals.
+ 3: ebay --> stubhub
+   appending counterfactuals.
+ 4: obopay --> billmonk
+   appending counterfactuals.
+ 5: symantec --> altiris
+ 6: omniture --> touch-clarity
+ 7: google --> adscape
+ 8: citysearch --> insiderpages
+   appending counterfactuals.
+ 9: cisco --> webex
+ 10: diebold --> solutionary
+   appending counterfactuals.
+ 11: hewlett-packard --> tabblo
+   appending counterfactuals.
+ 12: ebay --> microplace
+ 13: ybrant-digital --> volomp
+ 14: software-ag --> webmethods
+ 15: comcast --> fandango
+   appending counterfactuals.
+ 16: experian --> hitwise
+ 17: yahoo --> right-media
+   appending counterfactuals.
+ 18: amazon --> dpreview
+ 19: adobe-systems --> sence7
+ 20: aol --> thirdscreenmedia
+   appending counterfactuals.
+ 21: aol --> adtech
+   appending counterfactuals.
+ 22: ebay --> gumtree
+ 23: fox-interactive-media --> flektor
+   appending counterfactuals.
+ 24: fox-interactive-media --> photobucket
+ 25: ebay --> stumbleupon
+   appending counterfactuals.
+ 26: google --> panoramio
+ 27: google --> feedburner
+ 28: tibco-software --> spotfire
+ 29: demandmedia --> expertvillage
+   appending counterfactuals.
+ 30: cybersource --> authorize-net
+ 31: google --> grandcentral
+   appending counterfactuals.
+ 32: nokia --> twango
+   appending counterfactuals.
+ 33: hearstcorporation --> ugo-entertainment
+   appending counterfactuals.
+ 34: google --> postini
+   appending counterfactuals.
+ 35: hewlett-packard --> opsware
+   appending counterfactuals.
+ 36: aol --> tacoda
+   appending counterfactuals.
+ 37: microsoft --> adecn
+   appending counterfactuals.
+ 38: hearstcorporation --> kaboodle
+   appending counterfactuals.
+ 39: reuters --> starmine
+ 40: microsoft --> parlano
+ 41: yahoo --> bluelithium
+ 42: ibm --> datamirror
+   appending counterfactuals.
+ 43: yahoo --> www-buzztracker-com
+ 44: yahoo --> zimbra
+   appending counterfactuals.
+ 45: sugar --> shopstyle
+ 46: emc --> mozy
+   appending counterfactuals.
+ 47: interwoven --> optimost
+ 48: microsoft --> jellyfish
+   appending counterfactuals.
+ 49: sap --> business-objects-sa
+   appending counterfactuals.
+ 50: google --> jaiku
+   appending counterfactuals.
+ 51: thestreet --> bankingmyway
+   appending counterfactuals.
+ 52: dell --> equallogic
+ 53: symantec --> vontu
+ 54: aol --> quigo
+   appending counterfactuals.
+ 55: aol --> yedda
+   appending counterfactuals.
+ 56: intuit --> homestead-technologies
+   appending counterfactuals.
+ 57: adknowledge --> cubics
+   appending counterfactuals.
+ 58: microsoft --> multimap
+   appending counterfactuals.
+ 59: newscorporation --> dow-jones
+   appending counterfactuals.
+
+year 2008
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: microsoft --> fast-search-transfer
+   appending counterfactuals.
+ 2: oracle --> bea-systems
+   appending counterfactuals.
+ 3: sun-microsystems --> mysql
+   appending counterfactuals.
+ 4: amazon --> without-a-box
+ 5: hewlett-packard --> exstream-software
+ 6: amazon --> audible
+ 7: ibm --> cognos
+   appending counterfactuals.
+ 8: yahoo --> maven-networks
+   appending counterfactuals.
+ 9: aol --> goowy
+   appending counterfactuals.
+ 10: yahoo --> foxytunes
+   appending counterfactuals.
+ 11: comcast --> vehix
+ 12: microsoft --> danger
+   appending counterfactuals.
+ 13: dell --> messageone
+   appending counterfactuals.
+ 14: onesite --> social-platform
+ 15: emc --> pi-corporation
+   appending counterfactuals.
+ 16: mzinga --> prosperotechnologies
+   appending counterfactuals.
+ 17: demandmedia --> pluck
+   appending counterfactuals.
+ 18: emc --> document-sciences
+ 19: adconion-media-group --> frontline-direct
+ 20: microsoft --> credentica
+ 21: google --> doubleclick
+   appending counterfactuals.
+ 22: aol --> bebo
+   appending counterfactuals.
+ 23: microsoft --> rapt
+   appending counterfactuals.
+ 24: bmc-software --> bladelogic
+ 25: hearstcorporation --> answerology
+ 26: markettools --> customersat
+   appending counterfactuals.
+ 27: aol --> sphere
+   appending counterfactuals.
+ 28: emc --> iomega
+   appending counterfactuals.
+ 29: microsoft --> farecast
+   appending counterfactuals.
+ 30: aol --> sphere-2
+   appending counterfactuals.
+ 31: informatica --> identity-systems
+ 32: ibm --> diligent-board-member-services
+ 33: sony --> gracenote
+   appending counterfactuals.
+ 34: apple --> pa-semi
+   appending counterfactuals.
+ 35: gannett --> shoplocal
+   appending counterfactuals.
+ 36: electronicarts --> rupture
+   appending counterfactuals.
+ 37: hewlett-packard --> eds
+ 38: accenture --> origin-digital
+ 39: comcast --> plaxo
+   appending counterfactuals.
+ 40: ask-com --> lexico-publishing-group
+ 41: condenast --> ars-technica
+ 42: whitepages-com --> snapvine
+ 43: symantec --> swapdrive
+ 44: netsuite --> openair
+   appending counterfactuals.
+ 45: microsoft --> navic-networks
+ 46: red-hat --> identyx
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+
+year 2007
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: cisco --> ironport
+ 2: yahoo --> mybloglog
+   appending counterfactuals.
+ 3: ebay --> stubhub
+   appending counterfactuals.
+ 4: obopay --> billmonk
+   appending counterfactuals.
+ 5: symantec --> altiris
+ 6: omniture --> touch-clarity
+ 7: google --> adscape
+ 8: citysearch --> insiderpages
+   appending counterfactuals.
+ 9: cisco --> webex
+ 10: diebold --> solutionary
+   appending counterfactuals.
+ 11: hewlett-packard --> tabblo
+   appending counterfactuals.
+ 12: ebay --> microplace
+ 13: ybrant-digital --> volomp
+ 14: software-ag --> webmethods
+ 15: comcast --> fandango
+   appending counterfactuals.
+ 16: experian --> hitwise
+ 17: yahoo --> right-media
+   appending counterfactuals.
+ 18: amazon --> dpreview
+ 19: adobe-systems --> sence7
+ 20: aol --> thirdscreenmedia
+   appending counterfactuals.
+ 21: aol --> adtech
+   appending counterfactuals.
+ 22: ebay --> gumtree
+ 23: fox-interactive-media --> flektor
+   appending counterfactuals.
+ 24: fox-interactive-media --> photobucket
+ 25: ebay --> stumbleupon
+   appending counterfactuals.
+ 26: google --> panoramio
+ 27: google --> feedburner
+ 28: tibco-software --> spotfire
+ 29: demandmedia --> expertvillage
+   appending counterfactuals.
+ 30: cybersource --> authorize-net
+ 31: google --> grandcentral
+   appending counterfactuals.
+ 32: nokia --> twango
+   appending counterfactuals.
+ 33: hearstcorporation --> ugo-entertainment
+   appending counterfactuals.
+ 34: google --> postini
+   appending counterfactuals.
+ 35: hewlett-packard --> opsware
+   appending counterfactuals.
+ 36: aol --> tacoda
+   appending counterfactuals.
+ 37: microsoft --> adecn
+   appending counterfactuals.
+ 38: hearstcorporation --> kaboodle
+   appending counterfactuals.
+ 39: reuters --> starmine
+ 40: microsoft --> parlano
+ 41: yahoo --> bluelithium
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+
+year 2007
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: cisco --> ironport
+ 2: yahoo --> mybloglog
+   appending counterfactuals.
+ 3: ebay --> stubhub
+   appending counterfactuals.
+ 4: obopay --> billmonk
+   appending counterfactuals.
+ 5: symantec --> altiris
+ 6: omniture --> touch-clarity
+ 7: google --> adscape
+ 8: citysearch --> insiderpages
+   appending counterfactuals.
+ 9: cisco --> webex
+ 10: diebold --> solutionary
+   appending counterfactuals.
+ 11: hewlett-packard --> tabblo
+   appending counterfactuals.
+ 12: ebay --> microplace
+ 13: ybrant-digital --> volomp
+ 14: software-ag --> webmethods
+ 15: comcast --> fandango
+   appending counterfactuals.
+ 16: experian --> hitwise
+ 17: yahoo --> right-media
+   appending counterfactuals.
+ 18: amazon --> dpreview
+ 19: adobe-systems --> sence7
+ 20: aol --> thirdscreenmedia
+   appending counterfactuals.
+ 21: aol --> adtech
+   appending counterfactuals.
+ 22: ebay --> gumtree
+ 23: fox-interactive-media --> flektor
+   appending counterfactuals.
+ 24: fox-interactive-media --> photobucket
+ 25: ebay --> stumbleupon
+   appending counterfactuals.
+ 26: google --> panoramio
+ 27: google --> feedburner
+ 28: tibco-software --> spotfire
+ 29: demandmedia --> expertvillage
+   appending counterfactuals.
+ 30: cybersource --> authorize-net
+ 31: google --> grandcentral
+   appending counterfactuals.
+ 32: nokia --> twango
+   appending counterfactuals.
+ 33: hearstcorporation --> ugo-entertainment
+   appending counterfactuals.
+ 34: google --> postini
+   appending counterfactuals.
+ 35: hewlett-packard --> opsware
+   appending counterfactuals.
+ 36: aol --> tacoda
+   appending counterfactuals.
+ 37: microsoft --> adecn
+   appending counterfactuals.
+ 38: hearstcorporation --> kaboodle
+   appending counterfactuals.
+ 39: reuters --> starmine
+ 40: microsoft --> parlano
+ 41: yahoo --> bluelithium
+ 42: ibm --> datamirror
+   appending counterfactuals.
+ 43: yahoo --> www-buzztracker-com
+ 44: yahoo --> zimbra
+   appending counterfactuals.
+ 45: sugar --> shopstyle
+ 46: emc --> mozy
+   appending counterfactuals.
+ 47: interwoven --> optimost
+ 48: microsoft --> jellyfish
+   appending counterfactuals.
+ 49: sap --> business-objects-sa
+   appending counterfactuals.
+ 50: google --> jaiku
+   appending counterfactuals.
+ 51: thestreet --> bankingmyway
+   appending counterfactuals.
+ 52: dell --> equallogic
+ 53: symantec --> vontu
+ 54: aol --> quigo
+   appending counterfactuals.
+ 55: aol --> yedda
+   appending counterfactuals.
+ 56: intuit --> homestead-technologies
+   appending counterfactuals.
+ 57: adknowledge --> cubics
+   appending counterfactuals.
+ 58: microsoft --> multimap
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network fileqsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+
+year 2007
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: cisco --> ironport
+ 2: yahoo --> mybloglog
+   appending counterfactuals.
+ 3: ebay --> stubhub
+   appending counterfactuals.
+ 4: obopay --> billmonk
+   appending counterfactuals.
+ 5: symantec --> altiris
+ 6: omniture --> touch-clarity
+ 7: google --> adscape
+ 8: citysearch --> insiderpages
+   appending counterfactuals.
+ 9: cisco --> webex
+ 10: diebold --> solutionary
+   appending counterfactuals.
+ 11: hewlett-packard --> tabblo
+   appending counterfactuals.
+ 12: ebay --> microplace
+ 13: ybrant-digital --> volomp
+ 14: software-ag --> webmethods
+ 15: comcast --> fandango
+   appending counterfactuals.
+ 16: experian --> hitwise
+ 17: yahoo --> right-media
+   appending counterfactuals.
+ 18: amazon --> dpreview
+ 19: adobe-systems --> sence7
+ 20: aol --> thirdscreenmedia
+   appending counterfactuals.
+ 21: aol --> adtech
+   appending counterfactuals.
+ 22: ebay --> gumtree
+ 23: fox-interactive-media --> flektor
+   appending counterfactuals.
+ 24: fox-interactive-media --> photobucket
+ 25: ebay --> stumbleupon
+   appending counterfactuals.
+ 26: google --> panoramio
+ 27: google --> feedburner
+ 28: tibco-software --> spotfire
+ 29: demandmedia --> expertvillage
+   appending counterfactuals.
+ 30: cybersource --> authorize-net
+ 31: google --> grandcentral
+   appending counterfactuals.
+ 32: nokia --> twango
+   appending counterfactuals.
+ 33: hearstcorporation --> ugo-entertainment
+   appending counterfactuals.
+ 34: google --> postini
+   appending counterfactuals.
+ 35: hewlett-packard --> opsware
+   appending counterfactuals.
+ 36: aol --> tacoda
+   appending counterfactuals.
+ 37: microsoft --> adecn
+   appending counterfactuals.
+ 38: hearstcorporation --> kaboodle
+   appending counterfactuals.
+ 39: reuters --> starmine
+ 40: microsoft --> parlano
+ 41: yahoo --> bluelithium
+ 42: ibm --> datamirror
+   appending counterfactuals.
+ 43: yahoo --> www-buzztracker-com
+ 44: yahoo --> zimbra
+   appending counterfactuals.
+ 45: sugar --> shopstyle
+ 46: emc --> mozy
+   appending counterfactuals.
+ 47: interwoven --> optimost
+ 48: microsoft --> jellyfish
+   appending counterfactuals.
+ 49: sap --> business-objects-sa
+   appending counterfactuals.
+ 50: google --> jaiku
+   appending counterfactuals.
+ 51: thestreet --> bankingmyway
+   appending counterfactuals.
+ 52: dell --> equallogic
+ 53: symantec --> vontu
+ 54: aol --> quigo
+   appending counterfactuals.
+ 55: aol --> yedda
+   appending counterfactuals.
+ 56: intuit --> homestead-technologies
+   appending counterfactuals.
+ 57: adknowledge --> cubics
+   appending counterfactuals.
+ 58: microsoft --> multimap
+   appending counterfactuals.
+ 59: newscorporation --> dow-jones
+   appending counterfactuals.
+
+year 2008
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: microsoft --> fast-search-transfer
+   appending counterfactuals.
+ 2: oracle --> bea-systems
+   appending counterfactuals.
+ 3: sun-microsystems --> mysql
+   appending counterfactuals.
+ 4: amazon --> without-a-box
+ 5: hewlett-packard --> exstream-software
+ 6: amazon --> audible
+ 7: ibm --> cognos
+   appending counterfactuals.
+ 8: yahoo --> maven-networks
+   appending counterfactuals.
+ 9: aol --> goowy
+   appending counterfactuals.
+ 10: yahoo --> foxytunes
+   appending counterfactuals.
+ 11: comcast --> vehix
+ 12: microsoft --> danger
+   appending counterfactuals.
+ 13: dell --> messageone
+   appending counterfactuals.
+ 14: onesite --> social-platform
+ 15: emc --> pi-corporation
+   appending counterfactuals.
+ 16: mzinga --> prosperotechnologies
+   appending counterfactuals.
+ 17: demandmedia --> pluck
+   appending counterfactuals.
+ 18: emc --> document-sciences
+ 19: adconion-media-group --> frontline-direct
+ 20: microsoft --> credentica
+ 21: google --> doubleclick
+   appending counterfactuals.
+ 22: aol --> bebo
+   appending counterfactuals.
+ 23: microsoft --> rapt
+   appending counterfactuals.
+ 24: bmc-software --> bladelogic
+ 25: hearstcorporation --> answerology
+ 26: markettools --> customersat
+   appending counterfactuals.
+ 27: aol --> sphere
+   appending counterfactuals.
+ 28: emc --> iomega
+   appending counterfactuals.
+ 29: microsoft --> farecast
+   appending counterfactuals.
+ 30: aol --> sphere-2
+   appending counterfactuals.
+ 31: informatica --> identity-systems
+ 32: ibm --> diligent-board-member-services
+ 33: sony --> gracenote
+   appending counterfactuals.
+ 34: apple --> pa-semi
+   appending counterfactuals.
+ 35: gannett --> shoplocal
+   appending counterfactuals.
+ 36: electronicarts --> rupture
+   appending counterfactuals.
+ 37: hewlett-packard --> eds
+ 38: accenture --> origin-digital
+ 39: comcast --> plaxo
+   appending counterfactuals.
+ 40: ask-com --> lexico-publishing-group
+ 41: condenast --> ars-technica
+ 42: whitepages-com --> snapvine
+ 43: symantec --> swapdrive
+ 44: netsuite --> openair
+   appending counterfactuals.
+ 45: microsoft --> navic-networks
+ 46: red-hat --> identyx
+   appending counterfactuals.
+ 47: nec --> netcracker-technology
+   appending counterfactuals.
+ 48: nokia --> plazes
+   appending counterfactuals.
+ 49: amazon --> fabric-com
+ 50: aol --> evoice
+ 51: microsoft --> powerset
+   appending counterfactuals.
+ 52: xandros --> linspire
+ 53: nokia --> navteq
+ 54: twitter --> summize
+   appending counterfactuals.
+ 55: cisco --> pure-networks
+ 56: interwoven --> discovery-mining
+   appending counterfactuals.
+ 57: microsoft --> datallegro
+   appending counterfactuals.
+ 58: google --> omnisio
+   appending counterfactuals.
+ 59: amazon --> abebooks
+   appending counterfactuals.
+ 60: oracle --> skywire-software
+ 61: aol --> socialthing
+   appending counterfactuals.
+ 62: sas --> ideas
+ 63: comcast --> dailycandy
+ 64: symantec --> pc-tools
+   appending counterfactuals.
+ 65: amazon --> shelfari
+   appending counterfactuals.
+ 66: technorati --> blogcritics
+ 67: cisco --> postpath
+   appending counterfactuals.
+ 68: oracle --> clearapp
+ 69: wolters-kluwer --> uptodate
+ 70: technorati --> adengage
+ 71: hewlett-packard --> lefthand-networks
+ 72: ebay --> billmelater
+   appending counterfactuals.
+ 73: kantar --> taylor-nelson-sofres
+ 74: oracle --> primavera
+   appending counterfactuals.
+ 75: symantec --> messagelabs
+   appending counterfactuals.
+ 76: rackspace --> slicehost
+   appending counterfactuals.
+ 77: rackspace --> jungledisk
+   appending counterfactuals.
+ 78: logitech --> sightspeed
+   appending counterfactuals.
+ 79: oracle --> tacit-software
+   appending counterfactuals.
+ 80: omniture --> mercado
+   appending counterfactuals.
+ 81: adknowledge --> lookery
+   appending counterfactuals.
+ 82: aristotle --> completecampaigns-com
+ 83: gannett --> ripple6-inc
+   appending counterfactuals.
+ 84: thomson-reuters --> paisley
+ 85: axeda --> questra
+ 86: broadsoft --> sylantro
+
+year 2009
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: safenet --> aladdin
+   appending counterfactuals.
+ 2: autonomy --> interwoven
+ 3: forcepoint --> defensio
+   appending counterfactuals.
+ 4: homeadvisor --> market-hardware
+ 5: sap --> coghead
+   appending counterfactuals.
+ 6: at-t --> sterling-commerce
+   appending counterfactuals.
+ 7: bitam --> kpi-online
+ 8: adknowledge --> miva
+ 9: amazon --> lexcycle
+ 10: cardomain-network --> streetfire
+ 11: intuit --> boorah
+   appending counterfactuals.
+ 12: aol --> emurse
+ 13: oracle --> sun-microsystems
+   appending counterfactuals.
+ 14: good-technology --> heysan
+   appending counterfactuals.
+ 15: good-technology --> intercasting
+   appending counterfactuals.
+ 16: ibm --> exeros
+   appending counterfactuals.
+ 17: opentext --> vignette
+ 18: velti --> ad-infuse
+   appending counterfactuals.
+ 19: sugar --> shopflick
+ 20: ca --> cassatt
+   appending counterfactuals.
+ 21: lithiumtechnologies --> keibi-technologies
+   appending counterfactuals.
+ 22: intel --> wind-river
+   appending counterfactuals.
+ 23: aol --> going
+   appending counterfactuals.
+ 24: aol --> patch
+   appending counterfactuals.
+ 25: antenna-software --> dexterra
+ 26: amazon --> snaptell
+ 27: mail-com-media-corporation --> deadline-hollywood-daily
+ 28: posterous --> slinkset
+   appending counterfactuals.
+ 29: apple --> placebase
+   appending counterfactuals.
+ 30: aol --> mmafighting-com
+ 31: amazon --> zappos
+ 32: oracle --> goldengate-software
+   appending counterfactuals.
+ 33: sap --> saf
+ 34: yahoo --> xoopit
+   appending counterfactuals.
+ 35: nokia --> cellity
+   appending counterfactuals.
+ 36: ibm --> ounce-labs
+   appending counterfactuals.
+ 37: ibm --> spss
+   appending counterfactuals.
+ 38: sprint-nextel --> virgin-mobile
+ 39: mcafee --> mx-logic
+ 40: box --> increo-solutions
+   appending counterfactuals.
+ 41: facebook --> friendfeed
+   appending counterfactuals.
+ 42: myspace --> ilike
+ 43: intel --> rapidmind
+   appending counterfactuals.
+ 44: fluke-networks --> airmagnet
+ 45: admob --> adwhirl
+   appending counterfactuals.
+ 46: adobe-systems --> goodbarry
+ 47: rightnow-technologies --> hivelive
+   appending counterfactuals.
+ 48: nokia --> plum
+   appending counterfactuals.
+ 49: intuit --> mint
+   appending counterfactuals.
+ 50: ca --> netqos
+   appending counterfactuals.
+ 51: triton-digital-media --> ando-media
+   appending counterfactuals.
+ 52: adobe-systems --> omniture
+   appending counterfactuals.
+ 53: google --> recaptcha
+ 54: ibm --> redpill-solutions
+ 55: nokia --> dopplr
+   appending counterfactuals.
+ 56: naspers --> buscape
+ 57: at-t --> plusmo
+ 58: cisco --> tandberg
+ 59: compuware --> gomez-inc
+   appending counterfactuals.
+ 60: burstmedia --> giant-realm
+ 61: motionbox --> viddyou
+   appending counterfactuals.
+ 62: bloomberg --> businessweek
+   appending counterfactuals.
+ 63: barracuda-networks --> purewire
+   appending counterfactuals.
+ 64: sprint-nextel --> ipcs
+ 65: loopt --> graffitigeo-inc
+ 66: cisco --> scansafe
+   appending counterfactuals.
+ 67: flexera-software --> honico-software
+ 68: google --> admob
+   appending counterfactuals.
+ 69: google --> gizmofive
+ 70: electronicarts --> playfish
+   appending counterfactuals.
+ 71: hewlett-packard --> 3com
+ 72: mobile-messenger --> m-qube
+ 73: myspace --> imeem
+ 74: adconion-media-group --> joost
+   appending counterfactuals.
+ 75: ibm --> guardium
+   appending counterfactuals.
+ 76: flexiant --> flexiscale
+   appending counterfactuals.
+ 77: quest-software --> packettrap
+ 78: google --> appjet
+   appending counterfactuals.
+ 79: google --> docverse
+ 80: apple --> lala
+   appending counterfactuals.
+ 81: ibm --> lombardi-software
+   appending counterfactuals.
+ 82: o2 --> jajah
+   appending counterfactuals.
+ 83: flurry --> pinch-media
+   appending counterfactuals.
+ 84: twitter --> mixer-labs
+   appending counterfactuals.
+ 85: nuance --> spinvox
+   appending counterfactuals.
+
+year 2010
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: emc --> archer-technologies
+ 2: apple --> quattro-wireless
+   appending counterfactuals.
+ 3: jive-software --> filtrbox
+   appending counterfactuals.
+ 4: progress-software --> savvion
+ 5: opera-software --> admarvel
+   appending counterfactuals.
+ 6: newsgator --> tomoye-community-software
+   appending counterfactuals.
+ 7: liveperson --> nuconomy
+   appending counterfactuals.
+ 8: google --> saynow
+ 9: jda-software --> i2-tech
+   appending counterfactuals.
+ 10: informatica --> siperian
+   appending counterfactuals.
+ 11: intel --> infineon
+ 12: ibm --> initiate-systems
+ 13: verint --> iontas
+ 14: oracle --> amberpoint
+ 15: micron-technology --> numonyx
+ 16: google --> aardvark
+   appending counterfactuals.
+ 17: google --> remail
+   appending counterfactuals.
+ 18: google --> on2
+   appending counterfactuals.
+ 19: opentext --> nstein-technologies
+ 20: appia --> handango
+   appending counterfactuals.
+ 21: ca --> 3tera
+   appending counterfactuals.
+ 22: google --> picnik
+   appending counterfactuals.
+ 23: exacttarget --> cotweet
+   appending counterfactuals.
+ 24: sungard --> hosting365
+   appending counterfactuals.
+ 25: ca --> nimsoft
+ 26: evri --> radar-networks
+   appending counterfactuals.
+ 27: pegasystems --> chordiant-software
+   appending counterfactuals.
+ 28: yahoo --> citizen-sports
+ 29: vibes-media --> zeep-mobile
+   appending counterfactuals.
+ 30: tibco-software --> netrics
+ 31: nokia --> novarra
+ 32: google --> episodic
+   appending counterfactuals.
+ 33: twitter --> atebits
+   appending counterfactuals.
+ 34: rally-software --> agilezen
+   appending counterfactuals.
+ 35: oracle --> phase-forward
+ 36: newscorporation --> ilist
+   appending counterfactuals.
+ 37: salesforce --> jigsaw
+   appending counterfactuals.
+ 38: google --> labpixies
+   appending counterfactuals.
+ 39: apple --> siri
+   appending counterfactuals.
+ 40: attensity --> biz360
+   appending counterfactuals.
+ 41: symantec --> pgp-corporation
+   appending counterfactuals.
+ 42: google --> bumptop
+ 43: ibm --> castiron-systems
+   appending counterfactuals.
+ 44: groupon --> mob-ly
+ 45: lithiumtechnologies --> scoutlabs
+   appending counterfactuals.
+ 46: cgi-group --> stanley
+ 47: sap --> sybase
+ 48: groupon --> citydeal-de
+   appending counterfactuals.
+ 49: yahoo --> associatedcontent
+   appending counterfactuals.
+ 50: symantec --> verisign
+   appending counterfactuals.
+ 51: google --> simplify-media
+   appending counterfactuals.
+ 52: harris --> caprock-communications
+ 53: google --> ruba
+   appending counterfactuals.
+ 54: ibm --> sterling-commerce
+   appending counterfactuals.
+ 55: yahoo --> koprol
+ 56: salesforce --> sitemasher
+   appending counterfactuals.
+ 57: hearstcorporation --> icrossing
+ 58: google --> invitemedia
+   appending counterfactuals.
+ 59: zynga --> challenge-games
+ 60: triton-digital-media --> streamtheworld
+   appending counterfactuals.
+ 61: sugar --> freshguide
+ 62: mcafee --> trust-digital
+   appending counterfactuals.
+ 63: sugar --> bookfresh
+ 64: check-point --> liquid-machines
+ 65: twitter --> dabbledb
+   appending counterfactuals.
+ 66: ibm --> storwize
+   appending counterfactuals.
+ 67: ibm --> coremetrics
+   appending counterfactuals.
+ 68: violin-memory --> gear6
+   appending counterfactuals.
+ 69: adknowledge --> hydra
+ 70: uship --> boxby
+ 71: hewlett-packard --> melodeo
+ 72: groupon --> clandescuento
+   appending counterfactuals.
+ 73: alibaba --> vendio
+   appending counterfactuals.
+ 74: amazon --> woot
+   appending counterfactuals.
+ 75: hewlett-packard --> palm
+ 76: dell --> scalent-systems
+ 77: emc --> greenplum
+   appending counterfactuals.
+ 78: telefonica --> tuenti-technologies
+   appending counterfactuals.
+ 79: myspace --> cc-betty
+ 80: joyent --> layerboom
+   appending counterfactuals.
+ 81: google --> freebase
+ 82: google --> metawebtechnologies
+   appending counterfactuals.
+ 83: adobe-systems --> day-software
+   appending counterfactuals.
+ 84: facebook --> hotpotato
+   appending counterfactuals.
+ 85: mcafee --> tencube
+   appending counterfactuals.
+ 86: google --> slide
+   appending counterfactuals.
+ 87: google --> jambool
+   appending counterfactuals.
+ 88: facebook --> chailabs
+ 89: zynga --> conduitlabs
+   appending counterfactuals.
+ 90: hewlett-packard --> fortify-software
+   appending counterfactuals.
+ 91: intel --> mcafee
+   appending counterfactuals.
+ 92: google --> like
+   appending counterfactuals.
+ 93: nokia --> motally
+   appending counterfactuals.
+ 94: motorola-solutions --> 280-north
+   appending counterfactuals.
+ 95: blackberry --> cellmania
+ 96: cisco --> extend-media
+   appending counterfactuals.
+ 97: naspers --> olx
+   appending counterfactuals.
+ 98: hewlett-packard --> stratavia
+   appending counterfactuals.
+ 99: intertrust-technologies --> seeqpod
+ 100: google --> socialdeck
+   appending counterfactuals.
+ 101: newscorporation --> getprice
+ 102: hewlett-packard --> arcsight-inc
+ 103: realnetworks --> backstage-technologies
+   appending counterfactuals.
+ 104: ibm --> openpages
+   appending counterfactuals.
+ 105: motorola-solutions --> aloqa
+ 106: calix --> occam-networks
+   appending counterfactuals.
+ 107: naspers --> multiply
+   appending counterfactuals.
+ 108: ibm --> netezza
+ 109: apple --> polarrose
+   appending counterfactuals.
+ 110: amazon --> amiestreet
+   appending counterfactuals.
+ 111: salesforce --> activa-live
+   appending counterfactuals.
+ 112: zynga --> dextrose
+ 113: facebook --> nextstop
+ 114: where-com --> localginger
+ 115: aol --> 5min
+   appending counterfactuals.
+ 116: google --> plannr
+ 117: aol --> techcrunch
+   appending counterfactuals.
+ 118: aol --> thinglabs
+ 119: atlassian --> bitbucket
+ 120: velti --> mobclix
+   appending counterfactuals.
+ 121: ozura --> bullroarer
+   appending counterfactuals.
+ 122: electronicarts --> chillingo
+ 123: ca --> arcot-systems
+ 124: yahoo --> dapper
+   appending counterfactuals.
+ 125: oracle --> passlogix
+   appending counterfactuals.
+ 126: ibm --> unica
+   appending counterfactuals.
+ 127: amazon --> buyvip
+   appending counterfactuals.
+ 128: specific-media --> bbe
+   appending counterfactuals.
+ 129: operative --> solbright
+   appending counterfactuals.
+ 130: collabnet --> codesion
+ 131: microsoft --> canesta
+   appending counterfactuals.
+ 132: oracle --> atg-arttechnologygroup
+   appending counterfactuals.
+ 133: dell --> boomi
+   appending counterfactuals.
+ 134: undertone --> jambo-media
+ 135: amazon --> quidsi
+ 136: intel --> cognovision
+   appending counterfactuals.
+ 137: emc --> isilon
+ 138: juniper-networks --> trapeze-networks
+   appending counterfactuals.
+ 139: facebook --> zenbe
+   appending counterfactuals.
+ 140: newscorporation --> wireless-generation
+ 141: red-hat --> makara
+   appending counterfactuals.
+ 142: motorola-solutions --> 4home
+   appending counterfactuals.
+ 143: ebay --> milo
+ 144: aol --> unblab
+ 145: bmc-software --> gridapp-systems
+ 146: autodesk --> simopsstudios
+ 147: salesforce --> heroku
+   appending counterfactuals.
+ 148: tibco-software --> loyalty-lab
+ 149: tremor-video --> scanscout
+   appending counterfactuals.
+ 150: dell --> compellent-technologies
+   appending counterfactuals.
+ 151: here-inc --> trapster
+ 152: rackspace --> cloudkick
+   appending counterfactuals.
+ 153: aol --> pictela
+ 154: citrix-systems --> netviewer
+ 155: lawson-software --> enwisen
+ 156: salesforce --> etacts
+   appending counterfactuals.
+ 157: twitter --> fluther
+   appending counterfactuals.
+ 158: teradata --> aprimo
+   appending counterfactuals.
+ 159: dell --> insiteone
+
+year 2011
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: ubermedia --> mixx
+   appending counterfactuals.
+ 2: dell --> secureworks
+   appending counterfactuals.
+ 3: mindshift-technologies --> alpheon-corporation
+ 4: ubermedia --> echofon
+   appending counterfactuals.
+ 5: zynga --> flock
+   appending counterfactuals.
+ 6: salesforce --> dimdim
+   appending counterfactuals.
+ 7: skype --> qik
+ 8: concur-technologies --> tripit
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network file
+qsub_0: sourcing propensity scores script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+
+year 2007
+
+collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+ 1: cisco --> ironport
