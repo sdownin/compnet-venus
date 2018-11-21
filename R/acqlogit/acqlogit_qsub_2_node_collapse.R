@@ -22,54 +22,9 @@ library(plyr, quietly = T)
 library(reshape2)
 library(intergraph)
 
-# ##========================
-# ## SETTINGS
-# ##------------------------
-# name_i <- 'ibm'       ## focal firm name
-# d <- 3                ## distance threshold for focal firm ego network
-# years <- 2007:2017    ## years to subset
-# ##------------------------
-# graph_file <- 'g_full.graphml'
-# ##------------------------
-
 
 # ## DIRECTORIES
-# .script_dir  <- '/home/sdowning/compnet/R/acqlogit'
-# .work_dir    <- '/home/sdowning/acqlogit'
-# .data_dir    <- file.path(.work_dir,'data')
-# .results_dir <- file.path(.work_dir,'results')
 .compustat_dir <- '/home/sdowning/data/compustat'
-
-# ## LOAD Scripts and Data
-# acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
-# cb  <- source(file.path(.script_dir,'acqlogit_cb_data_prep.R'))$value      ## DATA 
-# 
-# is.missing <- function(x)
-# {
-#   if(is.null(x)) 
-#     return(TRUE)
-#   return(is.na(x) | is.nan(x) | x == '')
-# }
-# 
-# ##=======================================
-# ##  PREP DATA and LOAD GRAPH
-# ##---------------------------------------
-# ## comptetition network
-# g.full <- read.graph(file.path(.data_dir,graph_file), format='graphml')
-# 
-# ## add comp net vertex IDs to acquisitions dataframe
-# co_acq <- cb$co_acq
-# gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), 
-#                   acquirer_name_unique=V(g.full)$name,
-#                   acquirer_net_uuid=V(g.full)$company_uuid)
-# co_acq <- merge(co_acq, gdf, by='acquirer_name_unique', all.x = T, all.y = F)
-# gdf <- data.frame(acquiree_vid=as.integer(V(g.full)), 
-#                   acquiree_name_unique=V(g.full)$name,
-#                   acquiree_net_uuid=V(g.full)$company_uuid)
-# co_acq <- merge(co_acq, gdf, by='acquiree_name_unique', all.x=T, all.y = F)
-# 
-# ## SORT CO_ACQ BY acquisition date
-# co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 
 ##--------------------------------------------------------------
@@ -276,9 +231,10 @@ t.prop <- l.prop$t.prop
 ## YEAR PERIODS: DEFINE NICHE CLUSTERS
 ##---------------------------------------------
 l <- list()
+l.cov <- list()  ## covariates data to compute regression dataframe
 df.mmc <- data.frame()
 df.rem <- data.frame()
-df.reg <- data.frame()
+# df.reg <- data.frame()  ## replaced by l.cov
 lidx <- 0  ## acquisition list index
 timeval <- timeval.last <- 0
 
@@ -302,6 +258,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.acq.j <- acq.src.allpd[j,]  ## this acquisition row in the acquisition dataframe
   date_j <- acq.src.allpd$acquired_on[j]
   year_j <- as.integer(str_sub(date_j,1,4))
+  uuid_j <- df.acq.j$acquisition_uuid
   ## g.pd            d2 updated each acquisition
   ## g.pd.orig       d2 original
   ## g.full.pd.orig  global network within timeframe start, end
@@ -788,11 +745,12 @@ for (j in 1:nrow(acq.src.allpd)) {
         cf.pow.n3 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
         
         ## PAIRING DATAFRAME
-        df.tmp.dyad <- data.frame(
+        l.cov[[uuid_j]] <- list(
           ###------  event metadata ------
           y = ifelse(as.integer(df.alt$event[ix]) & as.integer(df.alt$event[jx]), 1, 0),
           t = j,
           date = date_j,
+          uuid = uuid_j,
           i = df.alt$company_name_unique[ix],
           j = df.alt$company_name_unique[jx],
           ###------  acquirer covars ------
@@ -859,7 +817,6 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.syn.degree = (cf.degree - df.alt$deg[ix]) / df.alt$deg[ix],
           ij.syn.constraint = (cf.constraint  - df.alt$constraint[ix]) / df.alt$constraint[ix]
         )
-        df.reg <- rbind(df.reg, df.tmp.dyad)
       }
     }
   }
@@ -879,7 +836,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   
   ## save incrementally
   if (lidx %% 10 == 0) {   
-    saveRDS(list(l=l,df.reg=df.reg), 
+    saveRDS(list(l=l, l.cov=l.cov), 
             file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d)))
   }
   
@@ -890,15 +847,10 @@ for (j in 1:nrow(acq.src.allpd)) {
 
 
 ## final save
-saveRDS(list(l=l,df.reg=df.reg), 
+saveRDS(list(l=l, l.cov=l.cov), 
         file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d)))
 
 
-
-## save regression dataframe to seprate table file
-write.csv(df.reg, 
-          file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_df_%s_d%s.csv",name_i,d)),
-          row.names = F)
 
 
 
