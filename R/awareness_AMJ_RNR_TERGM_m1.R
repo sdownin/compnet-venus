@@ -7,11 +7,13 @@ data_dir <- '/home/sdowning/data/firm_nets_rnr'
 
 firm_i <- 'qualtrics'
 d <- 3
+ncpus <- 4
+parallel <- "multicore"
 
 data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
 nets <- readRDS(data_file)
 
-nPeriods <- 10  ## 5
+nPeriods <- 11  ## 5
 
 
 if (!("fits" %in% ls())) fits <- list()
@@ -34,15 +36,15 @@ m1 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) +
   nodematch("state_code", diff = F) + 
   nodecov("age") +
   absdiff("age") + 
-  nodecov("cent_deg") +
   edgecov(mmc) + 
-  edgecov(cpa) +
+    ##edgecov(cpa) +
     ##edgecov(cpc) + 
     ##edgecov(cpp) +
   memory(type = "stability", lag = 1) + 
-  nodecov("njobs_multilevel") + 
-  nodecov("cent_pow_n0_4") +
-    ##absdiff("cent_pow_n0_4") + 
+  timecov(transform = function(t) t) +
+  nodecov("genidx_multilevel") + 
+  nodecov("cent_pow_n0_4") #+
+    ##absdiff("cent_pow_n0_4") #+ 
     ##cycle(3) + cycle(4) + cycle(5) 
 
 ################################ end models#######################
@@ -55,13 +57,13 @@ m_x <- 'm1'
 ##
 # SET RESAMPLES
 ##
-R <- 300
+R <- 2000
 
 ## RUN TERGM
-fits[[firm_i]][[m_x]] <- btergm(get(m_x), R=R, parallel = "multicore", ncpus = detectCores())
+fits[[firm_i]][[m_x]] <- btergm(get(m_x), R=R, parallel = parallel, ncpus = ncpus)
 
 ## SAVE SERIALIZED
-fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
+fits.file <- sprintf('/home/sdowning/compnet/results/amj_rnr/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
 saveRDS(fits, file=fits.file)
 
 ## SAVE FORMATTED REGRESSION TABLE

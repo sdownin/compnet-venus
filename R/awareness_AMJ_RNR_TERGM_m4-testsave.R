@@ -7,6 +7,8 @@ data_dir <- '/home/sdowning/data/firm_nets_rnr'
 
 firm_i <- 'qualtrics'
 d <- 3
+ncpus <- 4
+parallel <- "multicore"
 
 data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
 nets <- readRDS(data_file)
@@ -29,15 +31,16 @@ cpa <- lapply(nets, function(net) as.matrix(net %n% 'coop') + as.matrix(net %n% 
 
 ####################### DEFINE MODELS ###################################
 
-m4testsave <-   nets ~ edges + gwesp(0, fixed = T) + 
+m4testsave <-   nets ~ edges + gwesp(0, fixed = T) +  gwdegree(0, fixed=T) + 
   nodematch("ipo_status", diff = F) + 
   nodematch("state_code", diff = F) + 
   nodecov("age") + absdiff("age") + 
   edgecov(mmc) + 
-  edgecov(cpa) +
+    ##edgecov(cpa) +
   ##edgecov(cpc) + 
   ##edgecov(cpp) +
   memory(type = "stability", lag = 1) + 
+  timecov(transform = function(t) t) +
   nodecov("genidx_multilevel") + absdiff("genidx_multilevel") +
   nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") + 
   cycle(3) + cycle(4) + cycle(5) 
@@ -48,6 +51,7 @@ m3 <-   nets ~ edges + gwesp(0, fixed = T) +
   nodecov("age") + absdiff("age") + 
   edgecov(mmc) +
   memory(type = "stability", lag = 1) + 
+  timecov(transform = function(t) t) +
   cycle(3) + cycle(4) + cycle(5) 
 
 m2 <-   nets ~ edges + gwesp(0, fixed = T) + 
@@ -56,6 +60,7 @@ m2 <-   nets ~ edges + gwesp(0, fixed = T) +
   nodecov("age") + absdiff("age") + 
   edgecov(mmc) +
   memory(type = "stability", lag = 1) + 
+  timecov(transform = function(t) t) +
   nodecov("cent_pow_n0_5") + absdiff("cent_pow_n0_5") 
 
 m1 <-   nets ~ edges + gwesp(0, fixed = T) + 
@@ -64,6 +69,7 @@ m1 <-   nets ~ edges + gwesp(0, fixed = T) +
   nodecov("age") + absdiff("age") + 
   edgecov(mmc) +
   memory(type = "stability", lag = 1) + 
+  timecov(transform = function(t) t) +
   nodecov("genidx_multilevel")
 
 m0 <-   nets ~ edges + gwesp(0, fixed = T) + 
@@ -71,7 +77,8 @@ m0 <-   nets ~ edges + gwesp(0, fixed = T) +
   nodematch("state_code", diff = F) + 
   nodecov("age") + absdiff("age") + 
   edgecov(mmc) +
-  memory(type = "stability", lag = 1) 
+  memory(type = "stability", lag = 1) +
+  timecov(transform = function(t) t) 
 ################################ end models#######################
 
 
@@ -85,7 +92,7 @@ m_x <- 'm4testsave'
 R <- 15
 
 ## RUN TERGM
-fits[[firm_i]][[m_x]] <- btergm(get(m_x), R=R, parallel = "multicore", ncpus = detectCores())
+fits[[firm_i]][[m_x]] <- btergm(get(m_x), R=R, parallel = parallel, ncpus = ncpus)
 
 ## SAVE SERIALIZED
 fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)

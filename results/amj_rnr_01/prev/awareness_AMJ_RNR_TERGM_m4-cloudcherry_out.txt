@@ -1,0 +1,92 @@
+
+
+##------ Wed May 30 23:05:25 2018 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 4 cores
+             t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
+nets (row)   574 574 574 574 574 574 574 574  574  574
+nets (col)   574 574 574 574 574 574 574 574  574  574
+mmc (row)    574 574 574 574 574 574 574 574  574  574
+mmc (col)    574 574 574 574 574 574 574 574  574  574
+cpa (row)    574 574 574 574 574 574 574 574  574  574
+cpa (col)    574 574 574 574 574 574 574 574  574  574
+memory (row) 574 574 574 574 574 574 574 574  574  574
+memory (col) 574 574 574 574 574 574 574 574  574  574
+             t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
+nets (row)   574 574 574 574 574 574 574 574  574  574
+nets (col)   574 574 574 574 574 574 574 574  574  574
+mmc (row)    574 574 574 574 574 574 574 574  574  574
+mmc (col)    574 574 574 574 574 574 574 574  574  574
+cpa (row)    574 574 574 574 574 574 574 574  574  574
+cpa (col)    574 574 574 574 574 574 574 574  574  574
+memory (row) 574 574 574 574 574 574 574 574  574  574
+memory (col) 574 574 574 574 574 574 574 574  574  574
+finished successfully.
+
+##------ Thu May 31 07:38:55 2018 ------##
+
+
+------------ estimating TERGM for: qualtrics --------------
+Using 4 cores
+             t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
+nets (row)   574 574 574 574 574 574 574 574  574  574
+nets (col)   574 574 574 574 574 574 574 574  574  574
+mmc (row)    574 574 574 574 574 574 574 574  574  574
+mmc (col)    574 574 574 574 574 574 574 574  574  574
+cpa (row)    574 574 574 574 574 574 574 574  574  574
+cpa (col)    574 574 574 574 574 574 574 574  574  574
+memory (row) 574 574 574 574 574 574 574 574  574  574
+memory (col) 574 574 574 574 574 574 574 574  574  574
+             t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
+nets (row)   574 574 574 574 574 574 574 574  574  574
+nets (col)   574 574 574 574 574 574 574 574  574  574
+mmc (row)    574 574 574 574 574 574 574 574  574  574
+mmc (col)    574 574 574 574 574 574 574 574  574  574
+cpa (row)    574 574 574 574 574 574 574 574  574  574
+cpa (col)    574 574 574 574 574 574 574 574  574  574
+memory (row) 574 574 574 574 574 574 574 574  574  574
+memory (col) 574 574 574 574 574 574 574 574  574  574
+finished successfully.
+
+##------ Wed Jun 20 12:03:12 2018 ------##
+
+
+------------ estimating TERGM for: cloudcherry --------------
+Using 4 cores
+             t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
+nets (row)   198 198 198 198 198 198 198 198  198  198
+nets (col)   198 198 198 198 198 198 198 198  198  198
+mmc (row)    198 198 198 198 198 198 198 198  198  198
+mmc (col)    198 198 198 198 198 198 198 198  198  198
+cpa (row)    198 198 198 198 198 198 198 198  198  198
+cpa (col)    198 198 198 198 198 198 198 198  198  198
+memory (row) 198 198 198 198 198 198 198 198  198  198
+memory (col) 198 198 198 198 198 198 198 198  198  198
+             t=2 t=3 t=4 t=5 t=6 t=7 t=8 t=9 t=10 t=11
+nets (row)   198 198 198 198 198 198 198 198  198  198
+nets (col)   198 198 198 198 198 198 198 198  198  198
+mmc (row)    198 198 198 198 198 198 198 198  198  198
+mmc (col)    198 198 198 198 198 198 198 198  198  198
+cpa (row)    198 198 198 198 198 198 198 198  198  198
+cpa (col)    198 198 198 198 198 198 198 198  198  198
+memory (row) 198 198 198 198 198 198 198 198  198  198
+memory (col) 198 198 198 198 198 198 198 198  198  198
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"
+[1] "All values of t are equal to  NaN \n Cannot calculate confidence intervals"

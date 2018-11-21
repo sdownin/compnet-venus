@@ -1,7 +1,0 @@
-
-
-##------ Sun May 27 04:21:18 2018 ------##
-
-
------------- estimating TERGM for: facebook --------------
-Using 4 cores

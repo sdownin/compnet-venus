@@ -655,7 +655,7 @@ library(stringr, quietly = T)
   ## make unique acquired_on dates for each company
   ##  - as min of acquired_on dates when multiples (acquired multiple times)
   cat('reshaping acquisitions dataframe...')
-  co_acq_acquired <- ddply(co_acq, 'acquiree_name_unique', .progress='tk', summarize,
+  co_acq_acquired <- ddply(co_acq, 'acquiree_name_unique', .progress='none', summarize,
                            acquiree_uuid=paste(unique(acquiree_uuid),collapse="|"),
                            acquired_on=min(acquired_on),
                            acquired_on_concat=paste(acquired_on,collapse="|"))

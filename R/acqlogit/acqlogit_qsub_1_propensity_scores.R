@@ -6,7 +6,6 @@
 #
 # @author   sdowning.bm02g@nctu.edu.tw
 #
-# @export [list] cb
 #
 #
 # ## update founded_on,closed_on dates  - Jin-Su's Email 2018-04-23
@@ -15,7 +14,6 @@
 #
 ##########################################################################################
 
-# .libPaths('C:/Users/T430/Documents/R/win-library/3.2')
 library(network, quietly = T)
 library(texreg, quietly = T)
 library(igraph, quietly = T)
@@ -39,6 +37,7 @@ library(intergraph)
 # .work_dir    <- '/home/sdowning/acqlogit'
 # .data_dir    <- file.path(.work_dir,'data')
 # .results_dir <- file.path(.work_dir,'results')
+.compustat_dir <- '/home/sdowning/data/compustat'
 
 # ## LOAD Scripts and Data
 # acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
@@ -159,8 +158,8 @@ g.ego <- igraph::make_ego_graph(graph = g.full,
                                 order = d, mode = 'all')[[1]]
 
 ## NETWORKS IN TIMEFRAME TO PROCESS NODE COLLAPSE AND POCESS COVARIATES
-g.pd      <- acf$makePdGraph(g.ego, start, end, isolates.remove=TRUE)   ## ego network
-g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=TRUE)  ## full network
+g.pd      <- acf$makePdGraph(g.ego, start, end, isolates.remove=FALSE)   ## ego network
+g.full.pd <- acf$makePdGraph(g.full, start, end, isolates.remove=FALSE)  ## full network
 
 ## CHECK NETWORK PERIOD SIZES
 sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[i], TRUE); return(c(e=ecount(gi),v=vcount(gi)))})
@@ -168,8 +167,8 @@ sapply(2:length(times), function(i){gi=acf$makePdGraph(g.ego, times[i-1], times[
 ##--------------------------------------------------
 ## FIRST TIME: PROCESS NODE COLLAPSE OF ACQUISITIONS BEFORE START OF TIMEFRAME
 ##--------------------------------------------------
-g.pd.file <- file.path(.data_dir,sprintf('g_%s_d%s_NCINIT_%s_%s.rds',name_i,d,start,end))
-g.full.pd.file <- file.path(.data_dir,sprintf('g_full_NCINIT_%s_%s.rds',start,end))
+g.pd.file <- file.path(.data_dir,sprintf('g_%s_d%s_NCINIT_%s_%s.graphml',name_i,d,start,end))
+g.full.pd.file <- file.path(.data_dir,sprintf('g_full_NCINIT_%s_%s.graphml',start,end))
 acqs.init <- co_acq[co_acq$acquired_on < start, ]
 if (!file.exists(file.path(g.pd.file))) {
   cat(sprintf('preprocessing ego net acquisition before start of timeframe: t < %s ...', start))
@@ -177,7 +176,7 @@ if (!file.exists(file.path(g.pd.file))) {
   igraph::write.graph(g.pd, file=g.pd.file, format = 'graphml')
   cat('done.\n')
 }
-if (!file.exists(file.path(g.pd.file))) {
+if (!file.exists(file.path(g.full.pd.file))) {
   cat(sprintf('preprocessing global net acquisition before start of timeframe: t < %s ...', start))
   g.full.pd <- acf$nodeCollapseGraph(g.full.pd, acqs.init, verbose = TRUE)  ## remove.isolates
   igraph::write.graph(g.full.pd, file=g.full.pd.file, format = 'graphml')
@@ -217,9 +216,11 @@ g.full.pd.orig <- g.full.pd
 ##--------------------------------------------
 ## Load updated compustat data
 ##--------------------------------------------
-csfunda.file <- file.path(.data_dir,'compustat','fundamentals-annual-UPDATED.csv')
+csfunda.file <- file.path(.compustat_dir,'fundamentals-annual-UPDATED.csv')
 if (!file.exists(csfunda.file)) { ## if file not exists, then run script to create it
-  source(file.path(.script_dir,'acqlogit_compustat_update.R'))
+  cat(sprintf('stop: cannot find csfunda.file %s\n',csfunda.file))
+  stop(sprintf('stop: cannot find csfunda.file %s',csfunda.file))
+  #source(file.path(.script_dir,'acqlogit_compustat_update.R'))
 }
 csa2.all <- cb$readCsv(csfunda.file)
 minyr <- min(unique(csa2.all$fyear), na.rm = T)
@@ -228,7 +229,7 @@ csa2 <- csa2.all[which(csa2.all$fyear != minyr & !is.na(csa2.all$fyear)), ]
 ##--------------------------------------------
 ## LOAD SEGMENTS DATA FOR DIVERSIFICATION
 ##--------------------------------------------
-seg <- read.csv(file.path(.data_dir,'compustat','segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
+seg <- read.csv(file.path(.compustat_dir,'segments.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 # segcus <- read.csv(file.path(getwd(),'compustat','segments-customer.csv'), na=c(NA,'','NA'), stringsAsFactors = F, fill = T)
 col.seg <- c('conm','tic','datadate','srcdate','stype','snms','soptp1','geotp','sic','SICS1','SICS2','sales','revts','nis')
 seg2 <- seg[seg$soptp1=='PD_SRVC',col.seg] ## exclude geographic MARKET segments; include PD_SRVC product/service segments
@@ -349,7 +350,7 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##
 ##-----------------------------------
 ## At this point all acquisitions preceding first year are already node-collapsed
-years <- sort(unique(acq.src.allpd$acquired_year))
+acqyrs <- sort(unique(acq.src.allpd$acquired_year))
 
 g.prop.nc <- g.pd.orig            ## ego network to node collapse for propensity scores
 g.full.prop.nc <- g.full.pd.orig  ## full netowrk to node collapse for propensity scores
@@ -367,7 +368,7 @@ t.df <- data.frame() ## targets df
 # years <- years[which(years >= 2009)]
 # ##------------------------------------
 
-for (year in years) 
+for (year in acqyrs) 
 {
   cat(sprintf('\nyear %s\n\n',year))
   acq.yr <- acq.src.allpd[which(acq.src.allpd$acquired_year == year),]
@@ -418,6 +419,7 @@ for (year in years)
     targ.vids.d1 <- targ.vids.d1[which( !(names(targ.vids.d1) %in% V(g.full.prop)$name[targ.id]))]
     ## Target alternatives dataframe
     df.targ.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(targ.vids.d1),names(targ.vids.d2),V(g.full.prop)$name[targ.id])), ]
+    df.targ.alt <- df.targ.alt[!is.na(df.targ.alt$company_name_unique),]
     df.targ.alt$d <- sapply(df.targ.alt$company_name_unique, function(x){ return(
       ifelse(x ==  V(g.full.prop)$name[targ.id], 0, 
              ifelse(x %in% names(targ.vids.d1), 1,   2))
@@ -426,10 +428,13 @@ for (year in years)
     df.targ.alt$is.public <- sapply(1:nrow(df.targ.alt), function(x){
       isNotOperating <- df.targ.alt$status[x] != 'operating'
       ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.targ.alt$company_name_unique[x])]
+      ipo.date <- min(ipo.date, na.rm=TRUE)
       if (length(ipo.date)<1) 
         return(0)
       return(ifelse( isNotOperating & ipo.date <= acq.yr.i$acquired_on, 1, 0))
     })
+    ## set NAs in is.public =0
+    df.targ.alt$is.public[is.na(df.targ.alt$is.public)] <- 0
     ## target had IPO
     df.targ <- df.targ.alt[which(df.targ.alt$company_name_unique == V(g.full.prop)$name[targ.id]), ]
     
@@ -487,7 +492,14 @@ for (year in years)
     cats.j <- str_split(cb$co$category_group_list[cb$co$company_name_unique==acq.yr.i$acquiree_name_unique], pattern = '[|]')[[1]]
     ## CHECK MACHING CONDITIONS FOR ALTERNATIVE TARGETS (NOT ACTUAL)
     bool.t.j <- sapply(df.targ.alt$company_name_unique, function(xj){
+      #if (is.na(xj)) {
+      #  cat(sprintf('DEBUG qsub_1: target bool.t.j: xj=%s, acq.yr.i$acquiree_name_unique=%s\n',xj,acq.yr.i$acquiree_name_unique))
+      #  cat(sprintf('company_name_unique string %s\n', paste(df.targ.alt$company_name_unique,collapse="|")))
+      #  print(df.targ.alt)
+      #}
       ## ACTUAL ACQUIRER
+      if (is.na(xj) | length(xj)==0 | length(acq.yr.i$acquiree_name_unique)==0)
+        return(FALSE)
       if (xj == acq.yr.i$acquiree_name_unique)
         return(FALSE)
       ## CHECK 0. ALREADY FILTERED df.targ.alt BY COMPETITION NETWORK NEIGHBORHOOD
@@ -523,6 +535,7 @@ for (year in years)
     ## acquirer alternatives dataframe
     # length(acq.vids.d1)
     df.acq.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(acq.vids.d1),names(acq.vids.d2),V(g.prop)$name[acq.id])), ]
+    df.acq.alt <- df.acq.alt[!is.na(df.acq.alt$company_name_unique), ]
     df.acq.alt$d <- sapply(df.acq.alt$company_name_unique, function(x){ return(
       ifelse(x ==  V(g.prop)$name[acq.id], 0, 
              ifelse(x %in% names(acq.vids.d1), 1,   2))
@@ -531,15 +544,25 @@ for (year in years)
     df.acq.alt$is.public <- sapply(1:nrow(df.acq.alt), function(x){
       isNotOperating <- df.acq.alt$status[x] != 'operating'
       ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.acq.alt$company_name_unique[x])]
+      ipo.date <- min(ipo.date, na.rm=TRUE)
       if (length(ipo.date)<1) 
         return(0)
       return(ifelse( isNotOperating & ipo.date <= acq.yr.i$acquired_on, 1, 0))
     })
+    ## set NAs in is.public =0
+    df.acq.alt$is.public[is.na(df.acq.alt$is.public)] <- 0
     ## target had IPO
     df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.prop)$name[acq.id]), ]
-    
+
+    ###DEBUG###
+    saveRDS(list(df.acq=df.acq, df.targ.alt=df.targ.alt, df.acq.alt=df.acq.alt, acq.yr.i=acq.yr.i),
+          file = file.path(.data_dir, sprintf('DEBUG_acqlogit_propensity_score_dfacq_list_%s_d%s.rds',name_i,d)))
+    ###########   
+ 
     if (nrow(df.acq) == 0)
       next
+    if (nrow(df.acq) > 1)
+      stop(sprintf('error: nrow df.acq %s > 1',nrow(df.acq)))
     
     tmp <- df.acq.alt[df.acq.alt$company_name_unique %in% names(acq.vids.d2), ]
     ## select based on ownership status
@@ -575,6 +598,8 @@ for (year in years)
     cats.i <- str_split(cb$co$category_group_list[cb$co$company_name_unique==acq.yr.i$acquirer_name_unique], pattern = '[|]')[[1]]
     ## CHECK MACHING CONDITIONS FOR ALTERNATIVE ACQUIRERS (NOT ACTUAL)
     bool.t.i <- sapply(df.acq.alt$company_name_unique, function(xi){
+      if (is.na(xi))
+        return(FALSE)
       ## ACTUAL ACQUIRER
       if (xi == acq.yr.i$acquirer_name_unique)
         return(FALSE)
@@ -615,7 +640,7 @@ for (year in years)
   saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
                g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
                a.df=a.df, t.df=t.df),
-          file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s.rds',name_i)))
+          file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_d%s.rds',name_i,d)))
   
 }
 
@@ -692,7 +717,7 @@ cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3)
 ## MERGE ACQUIRER COMPUSTAT FINANCIALS FOR YEAR (t-1)
 ctrl.col <- c('company_name_unique','datayear','act','emp','ebitda','m2b','che')
 a.df.ctrl <- data.frame()
-for (year in years)
+for (year in acqyrs)
 {
   yr.uuids <- cb$co_acq$acquisition_uuid[which(cb$co_acq$acquired_year==year)]
   df.yr <- a.df[which(a.df$acquisition_uuid %in% yr.uuids), ]
@@ -740,7 +765,7 @@ cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3)
 saveRDS(list(g.prop=g.prop, g.full.prop=g.full.prop, 
              g.prop.nc=g.prop.nc, g.full.prop.nc=g.full.prop.nc,
              a.df=a.df, t.df=t.df, a.df.ctrl=a.df.ctrl, a.prop=a.prop, t.prop=t.prop),
-        file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_ctrl.rds',name_i)))
+        file = file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_d%s_ctrl.rds',name_i,d)))
 
 
 

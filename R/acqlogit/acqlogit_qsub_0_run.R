@@ -8,7 +8,6 @@
 #
 # @author   sdowning.bm02g@nctu.edu.tw
 #
-# @export [list] cb
 #
 #
 # ## update founded_on,closed_on dates  - Jin-Su's Email 2018-04-23
@@ -24,22 +23,22 @@
 name_i <- 'ibm'       ## focal firm name
 d <- 3                ## distance threshold for focal firm ego network
 years <- 2007:2017    ## years to subset
+overwrite.propensities <- FALSE  ## Flag to overwrite propensity scores if file exists
 ##------------------------
 graph_file <- 'g_full.graphml'
 ##------------------------
 
 ## DIRECTORIES
 .script_dir  <- '/home/sdowning/compnet/R/acqlogit'
-.work_dir    <- '/home/sdowning/acqlogit'
+.work_dir    <- '/home/sdowning/compnet/acqlogit/v1_20181114'
 .data_dir    <- file.path(.work_dir,'data')
 .results_dir <- file.path(.work_dir,'results')
 
-## DIRECTORIES
-.script_dir  <- '/home/sdowning/compnet/R/acqlogit'
+cat('\n\nqsub_0: sourcing functions and data scripts\n')
 
 ## LOAD Scripts and Data
-acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
-cb  <- source(file.path(.script_dir,'acqlogit_cb_data_prep.R'))$value      ## DATA 
+acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'), local=TRUE)$value ## FUNCTIONS 
+cb  <- source(file.path(.script_dir,'acqlogit_cb_data_prep.R'), local=TRUE)$value      ## DATA 
 
 
 is.missing <- function(x)
@@ -52,6 +51,7 @@ is.missing <- function(x)
 ##=======================================
 ##  PREP DATA and LOAD GRAPH
 ##---------------------------------------
+cat('qsub_0: loading global competition network file\n')
 ## comptetition network
 g.full <- read.graph(file.path(.data_dir,graph_file), format='graphml')
 
@@ -71,10 +71,15 @@ co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
 
 
 ## 1. Propensity scores
-source(file.path(.script_dir, 'acqlogit_qsub_1_propensity_scores.R'))
+cat('qsub_0: sourcing propensity scores script\n')
+prop.file <- file.path(.data_dir, sprintf('acqlogit_propensity_score_comp_list_%s_d%s_ctrl.rds',name_i,d))
+if (!file.exists(prop.file) | overwrite.propensities) {
+  source(file.path(.script_dir, 'acqlogit_qsub_1_propensity_scores.R'), local=TRUE)
+}
 
 ## 2. Node Collapse (compute covarites)
-source(file.path(.script_dir, 'acqlogit_qsub_2_node_collapse.R'))
+cat('qsub_0: sourcing node collapse script\n')
+source(file.path(.script_dir, 'acqlogit_qsub_2_node_collapse.R'), local=TRUE)
 
 cat('completed successfully.\n')
 
