@@ -21,124 +21,8 @@ library(plyr, quietly = T)
 library(reshape2)
 library(intergraph)
 
-# ##========================
-# ## SETTINGS
-# ##------------------------
-# name_i <- 'ibm'       ## focal firm name
-# d <- 3                ## distance threshold for focal firm ego network
-# years <- 2007:2017    ## years to subset
-# ##------------------------
-# graph_file <- 'g_full.graphml'
-# ##------------------------
-
-
 # ## DIRECTORIES
-# .script_dir  <- '/home/sdowning/compnet/R/acqlogit'
-# .work_dir    <- '/home/sdowning/acqlogit'
-# .data_dir    <- file.path(.work_dir,'data')
-# .results_dir <- file.path(.work_dir,'results')
 .compustat_dir <- '/home/sdowning/data/compustat'
-
-# ## LOAD Scripts and Data
-# acf <- source(file.path(.script_dir,'acqlogit_compnet_functions.R'))$value ## FUNCTIONS 
-# cb  <- source(file.path(.script_dir,'acqlogit_cb_data_prep.R'))$value      ## DATA 
-
-# is.missing <- function(x)
-# {
-#   if(is.null(x)) 
-#     return(TRUE)
-#   return(is.na(x) | is.nan(x) | x == '')
-# }
-# 
-# ##=======================================
-# ##  PREP DATA and LOAD GRAPH
-# ##---------------------------------------
-# ## comptetition network
-# g.full <- read.graph(file.path(.data_dir, graph_file), format='graphml')
-# 
-# ## add comp net vertex IDs to acquisitions dataframe
-# co_acq <- cb$co_acq
-# gdf <- data.frame(acquirer_vid=as.integer(V(g.full)), 
-#                   acquirer_name_unique=V(g.full)$name,
-#                   acquirer_net_uuid=V(g.full)$company_uuid)
-# co_acq <- merge(co_acq, gdf, by='acquirer_name_unique', all.x = T, all.y = F)
-# gdf <- data.frame(acquiree_vid=as.integer(V(g.full)), 
-#                   acquiree_name_unique=V(g.full)$name,
-#                   acquiree_net_uuid=V(g.full)$company_uuid)
-# co_acq <- merge(co_acq, gdf, by='acquiree_name_unique', all.x=T, all.y = F)
-# 
-# ## SORT CO_ACQ BY acquisition date
-# co_acq <- co_acq[order(co_acq$acquired_on, decreasing = F), ]
-
-
-##==========================================
-## CHECK EGO FIRM NETWORK PROPERTIES 
-##------------------------------------------
-# # 
-# # ## filter acquisitions in recent period (if necessary)
-# # co_acq_d <- co_acq[which(co_acq$acquired_on >= '1988-01-01'), ]
-# # 
-# # ## acquisition filtered by comp net firms union (either aquirer or acquired)
-# # ## 14208
-# # co_acq_g_u <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.full)$name
-# #                            | co_acq$acquiree_name_unique %in% V(g.full)$name), ]
-# 
-# ## acquisition filtered by comp net firms intersection (both aquirer and acquired)
-# ## 3442
-# co_acq_g_i <- co_acq[which(co_acq$acquirer_name_unique %in% V(g.full)$name
-#                            & co_acq$acquiree_name_unique %in% V(g.full)$name), ]
-# ## acquisition filtered by comp net firms intersection, recent date (>=2010)
-# ## 2786
-# co_acq_g_i_d <- co_acq_g_i[which(co_acq_g_i$acquired_on >= '1988-01-01'), ]
-# 
-# ## check top filtered acquirers
-# cnt <- plyr::count(co_acq_g_i_d$acquirer_name_unique)
-# cnt <- cnt[order(cnt$freq, decreasing = T),]
-# head(cnt, 20)
-# # Top Acquirers:             x   freq
-# # 545                   google   88
-# # 599                      ibm   58
-# # 815                microsoft   47
-# # 1496                   yahoo   46
-# # 77                       aol   43
-# # 944                   oracle   39
-# # 64                    amazon   34
-# # 88                     apple   32
-# # 453                 facebook   31
-# # 403                     ebay   28
-# # 259                    cisco   27
-# # 1109              salesforce   26
-# # 1362                 twitter   24
-# # 578          hewlett-packard   21
-# # 414                      emc   19
-# # 640                    intel   18
-# # 556                  groupon   17
-# # 421  endurance-international   16
-# # 1250                symantec   15
-# # 1347             tripadvisor   15
-# 
-# ## Check Acquisitions distribution by network distance included
-# df.ego <- data.frame()
-# name_i <- 'ibm'
-# for (d in 1:6) {
-#   g.ego <- igraph::make_ego_graph(graph = g.full, 
-#                                   nodes = V(g.full)[V(g.full)$name==name_i], 
-#                                   order = d, mode = 'all')[[1]]
-#   mem <- igraph::multilevel.community(g.ego)$membership
-#   mem.cnt <- plyr::count(mem)
-#   mem.cnt <- mem.cnt[order(mem.cnt$freq, decreasing = T), ]
-#   dim(mem.cnt)
-#   ##  
-#   acq.src <- co_acq_d[which(co_acq_d$acquirer_name_unique %in% V(g.ego)$name), ]
-#   acq.src.trg <- co_acq_d[which(co_acq_d$acquirer_name_unique %in% V(g.ego)$name
-#                                 & co_acq_d$acquiree_name_unique %in% V(g.ego)$name), ]
-#   ##
-#   df.tmp <- data.frame(d=d,v=vcount(g.ego),e=ecount(g.ego),
-#                        acq.src=nrow(acq.src),acq.src.trg=nrow(acq.src.trg),
-#                        r.in.out=round(nrow(acq.src.trg)/(nrow(acq.src)+nrow(acq.src.trg)),3),
-#                        first.comp=min(E(g.ego)$relation_began_on))
-#   df.ego <- rbind(df.ego, df.tmp)
-# }; df.ego 
 
 
 ##--------------------------------------------------------------
@@ -676,7 +560,7 @@ for (year in acqyrs)
 
 
 ##=============================
-## TARGET
+## TARGET PROPENSITIES
 ##-----------------------------
 ## tmp
 prop.data <- t.df
@@ -712,7 +596,7 @@ cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3)
 
 
 ##=============================
-## ACQUIRER
+## ACQUIRER PROPENSITIES
 ##-----------------------------
 ## MERGE ACQUIRER COMPUSTAT FINANCIALS FOR YEAR (t-1)
 ctrl.col <- c('company_name_unique','datayear','act','emp','ebitda','m2b','che')

@@ -462,6 +462,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.targ.alt$is.public <- sapply(1:nrow(df.targ.alt), function(x){
       isNotOperating <- df.targ.alt$status[x] != 'operating'
       ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.targ.alt$company_name_unique[x])]
+      ipo.date <- min(ipo.date, na.rm=TRUE)
       if (length(ipo.date)<1) 
         return(0)
       return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
@@ -571,6 +572,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.acq.alt$is.public <- sapply(1:nrow(df.acq.alt), function(x){
     isNotOperating <- df.acq.alt$status[x] != 'operating'
     ipo.date <- cb$co_ipo$went_public_on[which(cb$co_ipo$company_name_unique == df.acq.alt$company_name_unique[x])]
+    ipo.date <- min(ipo.date, na.rm=TRUE)
     if (length(ipo.date)<1) 
       return(0)
     return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
