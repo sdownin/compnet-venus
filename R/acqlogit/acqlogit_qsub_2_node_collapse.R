@@ -390,6 +390,8 @@ for (j in 1:nrow(acq.src.allpd)) {
       return(0)
     return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
   })
+  ## set is.public NAs = 0
+  df.targ.alt$is.public[is.na(df.targ.alt$is.public)] <- 0
   ## target had IPO
   df.targ <- df.targ.alt[which(df.targ.alt$company_name_unique == V(g.full.pd)$name[targ.id]), ]
   
@@ -479,6 +481,8 @@ for (j in 1:nrow(acq.src.allpd)) {
       return(0)
     return(ifelse( isNotOperating & ipo.date <= date_j, 1, 0))
   })
+  ## set is.public NAs = 0
+  df.acq.alt$is.public[is.na(df.acq.alt$is.public)] <- 0
   ## target had IPO
   df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.full.pd)$name[acq.id]), ]
   
