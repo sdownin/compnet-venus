@@ -350,7 +350,7 @@ acq.src.allpd <- acq.src.allpd[order(acq.src.allpd$acquired_on, decreasing = F),
 ##
 ##-----------------------------------
 ## At this point all acquisitions preceding first year are already node-collapsed
-years <- sort(unique(acq.src.allpd$acquired_year))
+acqyrs <- sort(unique(acq.src.allpd$acquired_year))
 
 g.prop.nc <- g.pd.orig            ## ego network to node collapse for propensity scores
 g.full.prop.nc <- g.full.pd.orig  ## full netowrk to node collapse for propensity scores
@@ -368,7 +368,7 @@ t.df <- data.frame() ## targets df
 # years <- years[which(years >= 2009)]
 # ##------------------------------------
 
-for (year in years) 
+for (year in acqyrs) 
 {
   cat(sprintf('\nyear %s\n\n',year))
   acq.yr <- acq.src.allpd[which(acq.src.allpd$acquired_year == year),]
@@ -419,6 +419,7 @@ for (year in years)
     targ.vids.d1 <- targ.vids.d1[which( !(names(targ.vids.d1) %in% V(g.full.prop)$name[targ.id]))]
     ## Target alternatives dataframe
     df.targ.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(targ.vids.d1),names(targ.vids.d2),V(g.full.prop)$name[targ.id])), ]
+    df.targ.alt <- df.targ.alt[!is.na(df.targ.alt$company_name_unique),]
     df.targ.alt$d <- sapply(df.targ.alt$company_name_unique, function(x){ return(
       ifelse(x ==  V(g.full.prop)$name[targ.id], 0, 
              ifelse(x %in% names(targ.vids.d1), 1,   2))
@@ -432,6 +433,8 @@ for (year in years)
         return(0)
       return(ifelse( isNotOperating & ipo.date <= acq.yr.i$acquired_on, 1, 0))
     })
+    ## set NAs in is.public =0
+    df.targ.alt$is.public[is.na(df.targ.alt$is.public)] <- 0
     ## target had IPO
     df.targ <- df.targ.alt[which(df.targ.alt$company_name_unique == V(g.full.prop)$name[targ.id]), ]
     
@@ -489,7 +492,14 @@ for (year in years)
     cats.j <- str_split(cb$co$category_group_list[cb$co$company_name_unique==acq.yr.i$acquiree_name_unique], pattern = '[|]')[[1]]
     ## CHECK MACHING CONDITIONS FOR ALTERNATIVE TARGETS (NOT ACTUAL)
     bool.t.j <- sapply(df.targ.alt$company_name_unique, function(xj){
+      #if (is.na(xj)) {
+      #  cat(sprintf('DEBUG qsub_1: target bool.t.j: xj=%s, acq.yr.i$acquiree_name_unique=%s\n',xj,acq.yr.i$acquiree_name_unique))
+      #  cat(sprintf('company_name_unique string %s\n', paste(df.targ.alt$company_name_unique,collapse="|")))
+      #  print(df.targ.alt)
+      #}
       ## ACTUAL ACQUIRER
+      if (is.na(xj) | length(xj)==0 | length(acq.yr.i$acquiree_name_unique)==0)
+        return(FALSE)
       if (xj == acq.yr.i$acquiree_name_unique)
         return(FALSE)
       ## CHECK 0. ALREADY FILTERED df.targ.alt BY COMPETITION NETWORK NEIGHBORHOOD
@@ -525,6 +535,7 @@ for (year in years)
     ## acquirer alternatives dataframe
     # length(acq.vids.d1)
     df.acq.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(acq.vids.d1),names(acq.vids.d2),V(g.prop)$name[acq.id])), ]
+    df.acq.alt <- df.acq.alt[!is.na(df.acq.alt$company_name_unique), ]
     df.acq.alt$d <- sapply(df.acq.alt$company_name_unique, function(x){ return(
       ifelse(x ==  V(g.prop)$name[acq.id], 0, 
              ifelse(x %in% names(acq.vids.d1), 1,   2))
@@ -538,11 +549,20 @@ for (year in years)
         return(0)
       return(ifelse( isNotOperating & ipo.date <= acq.yr.i$acquired_on, 1, 0))
     })
+    ## set NAs in is.public =0
+    df.acq.alt$is.public[is.na(df.acq.alt$is.public)] <- 0
     ## target had IPO
     df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.prop)$name[acq.id]), ]
-    
+
+    ###DEBUG###
+    saveRDS(list(df.acq=df.acq, df.targ.alt=df.targ.alt, df.acq.alt=df.acq.alt, acq.yr.i=acq.yr.i),
+          file = file.path(.data_dir, sprintf('DEBUG_acqlogit_propensity_score_dfacq_list_%s_d%s.rds',name_i,d)))
+    ###########   
+ 
     if (nrow(df.acq) == 0)
       next
+    if (nrow(df.acq) > 1)
+      stop(sprintf('error: nrow df.acq %s > 1',nrow(df.acq)))
     
     tmp <- df.acq.alt[df.acq.alt$company_name_unique %in% names(acq.vids.d2), ]
     ## select based on ownership status
@@ -578,6 +598,8 @@ for (year in years)
     cats.i <- str_split(cb$co$category_group_list[cb$co$company_name_unique==acq.yr.i$acquirer_name_unique], pattern = '[|]')[[1]]
     ## CHECK MACHING CONDITIONS FOR ALTERNATIVE ACQUIRERS (NOT ACTUAL)
     bool.t.i <- sapply(df.acq.alt$company_name_unique, function(xi){
+      if (is.na(xi))
+        return(FALSE)
       ## ACTUAL ACQUIRER
       if (xi == acq.yr.i$acquirer_name_unique)
         return(FALSE)
@@ -695,7 +717,7 @@ cat(sprintf('Proportion of events in top 3:  %.3f\n',length(which(df.check$r<=3)
 ## MERGE ACQUIRER COMPUSTAT FINANCIALS FOR YEAR (t-1)
 ctrl.col <- c('company_name_unique','datayear','act','emp','ebitda','m2b','che')
 a.df.ctrl <- data.frame()
-for (year in years)
+for (year in acqyrs)
 {
   yr.uuids <- cb$co_acq$acquisition_uuid[which(cb$co_acq$acquired_year==year)]
   df.yr <- a.df[which(a.df$acquisition_uuid %in% yr.uuids), ]

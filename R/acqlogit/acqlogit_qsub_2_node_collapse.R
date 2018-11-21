@@ -527,6 +527,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   
   if (nrow(df.acq) == 0)
     next
+  if (nrow(df.acq) > 1)
+    stop(sprintf('error: nrow df.acq %s > 1',nrow(df.acq)))
   
 
   ## select based on ownership status
@@ -768,6 +770,7 @@ for (j in 1:nrow(acq.src.allpd)) {
         ## AQUIRER POSITION
         cat('  power centralities\n')
         pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
+        pow.n2 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
         pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
 
         ## COUNTERFACTUAL NETWORK `r` for different target jx
@@ -781,6 +784,7 @@ for (j in 1:nrow(acq.src.allpd)) {
         cf.degree <- igraph::degree(g.cf.r, v = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]))
         cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]))
         cf.pow.n1 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
+        cf.pow.n2 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
         cf.pow.n3 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
         
         ## PAIRING DATAFRAME
@@ -794,6 +798,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           ###------  acquirer covars ------
           i.age = 2018 - df.alt$founded_year[ix],
           i.pow.n1 = pow.n1,
+          i.pow.n2 = pow.n2,
           i.pow.n3 = pow.n3,
           i.closeness = df.alt$closeness[ix],
           i.deg = df.alt$deg[ix],
@@ -847,6 +852,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.diff.acqs = as.numeric(df.alt$acqs[ix]) - as.numeric(df.alt$acqs[jx]),
           ###------  network synergies ------
           ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
+          ij.syn.pow.n2 = (cf.pow.n2 - pow.n2) / pow.n2,
           ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
           # ij.syn.num.mmc.comps = (cf.num.mmc.comps - df.alt$num.mmc.comps[ix]) / df.alt$num.mmc.comps[ix],
           ij.syn.closeness = (cf.closeness - df.alt$closeness[ix]) / df.alt$closeness[ix],

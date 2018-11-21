@@ -21,7 +21,7 @@
 ## SETTINGS
 ##------------------------
 name_i <- 'ibm'       ## focal firm name
-d <- 22                ## distance threshold for focal firm ego network
+d <- 2                ## distance threshold for focal firm ego network
 years <- 2007:2017    ## years to subset
 overwrite.propensities <- FALSE  ## Flag to overwrite propensity scores if file exists
 ##------------------------
