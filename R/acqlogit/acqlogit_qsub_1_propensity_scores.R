@@ -297,10 +297,14 @@ for (year in acqyrs)
     ##-------------------------------------
     ## target alternative set vids
     targ.id <- which(V(g.full.prop)$name == acq.yr.i$acquiree_name_unique)
+    if (length(targ.id)==0 | is.na(targ.id)) {
+      next
+    }
     targ.vids.d2 <- igraph::neighborhood(graph = g.full.prop, order = 2, nodes = targ.id)[[1]]
     targ.vids.d2 <- targ.vids.d2[which( !(names(targ.vids.d2) %in% V(g.full.prop)$name[targ.id]))]
     targ.vids.d1 <- igraph::neighborhood(graph = g.full.prop, order = 1, nodes = targ.id)[[1]]
     targ.vids.d1 <- targ.vids.d1[which( !(names(targ.vids.d1) %in% V(g.full.prop)$name[targ.id]))]
+    cat('     targ.vids|') ## DEBUG
     ## Target alternatives dataframe
     df.targ.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(targ.vids.d1),names(targ.vids.d2),V(g.full.prop)$name[targ.id])), ]
     df.targ.alt <- df.targ.alt[!is.na(df.targ.alt$company_name_unique),]
@@ -368,6 +372,7 @@ for (year in acqyrs)
     # df.targ.alt$deg <- sapply(df.targ.alt$company_name_unique, function(name){
     #   ifelse(name %in% V(g.prop)$name, igraph::degree(g.full.prop,which(V(g.full.prop)$name==name)) , NA)
     # })
+    cat('end_targs|') ## DEBUG
     
     ##-------------------------------------
     ##  FILTER ALTERNATIVE TARGETS BY CONDITIONS
@@ -407,15 +412,31 @@ for (year in acqyrs)
     ## ACQUISITION UUID
     df.targ.alt$acquisition_uuid <- acq.yr.i$acquisition_uuid
 
+    cat('filter_targs|') ## DEBUG
+
     ##======================================
     ## ACQUIRER ALTERNATIVES SET
     ##--------------------------------------
     ## acquirer alternative set vids
     acq.id <- which(V(g.prop)$name == acq.yr.i$acquirer_name_unique)
+    if (length(acq.id)==0 | is.na(acq.id)) {
+      next
+    }    
+    cat(sprintf('|acq.id=%s|',paste(acq.id,collapse='_')))
+
     acq.vids.d2 <- igraph::neighborhood(graph = g.prop, order = 2, nodes = acq.id)[[1]]
+    cat(sprintf('|acq.vids.d2=%s|',paste(acq.vids.d2,collapse='_')))
+
     acq.vids.d2 <- acq.vids.d2[which( !(names(acq.vids.d2) %in% V(g.prop)$name[acq.id]))]
+    cat(sprintf('|acq.vids.d2r=%s|',paste(acq.vids.d2,collapse='_')))
+
     acq.vids.d1 <- igraph::neighborhood(graph = g.prop, order = 1, nodes = acq.id)[[1]]
-    acq.vids.d1 <- acq.vids.d2[which( !(names(acq.vids.d1) %in% V(g.prop)$name[acq.id]))]
+    cat(sprintf('|acq.vids.d1=%s|',paste(acq.vids.d1,collapse='_')))
+
+    acq.vids.d1 <- acq.vids.d1[which( !(names(acq.vids.d1) %in% V(g.prop)$name[acq.id]))]
+    cat(sprintf('|acq.vids.d1r=%s|',paste(acq.vids.d1,collapse='_')))
+
+    cat('|acq.vids|') ##DEBUG
     ## acquirer alternatives dataframe
     # length(acq.vids.d1)
     df.acq.alt <- cb$co[which(cb$co$company_name_unique %in% c(names(acq.vids.d1),names(acq.vids.d2),V(g.prop)$name[acq.id])), ]
@@ -437,8 +458,10 @@ for (year in acqyrs)
     df.acq.alt$is.public[is.na(df.acq.alt$is.public)] <- 0
     ## target had IPO
     df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.prop)$name[acq.id]), ]
-
+    
+    
     ###DEBUG###
+    cat('df.acq_saved_rds_debug\n') ##DEBUG
     saveRDS(list(df.acq=df.acq, df.targ.alt=df.targ.alt, df.acq.alt=df.acq.alt, acq.yr.i=acq.yr.i),
           file = file.path(.data_dir, sprintf('DEBUG_acqlogit_propensity_score_dfacq_list_%s_d%s.rds',name_i,d)))
     ###########   
