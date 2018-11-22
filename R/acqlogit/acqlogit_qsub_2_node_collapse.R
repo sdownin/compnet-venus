@@ -412,9 +412,14 @@ for (j in 1:nrow(acq.src.allpd)) {
       ifelse(name %in% V(g.pd)$name, V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)] , NA)
     })
   ## ACQUISITIONS
+  #df.targ.alt$acqs <- unname(sapply(df.targ.alt$company_name_unique, function(name){
+  #    length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
+  #  }))
   df.targ.alt$acqs <- unname(sapply(df.targ.alt$company_name_unique, function(name){
-      length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
-    }))
+    x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+    return(x/n)
+  }))  
   ## VENTURE FUNDING
   df.targ.alt$fund.v.cnt <- unname(sapply(df.targ.alt$company_name_unique, function(name){
       length(which(cb$co_rou$company_name_unique==name & cb$co_rou$announced_on <= date_j & cb$co_rou$funding_round_type=='venture'))
@@ -506,8 +511,13 @@ for (j in 1:nrow(acq.src.allpd)) {
       ifelse(name %in% V(g.pd)$name, as.numeric(V(g.pd)$num.mmc.comps[which(V(g.pd)$name == name)]) , NA)
     })
   ## ACQUISITIONS
+  #df.acq.alt$acqs <- unname(sapply(df.acq.alt$company_name_unique, function(name){
+  #  length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
+  #}))
   df.acq.alt$acqs <- unname(sapply(df.acq.alt$company_name_unique, function(name){
-    length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
+    x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+    return(x/n)
   }))
   ## USE EGO and GLOBAL NETWORK for DEGREE
   df.acq.alt$deg <- sapply(df.acq.alt$company_name_unique, function(name){
@@ -731,7 +741,7 @@ for (j in 1:nrow(acq.src.allpd)) {
         ## AQUIRER POSITION
         cat('  power centralities\n')
         pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
-        pow.n2 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
+        #pow.n2 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
         pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
 
         ## COUNTERFACTUAL NETWORK `r` for different target jx
@@ -745,7 +755,7 @@ for (j in 1:nrow(acq.src.allpd)) {
         cf.degree <- igraph::degree(g.cf.r, v = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]))
         cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]))
         cf.pow.n1 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
-        cf.pow.n2 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
+        #cf.pow.n2 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
         cf.pow.n3 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
         
         ## PAIRING DATAFRAME
@@ -760,7 +770,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           ###------  acquirer covars ------
           i.age = 2018 - df.alt$founded_year[ix],
           i.pow.n1 = pow.n1,
-          i.pow.n2 = pow.n2,
+          #i.pow.n2 = pow.n2,
           i.pow.n3 = pow.n3,
           i.closeness = df.alt$closeness[ix],
           i.deg = df.alt$deg[ix],
@@ -793,10 +803,10 @@ for (j in 1:nrow(acq.src.allpd)) {
           j.rival.acq.1 = df.alt$rival.acq.1[jx],
           j.rival.acq.2 = df.alt$rival.acq.2[jx],
           j.rival.acq.3 = df.alt$rival.acq.3[jx],
-          j.fund.v.cnt <- df.alt$fund.v.cnt[jx],
-          j.fund.v.amt <- df.alt$fund.v.amt[jx],
-          j.fund.cnt <- df.alt$fund.cnt[jx],
-          j.fund.amt <- df.alt$fund.amt[jx],
+          j.fund.v.cnt = df.alt$fund.v.cnt[jx],
+          j.fund.v.amt = df.alt$fund.v.amt[jx],
+          j.fund.cnt = df.alt$fund.cnt[jx],
+          j.fund.amt = df.alt$fund.amt[jx],
           j.ij.sim = df.alt$ij.sim[jx],
           j.ij.cossim = df.alt$ij.cossim[jx],
           ###------ dyadic covars: acquisition pairing ------
@@ -814,7 +824,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           ij.diff.acqs = as.numeric(df.alt$acqs[ix]) - as.numeric(df.alt$acqs[jx]),
           ###------  network synergies ------
           ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
-          ij.syn.pow.n2 = (cf.pow.n2 - pow.n2) / pow.n2,
+          #ij.syn.pow.n2 = (cf.pow.n2 - pow.n2) / pow.n2,
           ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
           # ij.syn.num.mmc.comps = (cf.num.mmc.comps - df.alt$num.mmc.comps[ix]) / df.alt$num.mmc.comps[ix],
           ij.syn.closeness = (cf.closeness - df.alt$closeness[ix]) / df.alt$closeness[ix],
