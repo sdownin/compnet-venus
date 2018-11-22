@@ -742,10 +742,14 @@ for (j in 1:nrow(acq.src.allpd)) {
         cat('  power centralities\n')
         pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
         #pow.n2 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
-        pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
+        # pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
 
         ## COUNTERFACTUAL NETWORK `r` for different target jx
         g.cf.r <- g.cf[[ df.alt$company_name_unique[jx] ]]
+        if (class(g.cf.r) != 'igraph') {
+          cat(sprintf('ix=%s,jx=%s: g.cf.r class `%s` is not igraph\n',ix,jx,class(g.cf.r)))
+          next
+        }
         
         ## COUNTERFACTUAL NETWORK COVARIATES
         cat('  network counterfactuals\n')
@@ -756,10 +760,11 @@ for (j in 1:nrow(acq.src.allpd)) {
         cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]))
         cf.pow.n1 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
         #cf.pow.n2 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
-        cf.pow.n3 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
+        # cf.pow.n3 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
         
         ## PAIRING DATAFRAME
-        l.cov[[uuid_j]] <- list(
+        .id <- sprintf('%s|%s|%s',uuid_j,ix,jx)
+        l.cov[[.id]] <- list(
           ###------  event metadata ------
           y = ifelse(as.integer(df.alt$event[ix]) & as.integer(df.alt$event[jx]), 1, 0),
           t = j,
@@ -771,7 +776,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           i.age = 2018 - df.alt$founded_year[ix],
           i.pow.n1 = pow.n1,
           #i.pow.n2 = pow.n2,
-          i.pow.n3 = pow.n3,
+          # i.pow.n3 = pow.n3,
           i.closeness = df.alt$closeness[ix],
           i.deg = df.alt$deg[ix],
           i.deg.full = df.alt$deg.full[ix],
@@ -825,7 +830,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           ###------  network synergies ------
           ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
           #ij.syn.pow.n2 = (cf.pow.n2 - pow.n2) / pow.n2,
-          ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
+          # ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
           # ij.syn.num.mmc.comps = (cf.num.mmc.comps - df.alt$num.mmc.comps[ix]) / df.alt$num.mmc.comps[ix],
           ij.syn.closeness = (cf.closeness - df.alt$closeness[ix]) / df.alt$closeness[ix],
           ij.syn.degree = (cf.degree - df.alt$deg[ix]) / df.alt$deg[ix],
