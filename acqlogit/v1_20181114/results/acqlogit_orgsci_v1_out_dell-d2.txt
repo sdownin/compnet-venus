@@ -17519,3 +17519,136 @@ node collapsing previous skipped acquisition 488:
 processing acquisitions: 0 ...
 done.
 processing acquisitions: 1 ...
+done.
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing accenture-->netsuite
+  power centralities
+  network counterfactuals
+appending pairing apple-->netsuite
+  power centralities
+  network counterfactuals
+appending pairing google-->netsuite
+  power centralities
+  network counterfactuals
+appending pairing ibm-->netsuite
+  power centralities
+  network counterfactuals
+appending pairing microsoft-->netsuite
+  power centralities
+  network counterfactuals
+appending pairing oracle-->netsuite
+  power centralities
+  network counterfactuals
+appending pairing oracle-->rackspace
+  power centralities
+  network counterfactuals
+done.
+node collapsing acquisition 489:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2016-08-02 : acquisition 490 (98.39%)
+
+
+
+2016-08-05 : acquisition 491 (98.59%)
+
+node collapsing previous skipped acquisition 490:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2016-08-22 : acquisition 492 (98.80%)
+
+node collapsing previous skipped acquisition 491:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2016-08-25 : acquisition 493 (99.00%)
+
+node collapsing previous skipped acquisition 492:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2016-09-08 : acquisition 494 (99.20%)
+
+node collapsing previous skipped acquisition 493:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2016-09-19 : acquisition 495 (99.40%)
+
+node collapsing previous skipped acquisition 494:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing apple-->api-ai
+  power centralities
+  network counterfactuals
+appending pairing google-->api-ai
+  power centralities
+  network counterfactuals
