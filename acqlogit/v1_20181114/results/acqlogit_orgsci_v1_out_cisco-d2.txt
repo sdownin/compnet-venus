@@ -16939,3 +16939,36 @@ appending pairing apple-->strongloop
 appending pairing google-->strongloop
   power centralities
   network counterfactuals
+appending pairing ibm-->appcelerator
+  power centralities
+
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network file
+qsub_0: sourcing propensity scores script
+qsub_0: sourcing node collapse script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+qsub_2: loading graphml files /home/sdowning/compnet/acqlogit/v1_20181114/data/g_cisco_d2_NCINIT_2007-01-01_2017-01-01.graphml /home/sdowning/compnet/acqlogit/v1_20181114/data/g_full_NCINIT_2007-01-01_2017-01-01.graphml
