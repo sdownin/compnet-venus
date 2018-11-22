@@ -57,15 +57,15 @@ d <- 2
 ## LOAD DATALIST
 data.in <- readRDS(sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d))
 l <- data.in$l
-l.cov <- data.in$l.cov
+df.reg <- data.in$df.reg
 
 
-df.reg <- ldply(l.cov, function(x) {
-  names(x)[which(names(x)=="")] <- c('j.fund.v.cnt','j.fund.v.amt','j.fund.cnt','j.fund.amt')
-  as.data.frame(x)
-})
 
-View(df.reg)
+
+
+
+
+
 
 
 ## COPY (or subset) REGRESSION DATAFRAME
