@@ -416,8 +416,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   #    length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
   #  }))
   df.targ.alt$acqs <- unname(sapply(df.targ.alt$company_name_unique, function(name){
-    x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
-    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+    x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
+    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= date_j))
     return(x/n)
   }))  
   ## VENTURE FUNDING
@@ -515,8 +515,8 @@ for (j in 1:nrow(acq.src.allpd)) {
   #  length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
   #}))
   df.acq.alt$acqs <- unname(sapply(df.acq.alt$company_name_unique, function(name){
-    x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
-    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= acq.yr.i$acquired_on))
+    x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
+    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= date_j))
     return(x/n)
   }))
   ## USE EGO and GLOBAL NETWORK for DEGREE
