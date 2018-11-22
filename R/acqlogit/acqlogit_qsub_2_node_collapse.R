@@ -287,9 +287,9 @@ for (j in 1:nrow(acq.src.allpd)) {
        !(df.acq.j$acquisition_uuid %in% t.prop$acquisition_uuid) ) {
     next 
   }
-  # SKIP IF ALL ACQUIRER ALTERNATIVES HAVE NO COMPUSTAT FINANICALS (check m2b all NA)
-  if (all(is.na(a.prop$m2b[which(a.prop$acquisition_uuid==df.acq.j$acquisition_uuid)]))) 
-    next
+  # # SKIP IF ALL ACQUIRER ALTERNATIVES HAVE NO COMPUSTAT FINANICALS (check m2b all NA)
+  # if (all(is.na(a.prop$m2b[which(a.prop$acquisition_uuid==df.acq.j$acquisition_uuid)]))) 
+  #   next
   ## SKIP IF EITHER ACQUIRER OR TARGET IS NOT IN NETWORK
   if ( !(acq.src.allpd$acquiree_name_unique[j] %in% V(g.full.pd.orig)$name) ) 
     next
