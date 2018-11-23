@@ -342,9 +342,12 @@ for (j in 1:nrow(acq.src.allpd)) {
     ## only absorb if target subgraph exists
     if (length(g.full.pd.nc.sub.l)>0 & class(g.full.pd.nc.sub.l[[1]])=='igraph')
     {
-      ## igraph "+" operator combines graphs
+        g.full.pd.nc.sub <- g.full.pd.nc.sub.l[[1]]
+        V(g.pd.nc)$nc <- NA
+        V(g.full.pd.nc.sub)$nc <- NA
+        ## igraph "+" operator combines graphs
         .verts1 <- as_data_frame(g.pd.nc, "vertices")
-        .verts2 <- as_data_frame(g.full.pd.nc.sub.l[[1]], "vertices")
+        .verts2 <- as_data_frame(g.full.pd.nc.sub, "vertices")
         ## remove cols from v2 not in v1
         .verts2 <- .verts2[,which(names(.verts2) %in% names(.verts1))]
         ## add blank cols to from v1 not in v2
@@ -352,7 +355,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           .verts2[,col] <- NA
         }
         .verts <- unique(rbind(.verts1, .verts2))
-        .el <- rbind(as_data_frame(g.pd.nc), as_data_frame(g.full.pd.nc.sub.l[[1]]))
+        .el <- rbind(as_data_frame(g.pd.nc), as_data_frame(g.full.pd.nc.sub))
         g.pd.nc <- graph_from_data_frame(d = .el, directed = FALSE, vertices = .verts)
     }
   }
