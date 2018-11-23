@@ -33,6 +33,8 @@ library(lmerTest)
 library(lubridate)
 
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
+# syn_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/acqlogit_tmp_20181123"
+acq_data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2/acqlogit_data"
 
 Mode <- function(x) {
   ux <- unique(x)
@@ -52,20 +54,21 @@ cb  <- source(file.path(getwd(),'R','acqlogit','cb_data_prep.R'))$value      ## 
 ## focal firm's competition network
 ##---------------------------------
 name_i <- 'ibm'
-d <- 2
+d <- 3
 
 ## LOAD DATALIST
-data.in <- readRDS(sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d))
+# data.in <- readRDS(sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d))
+data.in <- readRDS(sprintf("%s/acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",acq_data_dir,name_i,d))
 l <- data.in$l
 l.cov <- data.in$l.cov
 
-
-df.reg <- ldply(l.cov, function(x) {
-  names(x)[which(names(x)=="")] <- c('j.fund.v.cnt','j.fund.v.amt','j.fund.cnt','j.fund.amt')
-  as.data.frame(x)
-})
-
-View(df.reg)
+df.reg <- ldply(l.cov, function(x) {  as.data.frame(x) })
+# df.reg <- ldply(l.cov, function(x) {
+#   names(x)[which(names(x)=="")] <- c('j.fund.v.cnt','j.fund.v.amt','j.fund.cnt','j.fund.amt')
+#   as.data.frame(x)
+# })
+print(length(unique(df.reg$uuid)))
+# View(df.reg)
 
 
 ## COPY (or subset) REGRESSION DATAFRAME
@@ -99,7 +102,7 @@ for (i in 1:nrow(df.sub)) {
   df.sub$ij.cossim[i] <- (v.i %*% v.j)[1,1] / (sqrt(sum(v.i^2)) * sqrt(sum(v.j^2)))
   if (i %% 50 == 0) cat(sprintf('%s\n',i))
 }
-write.csv(df.sub, file = sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_df_COSSIM_%s_d%s.rds",name_i,d))
+write.csv(df.sub, file = sprintf("%s/acqlogit_compnet_processed_acquisitions_synergies_df_COSSIM_%s_d%s.rds",tmp_dir,name_i,d))
 ## CACHE SUBSETTED DATAFRAME AFTER ADDING SIMILARITIES
 df.sub.orig <- df.sub
 
@@ -157,10 +160,10 @@ mg0 <- mclogit(
     i.fm.mmc.sum + i.acqs + j.acqs +
     ij.cossim + 
     ij.dist +
-    j.constraint + i.constraint + i.pow.n3 +
+    j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 +
     ij.syn.pow.n1
   ,
   data = df.sub)
@@ -175,10 +178,10 @@ mg1 <- mclogit(
     i.fm.mmc.sum + i.acqs + j.acqs +
     ij.cossim + 
     ij.dist +
-    j.constraint + i.constraint + i.pow.n3 +
+    j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2)
   ,
@@ -193,10 +196,10 @@ mg2 <- mclogit(
     i.fm.mmc.sum + i.acqs + j.acqs +
     ij.cossim + 
     ij.dist +
-    j.constraint + i.constraint + i.pow.n3 +
+    j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.constraint
@@ -213,10 +216,10 @@ mg3 <- mclogit(
     i.fm.mmc.sum + i.acqs + j.acqs +
     ij.cossim + 
     ij.dist +
-    j.constraint + i.constraint + i.pow.n3 +
+    j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.closeness2
@@ -251,10 +254,10 @@ mg5 <- mclogit(
     i.fm.mmc.sum + i.acqs + j.acqs +
     ij.cossim + 
     ij.dist +
-    j.constraint + i.constraint + i.pow.n3 +
+    j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.pow.n1
@@ -270,21 +273,21 @@ mg6 <- mclogit(
     i.fm.mmc.sum + i.acqs + j.acqs +
     ij.cossim + 
     ij.dist +
-    j.constraint + i.constraint + i.pow.n3 +
+    j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.constraint + 
-    I(i.fm.mmc.sum^2):ij.syn.closeness2 + 
+    # I(i.fm.mmc.sum^2):ij.syn.closeness2 + 
     # I(i.fm.mmc.sum^2):ij.syn.degree + 
     I(i.fm.mmc.sum^2):ij.syn.pow.n1 
   ,
   data = df.sub)
 summary(mg6)
 
-tabmost <- mtable(mg0,mg1,mg2,mg3,mg5,mg6)
+tabmost <- mtable(mg0,mg1,mg2,mg3)
 print(tabmost)
 ## SAVE FILE
 memisc::write.mtable(tabmost, 

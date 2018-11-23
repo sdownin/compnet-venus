@@ -79,7 +79,7 @@ if (!file.exists(prop.file) | overwrite.propensities) {
 
 ## 2. Node Collapse (compute covarites)
 cat('qsub_0: sourcing node collapse script\n')
-source(file.path(.script_dir, 'acqlogit_qsub_2_node_collapse.R'), local=TRUE)
+source(file.path(.script_dir, 'acqlogit_qsub_2_3_node_collapse_absorb.R'), local=TRUE)
 
 cat('completed successfully.\n')
 

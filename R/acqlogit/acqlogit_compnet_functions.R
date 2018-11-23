@@ -746,6 +746,318 @@ library(stringr)
   
   
   ##
+  # Update Graph collapsing nodes by acquisitions mapping if target in `g` network,
+  #   else absorb target firm's (absorb.levels)-order ego network from global network into g 
+  # NOTE: add 'weight' and 'acquisitions' attributes to graph before start
+  # @param [igraph] g                 The igraph object 
+  # @param [igraph] global            The global network igraph object (if target is outside g)
+  # @param [dataframe] acquisitions   The dataframe of acquisitions
+  # @param [dataframe] absorb.levels  The number of orders of (in)direct competitors of the target to absorb into g
+  # @param [bool] verbose             A flag to echo stutus updates
+  # @return [igraph] 
+  ##
+  aaf$nodeCollapseGraphAbsorbSubgraph <- function(g, global, acquisitions, 
+                                                  absorb.levels=1, remove.isolates=FALSE, verbose=FALSE)
+  {
+    if (class(g) != 'igraph') stop("g must be an igraph object")
+    if (class(global) != 'igraph') stop("global must be an igraph object")
+    if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
+    if (any( ! c('acquirer_uuid','acquiree_uuid') %in% names(acquisitions))) stop("acquisition data frame must have acquirer_uuid and acquiree_uuid")
+    
+    ##--------------------- Acquisitions Mapping --------------------------
+    ## acqs = c(1,4,3,3,1,4,...)
+    ## {acquired} index --> {acquirer} acqs[index]  
+    ##   WHEN acquirer in `g` and target in `global`
+    acqs.sub <- acquisitions[which(acquisitions$acquirer_uuid %in% V(g)$company_uuid
+                                   & acquisitions$acquiree_uuid %in% V(global)$company_uuid ), ]
+    cat(sprintf('processing acquisitions: %s ...', nrow(acqs.sub)))
+    
+    if (nrow(acqs.sub) > 0) 
+    {
+      
+      vAttrs = igraph::list.vertex.attributes(g)
+      for (attr in c('acquired_vids','acquired_name','acquired_uuid')) {
+        if ( !(attr %in% vAttrs) ) {
+          g <- igraph::set.vertex.attribute(g, attr, V(g), NA)
+        }
+      }
+      
+      ##---------------- ACQUISITIONS LOOP---------------------------------------
+      for (i in 1:nrow(acqs.sub))
+      {
+        
+        x = acqs.sub[i, ] ## this acquisition i
+        
+        if (is.na(x$acquiree_uuid) | is.na(x$acquirer_uuid))
+          next
+        
+        ##------------------------------------------------
+        ## ABSORB:  if target not in `g`, then absorb target subgraph from `global` into `g`
+        ##------------------------------------------------
+        if ( ! x$acquiree_uuid %in% V(g)$company_uuid) 
+        {
+          target.global.vid <- which(V(global)$company_uuid == x$acquiree_uuid)
+          ## target subgraph from global network (using absorb.levels number of indirect competitor levels)
+          global.sub.l <- igraph::make_ego_graph(graph=global, order=absorb.levels, nodes=target.global.vid)
+          ## only absorb if target subgraph exists
+          if (length(global.sub.l)>0 & class(global.sub.l[[1]])=='igraph')
+          {
+            ## igraph + operator combines graphs
+            g <- g + global.sub.l[[1]]
+          }
+        } 
+        
+        ## vertex ids for acquirer and target in `g` network
+        acquirer.vid <- which(V(g)$company_uuid == x$acquirer_uuid)
+        target.vid <- which(V(g)$company_uuid == x$acquiree_uuid)
+        
+        ## target's neighbor's vids
+        target.nbr.vids <- as.integer(igraph::neighbors(g, target.vid))
+        target.deg <- length(target.nbr.vids)
+        
+        ## create edge vector to add to graph for neighbors of target
+        if (target.deg == 0) {
+          edges.c <- NA  ## target had NO neighbors, so no edges to add
+        } else {
+          ## string of edges with acquirer.vid after each target neighbor vid, ex: "56, 1098 ,335, 1098 ,383, 1098 ,384, 1098"
+          edge.str.parts <- c(paste(target.nbr.vids,collapse=sprintf(',%s,',acquirer.vid)), as.character(acquirer.vid))
+          edges.str <- paste(edge.str.parts, collapse=',')
+          # convert string to vector of edges; each pair of vids are one edge: c(1,2,1,3,3,4) is edges 1-2, 1-3, 3-4
+          edges.c <- as.integer(str_split(rev(edges.str), ',')[[1]])
+          ## edges (source,target) matrix
+        }
+        
+        el <- igraph::ends(g, E(g), names=F)
+        
+        ##-------------- 1. TRACK ACQUISITION LIST  ---------------------------------------------
+        ## track acquisitions
+        noAcq <- .isNA(V(g)$acquired_uuid[acquirer.vid])
+        V(g)$acquired_vids[acquirer.vid] <- if(noAcq){
+          target.vid
+        }else{
+          paste(V(g)$acquired_vids[acquirer.vid], target.vid, sep = "|")
+        }
+        V(g)$acquired_name[acquirer.vid] <- if(noAcq){
+          V(g)$name[target.vid]
+        }else{
+          paste(V(g)$acquired_name[acquirer.vid], V(g)$name[target.vid], sep = "|")
+        }
+        V(g)$acquired_uuid[acquirer.vid] <- if(noAcq){
+          V(g)$company_uuid[target.vid]
+        }else{
+          paste(V(g)$acquired_uuid[acquirer.vid], V(g)$company_uuid[target.vid], sep = "|")
+        }
+        
+        ##-------------- 3. REMOVE TARGETS EDGES ----------------------------------------
+        ## NOTE: firm nodes with degree(v)==0 are "removed" from the network by definition
+        ##       but still in the data structure for ERGM estimation.
+        ##       (Theoretically this function would not work for studying 
+        ##        a monopoly with no indirect competitors)
+        ## edge ids involving the neighbors of the target -- TO DELETE
+        target.nbr.eids <- which((el[,1] %in% target.vid) | (el[,2] %in% target.vid))
+        
+        ## cache edge weights to transfer below
+        tmp.weights <- as.numeric(igraph::get.edge.attribute(g, 'weight', target.nbr.eids))
+        ## remove NAs from weights 
+        target.nbr.edge.weights <- unlist(sapply(tmp.weights, function(x) ifelse(is.numeric(x) & !.isNA(x), x, 1)))
+        
+        ## delete edges 
+        g <- igraph::delete.edges(g, target.nbr.eids)
+        
+        ##-------------- 4. TRANSFER TARGETS EDGES (IF ANY)  ----------------------------------------
+        if (target.deg > 0) 
+        {
+          ##-------------- add targets edges to acquirer -------------------
+          edgeAttrs <- list(weight=target.nbr.edge.weights, 
+                            relation_began_on=rep(x$acquired_on, target.deg), 
+                            relation_ended_on=rep(NA, target.deg))
+          g <- igraph::add.edges(g, edges.c, attr = edgeAttrs)      
+          
+          ##--------------- simplify duplicate edges ------------------------
+          ## contract edges
+          if (verbose) cat('\nsimplifying edges...')
+          edge.attr.comb = list(weight=function(x) .sumNA(x, 1), ## sum values that are not NA, else return 1
+                                relation_began_on=function(x) .maxNA(x, NA), ## max value of those that are not NA, else return NA
+                                relation_ended_on=function(x) .minNA(x, NA)) ## min value of those that are not NA, else return NA
+          # edge.attr.comb = list(weight="concat",relation_began_on="concat",relation_ended_on="concat")
+          g <- igraph::simplify(g, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
+          if (verbose) cat('done.')
+        } 
+        
+        
+        if (i %% 10 == 0) cat(sprintf('\n%d: %s --> %s',i,x$acquirer_name_unique,x$acquiree_name_unique))
+        
+      } ## acquisition loop 
+      
+    } ## main 
+    
+    cat('\ndone.\n')
+    return(g)
+  }
+  
+  
+  # ##
+  # # Update Graph collapsing nodes by acquisitions mapping if target in `g` network,
+  # #   else absorb target firm's (absorb.levels)-order ego network from global network into g 
+  # # NOTE: add 'weight' and 'acquisitions' attributes to graph before start
+  # # @param [igraph] g                 The igraph object 
+  # # @param [igraph] global            The global network igraph object (if target is outside g)
+  # # @param [dataframe] acquisitions   The dataframe of acquisitions
+  # # @param [dataframe] absorb.levels  The number of orders of (in)direct competitors of the target to absorb into g
+  # # @param [bool] verbose             A flag to echo stutus updates
+  # # @return [igraph] 
+  # ##
+  # aaf$nodeCollapseGraphAbsorbSubgraph <- function(g, global, acquisitions, 
+  #                                                 absorb.levels=1, remove.isolates=FALSE, verbose=FALSE)
+  # {
+  #   if (class(g) != 'igraph') stop("g must be an igraph object")
+  #   if (class(global) != 'igraph') stop("global must be an igraph object")
+  #   if (class(acquisitions) != 'data.frame') stop("acquisitions must be a data frame")
+  #   
+  #   ##--------------------- Acquisitions Mapping --------------------------
+  #   ## acqs = c(1,4,3,3,1,4,...)
+  #   ## {acquired} index --> {acquirer} acqs[index]  
+  #   ##   WHEN acquirer in `g` and target in `global`
+  #   acqs.sub <- acquisitions[which(acquisitions$acquirer_uuid %in% V(g)$company_uuid
+  #                                  & acquisitions$acquiree_uuid %in% V(global)$company_uuid ), ]
+  #   cat(sprintf('processing acquisitions: %s ...', nrow(acqs.sub)))
+  #   
+  #   if (nrow(acqs.sub) > 0) 
+  #   {
+  #     
+  #     vAttrs = igraph::list.vertex.attributes(g)
+  #     for (attr in c('acquired_vids','acquired_name','acquired_uuid')) {
+  #       if ( !(attr %in% vAttrs) ) {
+  #         g <- igraph::set.vertex.attribute(g, attr, V(g), NA)
+  #       }
+  #     }
+  #     
+  #     ##---------------- ACQUISITIONS LOOP---------------------------------------
+  #     for (i in 1:nrow(acqs.sub))
+  #     {
+  #       
+  #       x = acqs.sub[i, ]
+  #       acquirer.vid <- which(V(g)$company_uuid == x$acquirer_uuid)
+  #       target.vid <- which(V(g)$company_uuid == x$acquiree_uuid)
+  #       
+  #       ##------------------------------------------------
+  #       ## NODE COLLAPSE  (if target in network g)
+  #       ##------------------------------------------------
+  #       if (x$acquiree_uuid %in% V(g)$company_uuid) {
+  #         
+  #           ## target's neighbor's vids
+  #           target.nbr.vids <- as.integer(igraph::neighbors(g, target.vid))
+  #           target.deg <- length(target.nbr.vids)
+  #           
+  #           ## create edge vector to add to graph for neighbors of target
+  #           if (target.deg == 0) {
+  #             edges.c <- NA  ## target had NO neighbors, so no edges to add
+  #           } else {
+  #             ## string of edges with acquirer.vid after each target neighbor vid, ex: "56, 1098 ,335, 1098 ,383, 1098 ,384, 1098"
+  #             edge.str.parts <- c(paste(target.nbr.vids,collapse=sprintf(',%s,',acquirer.vid)), as.character(acquirer.vid))
+  #             edges.str <- paste(edge.str.parts, collapse=',')
+  #             # convert string to vector of edges; each pair of vids are one edge: c(1,2,1,3,3,4) is edges 1-2, 1-3, 3-4
+  #             edges.c <- as.integer(str_split(rev(edges.str), ',')[[1]])
+  #             ## edges (source,target) matrix
+  #           }
+  #           
+  #           el <- igraph::ends(g, E(g), names=F)
+  #           
+  #           ##-------------- 1. TRACK ACQUISITION LIST  ---------------------------------------------
+  #           ## track acquisitions
+  #           noAcq <- .isNA(V(g)$acquired_uuid[acquirer.vid])
+  #           V(g)$acquired_vids[acquirer.vid] <- if(noAcq){
+  #             target.vid
+  #           }else{
+  #             paste(V(g)$acquired_vids[acquirer.vid], target.vid, sep = "|")
+  #           }
+  #           V(g)$acquired_name[acquirer.vid] <- if(noAcq){
+  #             V(g)$name[target.vid]
+  #           }else{
+  #             paste(V(g)$acquired_name[acquirer.vid], V(g)$name[target.vid], sep = "|")
+  #           }
+  #           V(g)$acquired_uuid[acquirer.vid] <- if(noAcq){
+  #             V(g)$company_uuid[target.vid]
+  #           }else{
+  #             paste(V(g)$acquired_uuid[acquirer.vid], V(g)$company_uuid[target.vid], sep = "|")
+  #           }
+  #           
+  #           ##-------------- 3. REMOVE TARGETS EDGES ----------------------------------------
+  #           ## NOTE: firm nodes with degree(v)==0 are "removed" from the network by definition
+  #           ##       but still in the data structure for ERGM estimation.
+  #           ##       (Theoretically this function would not work for studying 
+  #           ##        a monopoly with no indirect competitors)
+  #           ## edge ids involving the neighbors of the target -- TO DELETE
+  #           target.nbr.eids <- which((el[,1] %in% target.vid) | (el[,2] %in% target.vid))
+  #           
+  #           ## cache edge weights to transfer below
+  #           tmp.weights <- as.numeric(igraph::get.edge.attribute(g, 'weight', target.nbr.eids))
+  #           ## remove NAs from weights 
+  #           target.nbr.edge.weights <- unlist(sapply(tmp.weights, function(x) ifelse(is.numeric(x) & !.isNA(x), x, 1)))
+  #           
+  #           ## delete edges 
+  #           g <- igraph::delete.edges(g, target.nbr.eids)
+  #           
+  #           ##-------------- 4. TRANSFER TARGETS EDGES (IF ANY)  ----------------------------------------
+  #           if (target.deg > 0) 
+  #           {
+  #             ##-------------- add targets edges to acquirer -------------------
+  #             edgeAttrs <- list(weight=target.nbr.edge.weights, 
+  #                               relation_began_on=rep(x$acquired_on, target.deg), 
+  #                               relation_ended_on=rep(NA, target.deg))
+  #             g <- igraph::add.edges(g, edges.c, attr = edgeAttrs)      
+  #             
+  #             ##--------------- simplify duplicate edges ------------------------
+  #             ## contract edges
+  #             if (verbose) cat('\nsimplifying edges...')
+  #             edge.attr.comb = list(weight=function(x) .sumNA(x, 1), ## sum values that are not NA, else return 1
+  #                                   relation_began_on=function(x) .maxNA(x, NA), ## max value of those that are not NA, else return NA
+  #                                   relation_ended_on=function(x) .minNA(x, NA)) ## min value of those that are not NA, else return NA
+  #             # edge.attr.comb = list(weight="concat",relation_began_on="concat",relation_ended_on="concat")
+  #             g <- igraph::simplify(g, remove.multiple=T, remove.loops=T, edge.attr.comb=edge.attr.comb)
+  #             if (verbose) cat('done.')
+  #           } 
+  #         
+  #       ##------------------------------------------------
+  #       ## ABSORB TARGET SUBGRAPH  (if target not in network g, cannot node collapse within g, so absorb target's competitors into g)
+  #       ##------------------------------------------------
+  #       } else { 
+  #         
+  #           acquirer.global.vid <- which(V(global)$company_uuid == x$acquirer_uuid)
+  #           target.global.vid <- which(V(global)$company_uuid == x$acquiree_uuid)
+  #           ## target subgraph from global network (using absorb.levels number of indirect competitor levels)
+  #           global.sub.l <- igraph::make_ego_graph(graph=global, order=absorb.levels, nodes=target.global.vid)
+  #           ## only absorb if subgraph exists
+  #           if (length(global.sub.l)>0)
+  #           {
+  #             global.sub <- global.sub.l[[1]]
+  #             ## absorb target subrgaph by creating new graph from joined vert,el dataframes
+  #             .abs.verts <- unique(rbind(igraph::as_data_frame(g, "vertices"), igraph::as_data_frame(global.sub, "vertices")))
+  #             .abs.el.g          <- igraph::as_data_frame(g, "edges")
+  #             .abs.el.global.sub <- igraph::as_data_frame(global.sub, "edges")
+  #             .abs.el <- rbind(.abs.el.g, .abs.el.global.sub)
+  #             ## add edges from `global` that were missing in `g` for new firms added to `g`
+  #             add.uuids <- V(global.sub)$company_uuid[which( ! V(global.sub)$company_uuid %in% V(g)$company_uuid)]
+  #             add.uuids <- add.uuids[which(add.uuids != )]
+  #             ## create new absorbed-joine graph
+  #             g <- igraph::graph_from_data_frame(d=.abs.el, directed=FALSE, vertices=.abs.verts)
+  #           }
+  #         
+  #       } ## end if/else (node collapse / absorb)
+  #       
+  #       
+  #       if (i %% 10 == 0) cat(sprintf('\n%d: %s --> %s',i,x$acquirer_name_unique,x$acquiree_name_unique))
+  #       
+  #     } ## acquisition loop 
+  #     
+  #   } ## main 
+  #   
+  #   cat('\ndone.\n')
+  #   return(g)
+  # }
+  
+  
+  ##
   # Makes period network 
   # - remove missing edges and nodes
   # - transfers edges and apply node collapse on acquisitions

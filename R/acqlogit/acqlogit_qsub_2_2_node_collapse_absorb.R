@@ -22,9 +22,19 @@ library(plyr, quietly = T)
 library(reshape2)
 library(intergraph)
 
-
-# ## DIRECTORIES
+##===================
+## DIRECTORIES
+##-------------------
 .compustat_dir <- '/home/sdowning/data/compustat'
+
+##===================
+## PARAMS
+##-------------------
+### ABSORB LEVELS -- ego net order of acquisition target
+###   1 = only direct competitors of acquisition target
+###   2 = direct and 2nd-order indirect competitors of acquisition target
+###   ... etc.
+absorb.levels <- 1
 
 
 ##--------------------------------------------------------------
@@ -64,6 +74,20 @@ g.full.pd <- igraph::read.graph(g.full.pd.file, format='graphml')
 ## Full timeframe Clusters
 V(g.pd)$nc <- as.integer(igraph::multilevel.community(g.pd)$membership)
 V(g.full.pd)$nc <- as.integer(igraph::multilevel.community(g.full.pd)$membership)
+
+# ## assign UUIDs if not exists
+# idx.uuid.na <- which(is.na(V(g.pd)$company_uuid) | V(g.pd)$company_uuid=="")
+# for (idx in idx.uuid.na) {
+#   V(g.pd)$company_uuid[idx] <- cb$uuid()
+# }
+# idx.full.uuid.na <- which(is.na(V(g.full.pd)$company_uuid) | V(g.full.pd)$company_uuid=="")
+# for (idx in idx.full.uuid.na) {
+#   V(g.full.pd)$company_uuid[idx] <- cb$uuid()
+# }
+
+## cache original clusters
+V(g.pd)$nc.orig <- V(g.pd)$nc
+V(g.full.pd)$nc.orig <- V(g.full.pd)$nc
 
 ## keep original timeframe graph
 g.pd.orig <- g.pd
@@ -238,11 +262,6 @@ df.rem <- data.frame()
 lidx <- 0  ## acquisition list index
 timeval <- timeval.last <- 0
 
-g.pd.nc <- g.pd.orig            ## ego network to node collapse for network covariates
-g.full.pd.nc <- g.full.pd.orig  ## full netowrk to node collapse for network covariates
-
-
-
 ##===============================
 ##
 ##  MAIN LOOP: COMPUTE COVARIATES
@@ -263,7 +282,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## g.pd.orig       d2 original
   ## g.full.pd.orig  global network within timeframe start, end
   
-  cat(sprintf('\n\n%s : acquisition %s (%.2f%s)\n\n',date_j,j,100*j/nrow(acq.src.allpd),'%'))
+  cat(sprintf('\n\n%s %s-->%s: acquisition %s (%.2f%s)\n\n',date_j, df.acq.j$acquirer_name_unique, df.acq.j$acquiree_name_unique, j,100*j/nrow(acq.src.allpd),'%'))
   
   ##-------------------------------------------
   ## NODE COLLAPSE PREVIOUS ACQUISITION IF IT WAS SKIPPED 
@@ -271,6 +290,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   if (do.node.collapse & j > 1) {
     cat(sprintf('node collapsing previous skipped acquisition %s:\n',(j-1)))
     g.pd.nc <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[(j-1),])
+    # g.pd.nc <- acf$nodeCollapseGraphAbsorbSubgraph(g.pd.nc, g.full.pd.nc, acq.src.allpd[(j-1),], absorb.levels)
     g.full.pd.nc <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[(j-1),])
     ## FLAG TO NODE COLLAPSE NEXT LOOP
     do.node.collapse <- TRUE
@@ -283,17 +303,15 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## CHECKS TO SKIP THIS ACQUISITION
   ##------------------------------------------- 
   ## ACQUISITION MUST BE IN PROPENSITY SCORES DATAFRAMES
-  if ( !(df.acq.j$acquisition_uuid %in% a.prop$acquisition_uuid) | 
-       !(df.acq.j$acquisition_uuid %in% t.prop$acquisition_uuid) ) {
+  if ( !(uuid_j %in% a.prop$acquisition_uuid) | !(uuid_j %in% t.prop$acquisition_uuid))
     next 
-  }
   # # SKIP IF ALL ACQUIRER ALTERNATIVES HAVE NO COMPUSTAT FINANICALS (check m2b all NA)
-  # if (all(is.na(a.prop$m2b[which(a.prop$acquisition_uuid==df.acq.j$acquisition_uuid)]))) 
+  # if (all(is.na(a.prop$m2b[which(a.prop$acquisition_uuid==uuid_j)]))) 
   #   next
   ## SKIP IF EITHER ACQUIRER OR TARGET IS NOT IN NETWORK
-  if ( !(acq.src.allpd$acquiree_name_unique[j] %in% V(g.full.pd.orig)$name) ) 
+  if ( !(acq.src.allpd$acquiree_name_unique[j] %in% V(g.full.pd.nc)$name) ) 
     next
-  if ( !(acq.src.allpd$acquirer_name_unique[j] %in% V(g.pd)$name) ) 
+  if ( !(acq.src.allpd$acquirer_name_unique[j] %in% V(g.pd.nc)$name) ) 
     next
   ## SKIP IF ACQUIRER IS NOT PUBLIC
   isPublicAcq <- (acq.src.allpd$acquirer_name_unique[j] %in% cb$co_ipo$company_name_unique 
@@ -307,16 +325,46 @@ for (j in 1:nrow(acq.src.allpd)) {
   lidx <- length(l) + 1
   l[[lidx]] <- list()
   
+  ##-------------------------------------
+  ## Absorb subgraph from global network to ego firm network, if not exists
+  ##-------------------------------------
+  ## cache network before absorbing target subgraph to compute counterfactual newtorks
+  g.pd.nc.cf <- g.pd.nc
+  if ( ! acq.src.allpd$acquiree_uuid[j] %in% V(g.pd.nc)$company_uuid)
+  {
+    targ.g.full.pd.nc.vid <- which(V(g.full.pd.nc)$company_uuid == acq.src.allpd$acquiree_uuid[j])
+    ## target subgraph from global network (using absorb.levels number of indirect competitor levels)
+    g.full.pd.nc.sub.l <- igraph::make_ego_graph(graph=g.full.pd.nc, order=absorb.levels, nodes=targ.g.full.pd.nc.vid)
+    ## only absorb if target subgraph exists
+    if (length(g.full.pd.nc.sub.l)>0 & class(g.full.pd.nc.sub.l[[1]])=='igraph')
+    {
+      ## igraph "+" operator combines graphs
+      g.pd.nc <- g.pd.nc + g.full.pd.nc.sub.l[[1]]
+    }
+  }
+  
+  
+  ##-------------------------------------
+  ## Set Network Cluster for period network (after having node collapsed)
+  ##-------------------------------------
+  V(g.pd.nc)$nc      <- as.integer(igraph::multilevel.community(g.pd.nc)$membership)
+  V(g.full.pd.nc)$nc <- as.integer(igraph::multilevel.community(g.full.pd.nc)$membership)
 
+  
+  ##=====================================
   ## Subset Year Period Network
+  ##-------------------------------------
   cat('  subsetting network edges for year period of acquisition...')
   ## Period network removes competitive relations ended < year_j OR started >= year_j+1
-  g.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.pd.nc), year_j-1, year_j+1, isolates.remove = F))
+  g.pd      <- asIgraph(acf$makePdNetwork(asNetwork(g.pd.nc), year_j-1, year_j+1, isolates.remove = F))
   g.full.pd <- asIgraph(acf$makePdNetwork(asNetwork(g.full.pd.nc), year_j-1, year_j+1, isolates.remove = F))
-  V(g.pd)$name <- V(g.pd)$vertex.names
+  V(g.pd)$name      <- V(g.pd)$vertex.names
   V(g.full.pd)$name <- V(g.full.pd)$vertex.names
   cat('done.')
   
+  ##-------------------------------
+  ## Compute Focal Firm Ego Network MMC Measures
+  ##-------------------------------
   ## GET FIRM x FRIM MMC MATRIX TO USE IN FM-MMC COMPUTATION
   m.mmc <- acf$getFirmFirmMmc(g.pd, as.integer(V(g.pd)$nc))
   
@@ -332,28 +380,35 @@ for (j in 1:nrow(acq.src.allpd)) {
     return(length(x[x>0]))
   })
   
+  ##-----------------------------------------
   ## GET  DATAFRAME VARS
-  
-  ## Acquirer d2 original org.vid
-  xi.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquirer_name_unique[j] == V(g.pd.orig)$name)]
-  ## target d2 original org.vid
-  xj.orig.vid <- V(g.pd.orig)$orig.vid[which(acq.src.allpd$acquiree_name_unique[j] == V(g.pd.orig)$name)]
-  xj.orig.vid <- ifelse(length(xj.orig.vid) > 1, xj.orig.vid, NA)
+  ##-----------------------------------------
+  # ## Acquirer d2 original org.vid
+  # xi.new.vid <- which(V(g.pd)$name == acq.src.allpd$acquirer_name_unique[j])
+  # ## target d2 original org.vid
+  # xj.new.vid <- which(V(g.pd)$name == acq.src.allpd$acquiree_name_unique[j])
   ## acquirer  d2 t=j id
   xi <- which(V(g.pd)$name==acq.src.allpd$acquirer_name_unique[j])
   ## target  d2 t=j id
   xj <- which(V(g.pd)$name==acq.src.allpd$acquiree_name_unique[j])
-  # acquirer id in original graph (at start of period)
-  xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.allpd$acquirer_name_unique[j]])
-  xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
+  ## CHECKS
+  if (length(xi)==0) 
+    stop(sprintf('acquirer firm `%s` not in g.pd focal firm ego network\n',acq.src.allpd$acquirer_name_unique[j]))
+  if (length(xj)==0) 
+    stop(sprintf('target firm `%s` not in g.pd focal firm ego network\n',acq.src.allpd$acquiree_name_unique[j]))
+  # ## acquirer id in original graph (at start of period)
+  # xi.orig <- as.integer(V(g.pd.orig)[V(g.pd.orig)$name==acq.src.allpd$acquirer_name_unique[j]])
+  # xi.nc <- as.integer(V(g.pd.orig)$nc[xi.orig]) ## original nc for the period
+  xi.nc <- V(g.pd)$nc[xi]
   # 
   xi.mmc.sum <-  V(g.pd)$fm.mmc.sum[xi]
   xi.num.mkts <-  V(g.pd)$num.mkts[xi]
   num.mmc.comps <-  V(g.pd)$num.mmc.comps[xi]
-  ## 
-  xj.orig <- ifelse( !is.na(xj.orig.vid), as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid]), NA)
-  xj.orig <- ifelse(length(xj.orig) > 1, xj.orig, NA)
-  xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
+  # ## 
+  # xj.orig <- ifelse( !is.na(xj.orig.vid), as.integer(V(g.pd.orig)[V(g.pd.orig)$orig.vid==xj.orig.vid]), NA)
+  # xj.orig <- ifelse(length(xj.orig) > 1, xj.orig, NA)
+  # xj.nc <- ifelse(length(xj)==0,NA,  V(g.pd.orig)$nc[xj.orig] )  ## original nc for the period
+  xj.nc <- V(g.pd)$nc[xj]
   
   ##--------------------------------------
   ##
@@ -375,7 +430,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   }
   
   ## ACTUAL TARGET ID
-  targ.id <- which(V(g.full.pd)$name == acq.src.allpd$acquiree_name_unique[j])
+  targ.id <- xj
   ## START TARGET ALTERNATIVES DATAFRAME
   df.targ.alt <- cb$co[which(cb$co$company_name_unique %in% alt.targ.names),]
   ## MERGE IN y and d
@@ -394,15 +449,14 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## set is.public NAs = 0
   df.targ.alt$is.public[is.na(df.targ.alt$is.public)] <- 0
   ## target had IPO
-  df.targ <- df.targ.alt[which(df.targ.alt$company_name_unique == V(g.full.pd)$name[targ.id]), ]
-  
+  df.targ <- df.targ.alt[which(df.targ.alt$company_name_unique == V(g.pd)$name[targ.id]), ]
   if (nrow(df.targ) == 0)
     next
   
   ## select based on ownership status  
   df.targ.alt <- df.targ.alt[which(df.targ.alt$is.public == df.targ$is.public),]
 
-    ## add MMC
+  ## add MMC
   df.targ.alt$fm.mmc.sum <- sapply(df.targ.alt$company_name_unique, function(name){
       ifelse(name %in% V(g.pd)$name, V(g.pd)$fm.mmc.sum[which(V(g.pd)$name == name)] , NA)
     })
@@ -418,7 +472,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   #  }))
   df.targ.alt$acqs <- unname(sapply(df.targ.alt$company_name_unique, function(name){
     x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
-    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= date_j))
+    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.pd)$name & cb$co_acq$acquired_on <= date_j))
     return(x/n)
   }))  
   ## VENTURE FUNDING
@@ -471,7 +525,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   }
   
   ## ACTUAL TARGET ID
-  acq.id <- which(V(g.full.pd)$name == acq.src.allpd$acquirer_name_unique[j])
+  acq.id <- xi
   ## START TARGET ALTERNATIVES DATAFRAME
   df.acq.alt <- cb$co[which(cb$co$company_name_unique %in% alt.acq.names),]
   ## MERGE IN y and d
@@ -491,14 +545,11 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## set is.public NAs = 0
   df.acq.alt$is.public[is.na(df.acq.alt$is.public)] <- 0
   ## target had IPO
-  df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.full.pd)$name[acq.id]), ]
+  df.acq <- df.acq.alt[which(df.acq.alt$company_name_unique == V(g.pd)$name[acq.id]), ]
   
-  if (nrow(df.acq) == 0)
-    next
-  if (nrow(df.acq) > 1)
-    stop(sprintf('error: nrow df.acq %s > 1',nrow(df.acq)))
+  if (nrow(df.acq) == 0) next
+  if (nrow(df.acq) > 1)  stop(sprintf('error: nrow df.acq %s > 1',nrow(df.acq)))
   
-
   ## select based on ownership status
   df.acq.alt <- df.acq.alt[which(df.acq.alt$is.public == df.acq$is.public), ]
 
@@ -517,17 +568,17 @@ for (j in 1:nrow(acq.src.allpd)) {
   #  length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
   #}))
   df.acq.alt$acqs <- unname(sapply(df.acq.alt$company_name_unique, function(name){
-    x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
-    n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.prop)$name & cb$co_acq$acquired_on <= date_j))
-    return(x/n)
-  }))
+      x <- length(which(cb$co_acq$acquirer_name_unique==name & cb$co_acq$acquired_on <= date_j))
+      n <- length(which(cb$co_acq$acquirer_name_unique %in% V(g.full.pd)$name & cb$co_acq$acquired_on <= date_j))
+      return(x/n)
+    }))
   ## USE EGO and GLOBAL NETWORK for DEGREE
   df.acq.alt$deg <- sapply(df.acq.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.pd)$name, igraph::degree(g.pd,which(V(g.pd)$name==name)) , NA)
-  })
+      ifelse(name %in% V(g.pd)$name, igraph::degree(g.pd,which(V(g.pd)$name==name)) , NA)
+    })
   df.acq.alt$deg.full <- sapply(df.acq.alt$company_name_unique, function(name){
-    ifelse(name %in% V(g.full.pd)$name, igraph::degree(g.full.pd,which(V(g.full.pd)$name==name)) , NA)
-  })
+      ifelse(name %in% V(g.full.pd)$name, igraph::degree(g.full.pd,which(V(g.full.pd)$name==name)) , NA)
+    })
   
   ## KEEP SAME DIMENSIONS AS TARGET DATAFRAME
   df.acq.alt$fund.v.cnt <- NA
@@ -562,8 +613,10 @@ for (j in 1:nrow(acq.src.allpd)) {
     next  ## SKIP IF NOT AT LEAST 1 ALTERNATIVE FOR ACQUIRER AND TARGET
   }
 
-  # ## Create Diff Graph (removed|acquired nodes are represented as isolates)
-  vids <- which( V(g.full.pd)$name %in% df.alt$company_name_unique )
+  ##-----------------------------------------------
+  ### Create Diff Graph (removed|acquired nodes are represented as isolates)
+  ##-----------------------------------------------
+  vids <- which( V(g.pd)$name %in% df.alt$company_name_unique )
   vids.orig <- which( V(g.full.pd.orig)$name %in% df.alt$company_name_unique )
   vids.orig.rm <- vids[which( !(vids.orig %in% vids))]
   mapping <- V(g.full.pd.orig)[which(V(g.full.pd.orig)$orig.vid %in% V(g.full.pd)$orig.vid) ]
@@ -571,7 +624,9 @@ for (j in 1:nrow(acq.src.allpd)) {
   V(g.diff)$name <- V(g.full.pd.orig)$name
   vids.diff <- as.integer( V(g.diff)[which( V(g.diff)$name %in% df.alt$company_name_unique )] )
   
+  ##-----------------------------------------------
   ## global covars
+  ##-----------------------------------------------
   tmp.cov <- data.frame(
     company_name_unique = unlist(V(g.diff)$name[vids.diff]),
     closeness = unname(igraph::closeness(g.diff, vids = vids.diff,normalized = TRUE)),
@@ -700,12 +755,31 @@ for (j in 1:nrow(acq.src.allpd)) {
   acquirer <- acq.src.allpd$acquirer_name_unique[j]
   ##  Counterfactual target graphs
   g.cf <- lapply(df.targ.alt$company_name_unique, function(name){
-    tmp.acq.df <- data.frame(
-      acquirer_uuid = acq.src.allpd$acquirer_uuid[j],
-      acquiree_uuid = cb$co$company_uuid[cb$co$company_name_unique==name],
-      acquired_on = acq.src.allpd$acquired_on[j]
-    )
-    return(acf$nodeCollapseGraph(g.full.pd, tmp.acq.df))
+      ## counterfactual target UUID
+      cf.uuid <- cb$co$company_uuid[which(cb$co$company_name_unique==name)]
+      ##  absorb counterfactual target subgraph into cached actual graph, if not exists
+      g.pd.nc.cf.x <- g.pd.nc.cf
+      if ( ! cf.uuid %in% V(g.pd.nc.cf.x)$company_uuid) {
+        targ.g.full.pd.nc.vid <- which(V(g.full.pd.nc)$company_uuid == cf.uuid)
+        g.full.pd.nc.sub.l <- igraph::make_ego_graph(graph=g.full.pd.nc, order=absorb.levels, nodes=targ.g.full.pd.nc.vid)
+        if (length(g.full.pd.nc.sub.l)>0 & class(g.full.pd.nc.sub.l[[1]])=='igraph'){
+          g.pd.nc.cf.x <- g.pd.nc.cf.x + g.full.pd.nc.sub.l[[1]]
+        }
+      }
+      ## set network clusters
+      V(g.pd.nc.cf.x)$nc  <- as.integer(igraph::multilevel.community(g.pd.nc.cf.x)$membership)
+      ## subset period graph (removing )
+      g.pd.cf.x <- asIgraph(acf$makePdNetwork(asNetwork(g.pd.nc.cf.x), year_j-1, year_j+1, isolates.remove = F))
+      V(g.pd.cf.x)$name <- V(g.pd.cf.x)$vertex.names
+      ## return counterfactual node collapsed graph 
+      tmp.acq.df <- data.frame(
+        acquirer_uuid = acq.src.allpd$acquirer_uuid[j],
+        acquiree_uuid = cf.uuid,
+        acquired_on = acq.src.allpd$acquired_on[j]
+      )
+      return(acf$nodeCollapseGraph(g.pd.nc.cf.x, tmp.acq.df))
+      # return(acf$nodeCollapseGraphAbsorbSubgraph(g.pd, g.full.pd, tmp.acq.df, absorb.levels))
+      
   })
   names(g.cf) <- df.targ.alt$company_name_unique
 
@@ -744,7 +818,7 @@ for (j in 1:nrow(acq.src.allpd)) {
         cat('  power centralities\n')
         pow.n1 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
         #pow.n2 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
-        # pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
+        pow.n3 <- unname(igraph::power_centrality(g.full.pd, nodes = which(V(g.full.pd)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
 
         ## COUNTERFACTUAL NETWORK `r` for different target jx
         g.cf.r <- g.cf[[ df.alt$company_name_unique[jx] ]]
@@ -762,7 +836,7 @@ for (j in 1:nrow(acq.src.allpd)) {
         cf.constraint <- igraph::constraint(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]))
         cf.pow.n1 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.1))
         #cf.pow.n2 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.2))
-        # cf.pow.n3 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
+        cf.pow.n3 <- unname(igraph::power_centrality(g.cf.r, nodes = which(V(g.cf.r)$name==df.alt$company_name_unique[ix]), exponent = -0.3))
         
         ## PAIRING DATAFRAME
         l.tmp <- list(
@@ -777,7 +851,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           i.age = 2018 - df.alt$founded_year[ix],
           i.pow.n1 = pow.n1,
           #i.pow.n2 = pow.n2,
-          # i.pow.n3 = pow.n3,
+          i.pow.n3 = pow.n3,
           i.closeness = df.alt$closeness[ix],
           i.deg = df.alt$deg[ix],
           i.deg.full = df.alt$deg.full[ix],
@@ -831,7 +905,7 @@ for (j in 1:nrow(acq.src.allpd)) {
           ###------  network synergies ------
           ij.syn.pow.n1 = (cf.pow.n1 - pow.n1) / pow.n1,
           #ij.syn.pow.n2 = (cf.pow.n2 - pow.n2) / pow.n2,
-          # ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
+          ij.syn.pow.n3 = (cf.pow.n3 - pow.n3) / pow.n3,
           # ij.syn.num.mmc.comps = (cf.num.mmc.comps - df.alt$num.mmc.comps[ix]) / df.alt$num.mmc.comps[ix],
           ij.syn.closeness = (cf.closeness - df.alt$closeness[ix]) / df.alt$closeness[ix],
           ij.syn.degree = (cf.degree - df.alt$deg[ix]) / df.alt$deg[ix],
@@ -851,6 +925,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ##---------------------------------
   cat(sprintf('node collapsing acquisition %s:\n',j))
   g.pd.nc <- acf$nodeCollapseGraph(g.pd.nc, acq.src.allpd[j,])
+  # g.pd.nc <- acf$nodeCollapseGraphAbsorbSubgraph(g.pd.nc, g.full.pd.nc, acq.src.allpd[(j-1),], absorb.levels)
   g.full.pd.nc <- acf$nodeCollapseGraph(g.full.pd.nc, acq.src.allpd[j,])
   ## FLAG TO NOT RUN NODE COLLAPSE AT START OF NEXT LOOP SINCE IT WAS ALREADY PROCESSED HERE
   do.node.collapse <- FALSE
@@ -858,7 +933,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## save incrementally
   if (lidx %% 10 == 0) {   
     saveRDS(list(l=l, l.cov=l.cov), 
-            file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d)))
+            file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_ABSORB_list_%s_d%s.rds",name_i,d)))
   }
   
   gc()
@@ -869,7 +944,7 @@ for (j in 1:nrow(acq.src.allpd)) {
 
 ## final save
 saveRDS(list(l=l, l.cov=l.cov), 
-        file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d)))
+        file = file.path(.data_dir, sprintf("acqlogit_compnet_processed_acquisitions_synergies_ABSORB_list_%s_d%s.rds",name_i,d)))
 
 
 
