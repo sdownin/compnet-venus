@@ -29765,3 +29765,291 @@ appending pairing cisco-->appmobi
   network counterfactuals
 appending pairing intel-->apalon
   power centralities
+  network counterfactuals
+appending pairing intel-->appcelerator
+  power centralities
+  network counterfactuals
+appending pairing intel-->appmobi
+  power centralities
+  network counterfactuals
+appending pairing intel-->feedhenry
+  power centralities
+  network counterfactuals
+appending pairing intel-->service2media
+  power centralities
+  network counterfactuals
+appending pairing intel-->sourcebits-technologies
+  power centralities
+  network counterfactuals
+done.
+node collapsing acquisition 351:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2014-02-21 : acquisition 352 (69.29%)
+
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing amazon-->burstly
+  power centralities
+  network counterfactuals
+appending pairing apple-->burstly
+  power centralities
+  network counterfactuals
+appending pairing apple-->dentsu-aegis-network
+  power centralities
+  network counterfactuals
+appending pairing apple-->mblox
+  power centralities
+  network counterfactuals
+appending pairing apple-->o2
+  power centralities
+  network counterfactuals
+appending pairing apple-->screenvision
+  power centralities
+  network counterfactuals
+appending pairing apple-->smart-communications
+  power centralities
+  network counterfactuals
+appending pairing google-->burstly
+  power centralities
+  network counterfactuals
+appending pairing ibm-->burstly
+  power centralities
+  network counterfactuals
+appending pairing microsoft-->burstly
+  power centralities
+  network counterfactuals
+appending pairing netsuite-->burstly
+  power centralities
+  network counterfactuals
+done.
+node collapsing acquisition 352:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2014-02-21 : acquisition 353 (69.49%)
+
+
+
+2014-02-24 : acquisition 354 (69.69%)
+
+node collapsing previous skipped acquisition 353:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing apple-->cloudant
+  power centralities
+  network counterfactuals
+appending pairing google-->cloudant
+  power centralities
+  network counterfactuals
+appending pairing ibm-->cloudant
+  power centralities
+  network counterfactuals
+appending pairing ibm-->mongohq
+  power centralities
+  network counterfactuals
+appending pairing microsoft-->cloudant
+  power centralities
+  network counterfactuals
+appending pairing netsuite-->cloudant
+  power centralities
+  network counterfactuals
+appending pairing sap-->cloudant
+  power centralities
+  network counterfactuals
+done.
+node collapsing acquisition 354:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2014-03-03 : acquisition 355 (69.88%)
+
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing ca-->basis-science
+  power centralities
+  network counterfactuals
+appending pairing cisco-->basis-science
+  power centralities
+  network counterfactuals
+appending pairing intel-->basis-science
+  power centralities
+  network counterfactuals
+appending pairing intel-->misfit-wearables
+  power centralities
+  network counterfactuals
+appending pairing intel-->withings
+  power centralities
+  network counterfactuals
+done.
+node collapsing acquisition 355:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2014-03-25 : acquisition 356 (70.08%)
+
+
+
+2014-03-28 : acquisition 357 (70.28%)
+
+node collapsing previous skipped acquisition 356:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2014-04-10 : acquisition 358 (70.47%)
+
+node collapsing previous skipped acquisition 357:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2014-04-10 : acquisition 359 (70.67%)
+
+node collapsing previous skipped acquisition 358:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing apple-->silverpop
+  power centralities
+  network counterfactuals
+appending pairing google-->silverpop
+  power centralities
+  network counterfactuals
+appending pairing ibm-->aprimo
+  power centralities
+  network counterfactuals
