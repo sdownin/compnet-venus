@@ -33,7 +33,8 @@ library(lmerTest)
 library(lubridate)
 
 data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/crunchbase/"
-tmp_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/acqlogit_tmp_20181123"
+# syn_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/acqlogit_tmp_20181123"
+acq_data_dir <- "C:/Users/T430/Google Drive/PhD/Dissertation/competition networks/compnet2/acqlogit_data"
 
 Mode <- function(x) {
   ux <- unique(x)
@@ -52,12 +53,12 @@ cb  <- source(file.path(getwd(),'R','acqlogit','cb_data_prep.R'))$value      ## 
 ## SETTINGS:
 ## focal firm's competition network
 ##---------------------------------
-name_i <- 'cisco'
-d <- 2
+name_i <- 'ibm'
+d <- 3
 
 ## LOAD DATALIST
 # data.in <- readRDS(sprintf("acqlogit_data/acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",name_i,d))
-data.in <- readRDS(sprintf("%s/acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",tmp_dir,name_i,d))
+data.in <- readRDS(sprintf("%s/acqlogit_compnet_processed_acquisitions_synergies_list_%s_d%s.rds",acq_data_dir,name_i,d))
 l <- data.in$l
 l.cov <- data.in$l.cov
 
@@ -66,8 +67,8 @@ df.reg <- ldply(l.cov, function(x) {  as.data.frame(x) })
 #   names(x)[which(names(x)=="")] <- c('j.fund.v.cnt','j.fund.v.amt','j.fund.cnt','j.fund.amt')
 #   as.data.frame(x)
 # })
-
-View(df.reg)
+print(length(unique(df.reg$uuid)))
+# View(df.reg)
 
 
 ## COPY (or subset) REGRESSION DATAFRAME
@@ -162,7 +163,7 @@ mg0 <- mclogit(
     j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 +
     ij.syn.pow.n1
   ,
   data = df.sub)
@@ -180,7 +181,7 @@ mg1 <- mclogit(
     j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2)
   ,
@@ -198,7 +199,7 @@ mg2 <- mclogit(
     j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.constraint
@@ -218,7 +219,7 @@ mg3 <- mclogit(
     j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.closeness2
@@ -256,7 +257,7 @@ mg5 <- mclogit(
     j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.pow.n1
@@ -275,11 +276,11 @@ mg6 <- mclogit(
     j.constraint + i.constraint + i.pow.n1 +
     ij.syn.constraint +
     # ij.syn.degree +
-    ij.syn.closeness2 + 
+    # ij.syn.closeness2 + 
     ij.syn.pow.n1 + 
     I(i.fm.mmc.sum^2) + 
     I(i.fm.mmc.sum^2):ij.syn.constraint + 
-    I(i.fm.mmc.sum^2):ij.syn.closeness2 + 
+    # I(i.fm.mmc.sum^2):ij.syn.closeness2 + 
     # I(i.fm.mmc.sum^2):ij.syn.degree + 
     I(i.fm.mmc.sum^2):ij.syn.pow.n1 
   ,
