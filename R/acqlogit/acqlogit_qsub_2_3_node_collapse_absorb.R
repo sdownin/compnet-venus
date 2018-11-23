@@ -309,9 +309,9 @@ for (j in 1:nrow(acq.src.allpd)) {
   ## ACQUISITION MUST BE IN PROPENSITY SCORES DATAFRAMES
   if ( !(uuid_j %in% a.prop$acquisition_uuid) | !(uuid_j %in% t.prop$acquisition_uuid))
     next 
-  # # SKIP IF ALL ACQUIRER ALTERNATIVES HAVE NO COMPUSTAT FINANICALS (check m2b all NA)
-  # if (all(is.na(a.prop$m2b[which(a.prop$acquisition_uuid==uuid_j)]))) 
-  #   next
+  # SKIP IF ALL ACQUIRER ALTERNATIVES HAVE NO COMPUSTAT FINANICALS (check m2b all NA)
+  if (all(is.na(a.prop$m2b[which(a.prop$acquisition_uuid==uuid_j)])))
+    next
   ## SKIP IF EITHER ACQUIRER OR TARGET IS NOT IN NETWORK
   if ( !(acq.src.allpd$acquiree_name_unique[j] %in% V(g.full.pd.nc)$name) ) 
     next
@@ -454,7 +454,7 @@ for (j in 1:nrow(acq.src.allpd)) {
   df.targ.alt$is.public[is.na(df.targ.alt$is.public)] <- 0
   ## target had IPO
   df.targ <- df.targ.alt[which(df.targ.alt$company_name_unique == V(g.pd)$name[targ.id]), ]
-  if (nrow(df.targ) == 0)
+  if (nrow(df.targ) != 1)
     next
   
   ## select based on ownership status  
@@ -775,7 +775,16 @@ for (j in 1:nrow(acq.src.allpd)) {
         g.full.pd.nc.sub <- g.full.pd.nc.sub.l[[1]]
         V(g.full.pd.nc.sub)$nc <- NA
         V(g.full.pd.nc.sub)$nc.orig <- NA
-        .verts <- unique(rbind(as_data_frame(g.pd.nc.cf.x, "vertices"), as_data_frame(g.full.pd.nc.sub, "vertices")))
+        .verts1 <- as_data_frame(g.pd.nc.cf.x, "vertices")
+        .verts2 <- as_data_frame(g.full.pd.nc.sub, "vertices")
+        cat(sprintf('vdf1 dim (%s, %s), vdf2 dim (%s, %s)\n',nrow(.verts1),ncol(.verts1),nrow(.verts2),ncol(.verts2)))
+        ## remove cols from v2 not in v1
+        .verts2 <- .verts2[,which(names(.verts2) %in% names(.verts1))]
+        ## add blank cols to from v1 not in v2
+        for (col in names(.verts1)[which(!names(.verts1)%in%names(.verts2))]) {
+          .verts2[,col] <- NA
+        }
+        .verts <- unique(rbind(.verts1, .verts2))
         .el <- rbind(as_data_frame(g.pd.nc.cf.x), as_data_frame(g.full.pd.nc.sub))
         g.pd.nc.cf.x <- graph_from_data_frame(d = .el, directed = FALSE, vertices = .verts)
       }
