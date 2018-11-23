@@ -343,18 +343,21 @@ for (j in 1:nrow(acq.src.allpd)) {
     if (length(g.full.pd.nc.sub.l)>0 & class(g.full.pd.nc.sub.l[[1]])=='igraph')
     {
         g.full.pd.nc.sub <- g.full.pd.nc.sub.l[[1]]
-        V(g.pd.nc)$nc <- NA
-        V(g.full.pd.nc.sub)$nc <- NA
         ## igraph "+" operator combines graphs
         .verts1 <- as_data_frame(g.pd.nc, "vertices")
         .verts2 <- as_data_frame(g.full.pd.nc.sub, "vertices")
-        ## remove cols from v2 not in v1
-        .verts2 <- .verts2[,which(names(.verts2) %in% names(.verts1))]
-        ## add blank cols to from v1 not in v2
-        for (col in names(.verts1)[which(!names(.verts1)%in%names(.verts2))]) {
-          .verts2[,col] <- NA
+        .names.2.add.1 <- .verts2$name[which( ! .verts2$name %in% .verts1$name)]
+        .names.2.add.1 <- .names.2.add.1[!is.na(.names.2.add.1)]
+        for (.name in .names.2.add.1) {
+          vr <- nrow(.verts1)+1
+          .verts1[vr, ] <- NA
+          for (col in names(.verts1)) {
+            if (col %in% names(.verts2)) {
+                .verts1[vr, col] <- .verts2[which(.verts2$name==.name), col]
+            }
+          }
         }
-        .verts <- unique(rbind(.verts1, .verts2))
+        .verts <- unique(.verts1)
         .el <- rbind(as_data_frame(g.pd.nc), as_data_frame(g.full.pd.nc.sub))
         g.pd.nc <- graph_from_data_frame(d = .el, directed = FALSE, vertices = .verts)
     }
@@ -779,26 +782,28 @@ for (j in 1:nrow(acq.src.allpd)) {
     cf.uuid <- cb$co$company_uuid[which(cb$co$company_name_unique==name)]
     ##  absorb counterfactual target subgraph into cached actual graph, if not exists
     g.pd.nc.cf.x <- g.pd.nc.cf
-    V(g.pd.nc.cf.x)$nc <- NA
-    V(g.pd.nc.cf.x)$nc.orig <- NA
     if ( ! cf.uuid %in% V(g.pd.nc.cf.x)$company_uuid) {
       targ.g.full.pd.nc.vid <- which(V(g.full.pd.nc)$company_uuid == cf.uuid)
       g.full.pd.nc.sub.l <- igraph::make_ego_graph(graph=g.full.pd.nc, order=absorb.levels, nodes=targ.g.full.pd.nc.vid)
       if (length(g.full.pd.nc.sub.l)>0 & class(g.full.pd.nc.sub.l[[1]])=='igraph'){
         g.full.pd.nc.sub <- g.full.pd.nc.sub.l[[1]]
-        V(g.full.pd.nc.sub)$nc <- NA
-        V(g.full.pd.nc.sub)$nc.orig <- NA
         .verts1 <- as_data_frame(g.pd.nc.cf.x, "vertices")
         .verts2 <- as_data_frame(g.full.pd.nc.sub, "vertices")
         cat(sprintf('vdf1 dim (%s, %s), vdf2 dim (%s, %s)\n',nrow(.verts1),ncol(.verts1),nrow(.verts2),ncol(.verts2)))
         cat(sprintf('  vdf1::%s\n  vdf2::%s',paste(names(.verts1),collapse = '|'),paste(names(.verts2),collapse = '|')))
-        ## remove cols from v2 not in v1
-        .verts2 <- .verts2[,which(names(.verts2) %in% names(.verts1))]
-        ## add blank cols to from v1 not in v2
-        for (col in names(.verts1)[which(!names(.verts1)%in%names(.verts2))]) {
-          .verts2[,col] <- NA
+        ## fix duplicates
+        .names.2.add.1 <- .verts2$name[which( ! .verts2$name %in% .verts1$name)]
+        .names.2.add.1 <- .names.2.add.1[!is.na(.names.2.add.1)]
+        for (.name in .names.2.add.1) {
+          vr <- nrow(.verts1)+1
+          .verts1[vr, ] <- NA
+          for (col in names(.verts1)) {
+            if (col %in% names(.verts2)) {
+              .verts1[vr, col] <- .verts2[which(.verts2$name==.name), col]
+            }
+          }
         }
-        .verts <- unique(rbind(.verts1, .verts2))
+        .verts <- unique(.verts1)
         .el <- rbind(as_data_frame(g.pd.nc.cf.x), as_data_frame(g.full.pd.nc.sub))
         g.pd.nc.cf.x <- graph_from_data_frame(d = .el, directed = FALSE, vertices = .verts)
       }
