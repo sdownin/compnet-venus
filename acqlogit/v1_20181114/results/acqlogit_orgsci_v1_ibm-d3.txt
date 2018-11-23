@@ -177,3 +177,521 @@ computing firm-to-maret MMC:
   creating firm-firm MMC sum matrix...done.
   collecting MMC firms j...done.
   computing FM-MMC numerator...
+
+qsub_0: sourcing functions and data scripts
+qsub_0: loading global competition network file
+qsub_0: sourcing propensity scores script
+qsub_0: sourcing node collapse script
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+collecting edges to remove...done.
+collecting vertices to remove...done.
+qsub_2: loading graphml files /home/sdowning/compnet/acqlogit/v1_20181114/data/g_ibm_d3_NCINIT_2007-01-01_2017-01-01.graphml /home/sdowning/compnet/acqlogit/v1_20181114/data/g_full_NCINIT_2007-01-01_2017-01-01.graphml
+
+2007-01-04 cisco-->ironport: acquisition 1 (0.07%)
+
+
+
+2007-01-09 yahoo-->mybloglog: acquisition 2 (0.14%)
+
+node collapsing previous skipped acquisition 1:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-01-10 ebay-->stubhub: acquisition 3 (0.21%)
+
+node collapsing previous skipped acquisition 2:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-01-30 obopay-->billmonk: acquisition 4 (0.28%)
+
+node collapsing previous skipped acquisition 3:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-01-31 symantec-->altiris: acquisition 5 (0.35%)
+
+node collapsing previous skipped acquisition 4:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-02-14 omniture-->touch-clarity: acquisition 6 (0.42%)
+
+node collapsing previous skipped acquisition 5:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-02-16 google-->adscape: acquisition 7 (0.49%)
+
+node collapsing previous skipped acquisition 6:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-03-01 citysearch-->insiderpages: acquisition 8 (0.56%)
+
+node collapsing previous skipped acquisition 7:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-03-15 cisco-->webex: acquisition 9 (0.63%)
+
+node collapsing previous skipped acquisition 8:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-03-20 diebold-->solutionary: acquisition 10 (0.70%)
+
+node collapsing previous skipped acquisition 9:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-03-20 hewlett-packard-->tabblo: acquisition 11 (0.77%)
+
+node collapsing previous skipped acquisition 10:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-03-30 ebay-->microplace: acquisition 12 (0.84%)
+
+node collapsing previous skipped acquisition 11:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-04-01 ybrant-digital-->volomp: acquisition 13 (0.90%)
+
+node collapsing previous skipped acquisition 12:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-04-05 software-ag-->webmethods: acquisition 14 (0.97%)
+
+node collapsing previous skipped acquisition 13:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-04-11 comcast-->fandango: acquisition 15 (1.04%)
+
+node collapsing previous skipped acquisition 14:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-04-19 experian-->hitwise: acquisition 16 (1.11%)
+
+node collapsing previous skipped acquisition 15:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-04-29 yahoo-->right-media: acquisition 17 (1.18%)
+
+node collapsing previous skipped acquisition 16:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-01 amazon-->dpreview: acquisition 18 (1.25%)
+
+node collapsing previous skipped acquisition 17:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-03 adobe-systems-->sence7: acquisition 19 (1.32%)
+
+node collapsing previous skipped acquisition 18:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-15 aol-->thirdscreenmedia: acquisition 20 (1.39%)
+
+node collapsing previous skipped acquisition 19:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-16 aol-->adtech: acquisition 21 (1.46%)
+
+node collapsing previous skipped acquisition 20:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-19 ebay-->gumtree: acquisition 22 (1.53%)
+
+node collapsing previous skipped acquisition 21:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-30 fox-interactive-media-->flektor: acquisition 23 (1.60%)
+
+node collapsing previous skipped acquisition 22:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-30 fox-interactive-media-->photobucket: acquisition 24 (1.67%)
+
+node collapsing previous skipped acquisition 23:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-30 ebay-->stumbleupon: acquisition 25 (1.74%)
+
+node collapsing previous skipped acquisition 24:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-05-31 google-->panoramio: acquisition 26 (1.81%)
+
+node collapsing previous skipped acquisition 25:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-06-01 google-->feedburner: acquisition 27 (1.88%)
+
+node collapsing previous skipped acquisition 26:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-06-06 tibco-software-->spotfire: acquisition 28 (1.95%)
+
+node collapsing previous skipped acquisition 27:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-06-12 demandmedia-->expertvillage: acquisition 29 (2.02%)
+
+node collapsing previous skipped acquisition 28:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-06-18 cybersource-->authorize-net: acquisition 30 (2.09%)
+
+node collapsing previous skipped acquisition 29:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-07-01 google-->grandcentral: acquisition 31 (2.16%)
+
+node collapsing previous skipped acquisition 30:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-07-01 nokia-->twango: acquisition 32 (2.23%)
+
+node collapsing previous skipped acquisition 31:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-07-01 hearstcorporation-->ugo-entertainment: acquisition 33 (2.30%)
+
+node collapsing previous skipped acquisition 32:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-07-09 google-->postini: acquisition 34 (2.37%)
+
+node collapsing previous skipped acquisition 33:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-07-23 hewlett-packard-->opsware: acquisition 35 (2.44%)
+
+node collapsing previous skipped acquisition 34:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-07-24 aol-->tacoda: acquisition 36 (2.51%)
+
+node collapsing previous skipped acquisition 35:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-07-26 microsoft-->adecn: acquisition 37 (2.57%)
+
+node collapsing previous skipped acquisition 36:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-08-01 hearstcorporation-->kaboodle: acquisition 38 (2.64%)
+
+node collapsing previous skipped acquisition 37:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-08-22 reuters-->starmine: acquisition 39 (2.71%)
+
+node collapsing previous skipped acquisition 38:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-08-29 microsoft-->parlano: acquisition 40 (2.78%)
+
+node collapsing previous skipped acquisition 39:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-09-04 yahoo-->bluelithium: acquisition 41 (2.85%)
+
+node collapsing previous skipped acquisition 40:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-09-04 ibm-->datamirror: acquisition 42 (2.92%)
+
+node collapsing previous skipped acquisition 41:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-09-14 yahoo-->www-buzztracker-com: acquisition 43 (2.99%)
+
+node collapsing previous skipped acquisition 42:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-09-17 yahoo-->zimbra: acquisition 44 (3.06%)
+
+node collapsing previous skipped acquisition 43:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-09-25 sugar-->shopstyle: acquisition 45 (3.13%)
+
+node collapsing previous skipped acquisition 44:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-10-01 emc-->mozy: acquisition 46 (3.20%)
+
+node collapsing previous skipped acquisition 45:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-10-01 interwoven-->optimost: acquisition 47 (3.27%)
+
+node collapsing previous skipped acquisition 46:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-10-03 microsoft-->jellyfish: acquisition 48 (3.34%)
+
+node collapsing previous skipped acquisition 47:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-10-07 sap-->business-objects-sa: acquisition 49 (3.41%)
+
+node collapsing previous skipped acquisition 48:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-10-09 google-->jaiku: acquisition 50 (3.48%)
+
+node collapsing previous skipped acquisition 49:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-11-01 thestreet-->bankingmyway: acquisition 51 (3.55%)
+
+node collapsing previous skipped acquisition 50:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-11-05 dell-->equallogic: acquisition 52 (3.62%)
+
+node collapsing previous skipped acquisition 51:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-11-05 symantec-->vontu: acquisition 53 (3.69%)
+
+node collapsing previous skipped acquisition 52:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-11-07 aol-->quigo: acquisition 54 (3.76%)
+
+node collapsing previous skipped acquisition 53:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2007-11-11 aol-->yedda: acquisition 55 (3.83%)
+
+node collapsing previous skipped acquisition 54:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...

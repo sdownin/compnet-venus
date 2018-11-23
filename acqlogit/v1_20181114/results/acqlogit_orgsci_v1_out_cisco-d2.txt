@@ -29005,3 +29005,261 @@ appending pairing ibm-->cue
 appending pairing microsoft-->cue
   power centralities
   network counterfactuals
+done.
+node collapsing acquisition 332:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-10-08 : acquisition 333 (65.55%)
+
+
+
+2013-10-14 : acquisition 334 (65.75%)
+
+node collapsing previous skipped acquisition 333:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-10-15 : acquisition 335 (65.94%)
+
+node collapsing previous skipped acquisition 334:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-10-22 : acquisition 336 (66.14%)
+
+node collapsing previous skipped acquisition 335:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-10-29 : acquisition 337 (66.34%)
+
+node collapsing previous skipped acquisition 336:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-11-17 : acquisition 338 (66.54%)
+
+node collapsing previous skipped acquisition 337:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-11-20 : acquisition 339 (66.73%)
+
+node collapsing previous skipped acquisition 338:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-12-02 : acquisition 340 (66.93%)
+
+node collapsing previous skipped acquisition 339:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing amazon-->topsy-labs
+  power centralities
+  network counterfactuals
+appending pairing apple-->blekko
+  power centralities
+  network counterfactuals
+appending pairing apple-->fisheye-analytics
+  power centralities
+  network counterfactuals
+appending pairing apple-->mutualmind
+  power centralities
+  network counterfactuals
+appending pairing apple-->topsy-labs
+  power centralities
+  network counterfactuals
+appending pairing apple-->ubervu
+  power centralities
+  network counterfactuals
+appending pairing apple-->viralheat
+  power centralities
+  network counterfactuals
+appending pairing cisco-->topsy-labs
+  power centralities
+  network counterfactuals
+appending pairing google-->topsy-labs
+  power centralities
+  network counterfactuals
+appending pairing ibm-->topsy-labs
+  power centralities
+  network counterfactuals
+appending pairing microsoft-->topsy-labs
+  power centralities
+  network counterfactuals
+done.
+node collapsing acquisition 340:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-12-18 : acquisition 341 (67.13%)
+
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing apple-->fiberlink-communications-corp
+  power centralities
+  network counterfactuals
+appending pairing cisco-->fiberlink-communications-corp
+  power centralities
+  network counterfactuals
+appending pairing google-->fiberlink-communications-corp
+  power centralities
+  network counterfactuals
+appending pairing ibm-->airwatch
+  power centralities
+  network counterfactuals
+appending pairing ibm-->boxtone
+  power centralities
+  network counterfactuals
+appending pairing ibm-->fiberlink-communications-corp
+  power centralities
+  network counterfactuals
+appending pairing ibm-->good-technology
+  power centralities
+  network counterfactuals
+appending pairing microsoft-->fiberlink-communications-corp
+  power centralities
+  network counterfactuals
+appending pairing sap-->fiberlink-communications-corp
+  power centralities
+  network counterfactuals
+done.
+node collapsing acquisition 341:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+
+
+2013-12-19 : acquisition 342 (67.32%)
+
+
+
+2014-01-01 : acquisition 343 (67.52%)
+
+node collapsing previous skipped acquisition 342:
+processing acquisitions: 0 ...
+done.
+processing acquisitions: 1 ...
+done.
+  subsetting network edges for year period of acquisition...collecting edges and vertices to remove...done.
+collecting edges and vertices to remove...done.
+done.computing firm-to-firm MMC matrix:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+computing firm-to-maret MMC:
+  creating firm-market incidence matrix...done.
+  creating firm-firm MMC sum matrix...done.
+  collecting MMC firms j...done.
+  computing FM-MMC numerator...done.
+  computing FM-MMC denominator...done.
+  computing elementwise FM-MMC...done.
+computing number of MMC rivals:
+  collecting MMC firms j...done.
+  filtering MMC rivals...done.
+computing network covariates...done.
+adding public firm financial controls...done.
+computing acquirers rivals recent acquisitions...done.
+computing product similarity...done.
+computing counterfactual networks for positional synergy:
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+processing acquisitions: 1 ...
+done.
+appending dyadic regression dataframe...
+appending pairing amazon-->nest-labs
+  power centralities
+  network counterfactuals
+appending pairing apple-->nest-labs
+  power centralities
