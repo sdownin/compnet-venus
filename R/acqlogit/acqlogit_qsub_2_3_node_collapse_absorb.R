@@ -778,6 +778,7 @@ for (j in 1:nrow(acq.src.allpd)) {
         .verts1 <- as_data_frame(g.pd.nc.cf.x, "vertices")
         .verts2 <- as_data_frame(g.full.pd.nc.sub, "vertices")
         cat(sprintf('vdf1 dim (%s, %s), vdf2 dim (%s, %s)\n',nrow(.verts1),ncol(.verts1),nrow(.verts2),ncol(.verts2)))
+        cat(sprintf('  vdf1::%s\n  vdf2::%s',paste(names(.verts1),collapse = '|'),paste(names(.verts2),collapse = '|')))
         ## remove cols from v2 not in v1
         .verts2 <- .verts2[,which(names(.verts2) %in% names(.verts1))]
         ## add blank cols to from v1 not in v2
