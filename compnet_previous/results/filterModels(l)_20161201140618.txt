@@ -1,4 +1,0 @@
-   Length Class  Mode
-m0 1      btergm S4  
-m1 1      btergm S4  
-m2 1      btergm S4  

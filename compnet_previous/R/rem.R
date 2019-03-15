@@ -1,5 +1,0 @@
-library(relevent)
-library(informR)
-library(xergm)
-library(xergm.common)
-library(RSiena)
