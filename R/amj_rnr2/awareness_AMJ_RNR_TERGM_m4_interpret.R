@@ -6,17 +6,15 @@ library(parallel)
 
 ## DIRECTORIES
 data_dir <- '/home/sdowning/data/firm_nets_rnr2'
-results_dir <- '/home/sdowning/compnet/results/amj_rnr2/amj_rnr2'
+results_dir <- '/home/sdowning/compnet/results/amj_rnr2'
 
-## set woring dir
-setwd(work_dir)
 
 ## -----------Model Results Settings-----
 name_i <- 'qualtrics'
 firm_i <- name_i
 d <- 3
 R <- 2000
-nPeriods <- 11
+nPeriod <- 11
 m_x <- 'm4'
 ##----------------------------------------
 

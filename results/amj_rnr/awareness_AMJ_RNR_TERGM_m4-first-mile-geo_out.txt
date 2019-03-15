@@ -23,4 +23,4 @@ memory (row)  946 946 946 946 946 946 946 946  946  946
 memory (col)  946 946 946 946 946 946 946 946  946  946
 timecov (row) 946 946 946 946 946 946 946 946  946  946
 timecov (col) 946 946 946 946 946 946 946 946  946  946
-finished successfully.
+finished successfully.Fatal error: cannot open file '/home/sdowning/compnet/R/amj_rnr2/awareness_AMJ_RNR_TERGM_m4-first-mile-geo.R': No such file or directory

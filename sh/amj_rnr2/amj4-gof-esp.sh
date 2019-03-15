@@ -1,8 +1,8 @@
 #!/bin/bash
 #$ -cwd
 #$ -S /bin/bash
-#$ -l h_vmem=24G
-#$ -pe smp 4
+#$ -l h_vmem=30G
+#$ -pe smp 1
 
 export PATH=$PATH:$SGE_O_PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH
