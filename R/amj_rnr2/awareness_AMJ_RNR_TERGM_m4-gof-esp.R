@@ -4,7 +4,7 @@ library(parallel)
 library(texreg)
 
 data_dir <- '/home/sdowning/data/firm_nets_rnr2'
-results_dir <- '/home/sdowning/compnet/results/amj_rnr2'
+results_dir <- '/home/sdowning/compnet/results/amj_rnr2/amj_rnr2'
 
 ## SETTINGS
 firm_i <- 'qualtrics'

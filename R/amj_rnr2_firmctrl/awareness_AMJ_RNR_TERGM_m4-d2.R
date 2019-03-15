@@ -72,17 +72,17 @@ R <- 2000
 fits[[firm_i]][[m_x]] <- btergm(get(m_x), R=R, parallel = parallel, ncpus = ncpus)
 
 ## SAVE SERIALIZED
-fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_R%s_%s_d%s.rds', firm_i, nPeriods, R, m_x, d)
+fits.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2_firmctrl/fit_%s_pd%s_R%s_%s_d%s.rds', firm_i, nPeriods, R, m_x, d)
 saveRDS(fits, file=fits.file)
 
 ## SAVE FORMATTED REGRESSION TABLE
-html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_R%s_%s_d%s.html',  firm_i, nPeriods, R, m_x, d)
+html.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2_firmctrl/%s_tergm_results_pd%s_R%s_%s_d%s.html',  firm_i, nPeriods, R, m_x, d)
 htmlreg(fits[[firm_i]], digits = 2, file=html.file)
 
 #### SAVE GOODNESS OF FIT
 ##gf <- gof(fits[[firm_i]][[m_x]], nsim=1000, 
 ##          statistics=c(dsp, esp, deg, geodesic, rocpr, walktrap.modularity))
-##gof.file <- sprintf('/home/sdowning/compnet/results/gof_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
+##gof.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2_firmctrl/gof_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
 ##saveRDS(gf, file=gof.file)
 
 cat('finished successfully.')

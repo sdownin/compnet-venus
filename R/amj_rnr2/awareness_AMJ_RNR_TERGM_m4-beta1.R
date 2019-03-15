@@ -40,8 +40,8 @@ m4_beta1 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) +
   nodematch("ipo_status", diff = F) + 
   nodematch("state_code", diff = F) + 
   nodecov("age") + absdiff("age") + 
-  nodecov("employee_na_age") +
-  nodecov("sales_na_0_mn") +
+    ##nodecov("employee_na_age") +
+    ##nodecov("sales_na_0_mn") +
   edgecov(cossim) +
   edgecov(centjoin) + 
     ##edgecov(shcomp) + 
@@ -72,17 +72,17 @@ R <- 2000
 fits[[firm_i]][[m_x]] <- btergm(get(m_x), R=R, parallel = parallel, ncpus = ncpus)
 
 ## SAVE SERIALIZED
-fits.file <- sprintf('/home/sdowning/compnet/results/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
+fits.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
 saveRDS(fits, file=fits.file)
 
 ## SAVE FORMATTED REGRESSION TABLE
-html.file <- sprintf('/home/sdowning/compnet/results/%s_tergm_results_pd%s_R%s_%s.html',  firm_i, nPeriods, R, m_x)
+html.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2/%s_tergm_results_pd%s_R%s_%s.html',  firm_i, nPeriods, R, m_x)
 htmlreg(fits[[firm_i]], digits = 2, file=html.file)
 
 #### SAVE GOODNESS OF FIT
 ##gf <- gof(fits[[firm_i]][[m_x]], nsim=1000, 
 ##          statistics=c(dsp, esp, deg, geodesic, rocpr, walktrap.modularity))
-##gof.file <- sprintf('/home/sdowning/compnet/results/gof_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
+##gof.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2/gof_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
 ##saveRDS(gf, file=gof.file)
 
 cat('finished successfully.')
