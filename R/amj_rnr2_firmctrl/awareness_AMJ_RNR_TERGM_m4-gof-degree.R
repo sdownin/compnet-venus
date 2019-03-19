@@ -3,8 +3,8 @@ library(btergm)
 library(parallel)
 library(texreg)
 
-data_dir <- '/home/sdowning/data/firm_nets_rnr2'
-results_dir <- '/home/sdowning/compnet/results/amj_rnr2_firmctrl/amj_rnr2'
+data_dir <- '/home/sdowning/data/firm_nets_rnr2/firmctrl'
+results_dir <- '/home/sdowning/compnet/results/amj_rnr2_firmctrl'
 
 ## SETTINGS
 firm_i <- 'qualtrics'
