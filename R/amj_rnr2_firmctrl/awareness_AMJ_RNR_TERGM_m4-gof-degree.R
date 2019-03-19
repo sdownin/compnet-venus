@@ -37,8 +37,8 @@ fits <- readRDS(results_file)
 fit <- fits[[firm_i]][[m_x]]
 
 #### SAVE GOODNESS OF FIT
-gf <- gof(fit, nsim=nsim, statistics=c(degree), parallel = parallel, ncpus = ncpus)  ## rocpr
-gof.file <- sprintf('%s/gof_%s_pd%s_R%s_%s_nsim%s_dsp.rds', results_dir, firm_i, nPeriod, R, m_x, nsim)
+gf <- gof(fit, nsim=nsim, statistics=c(deg), parallel = parallel, ncpus = ncpus)  ## rocpr
+gof.file <- sprintf('%s/gof_%s_pd%s_R%s_%s_nsim%s_deg.rds', results_dir, firm_i, nPeriod, R, m_x, nsim)
 saveRDS(gf, file=gof.file)
 
 cat('finished successfully.')
