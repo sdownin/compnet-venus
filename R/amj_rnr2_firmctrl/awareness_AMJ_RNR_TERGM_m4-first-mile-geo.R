@@ -3,7 +3,7 @@ library(btergm)
 library(parallel)
 library(texreg)
 
-data_dir <- '/home/sdowning/data/firm_nets_rnr2'
+data_dir <- '/home/sdowning/data/firm_nets_rnr2/firmctrl'
 
 firm_i <- 'first-mile-geo'
 d <- 3

@@ -36,13 +36,15 @@ shinv <- lapply(nets, function(net) as.matrix(net %n% 'shared_investor_nd'))
 
 ####################### DEFINE MODELS ###################################
 
-m4_6 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) + 
+m4_6cycle <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) + 
   nodematch("ipo_status", diff = F) + 
   nodematch("state_code", diff = F) + 
   nodecov("age") + absdiff("age") + 
-    ##nodecov("employee_na_catage") + ##nodecov("sales_na_0") +
-    ##edgecov(cossim) + ##edgecov(centjoin) + 
-    ##edgecov(shcomp) +
+    ##nodecov("employee_na_age") +
+    ##nodecov("sales_na_0_mn") +
+  edgecov(cossim) +
+  edgecov(centjoin) + 
+    ##edgecov(shcomp) + 
   edgecov(shinv) +   
   edgecov(mmc) + 
     ##edgecov(cpa) +
@@ -52,7 +54,7 @@ m4_6 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) +
   timecov(transform = function(t) t) +
   nodecov("genidx_multilevel") + 
   nodecov("cent_pow_n0_4") + absdiff("cent_pow_n0_4") + 
-  cycle(3) + cycle(4) + cycle(5) 
+  cycle(3) + cycle(4) + cycle(5) + cycle(6) 
 
 ################################ end models#######################
 
@@ -60,27 +62,27 @@ m4_6 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) +
 ##
 # DEFINE MODEL and MODEL NAME TO COMPUTE
 ## 
-m_x <- 'm4_6'
+m_x <- 'm4_6cycle'
 ##
 # SET RESAMPLES
 ##
-R <- 20
+R <- 2000
 
 ## RUN TERGM
 fits[[firm_i]][[m_x]] <- btergm(get(m_x), R=R, parallel = parallel, ncpus = ncpus)
 
 ## SAVE SERIALIZED
-fits.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2_firmctrl/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
+fits.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2/fit_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
 saveRDS(fits, file=fits.file)
 
 ## SAVE FORMATTED REGRESSION TABLE
-html.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2_firmctrl/%s_tergm_results_pd%s_R%s_%s.html',  firm_i, nPeriods, R, m_x)
-htmlreg(fits[[firm_i]], digits = 3, file=html.file)
+html.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2/%s_tergm_results_pd%s_R%s_%s.html',  firm_i, nPeriods, R, m_x)
+htmlreg(fits[[firm_i]], digits = 2, file=html.file)
 
 #### SAVE GOODNESS OF FIT
 ##gf <- gof(fits[[firm_i]][[m_x]], nsim=1000, 
 ##          statistics=c(dsp, esp, deg, geodesic, rocpr, walktrap.modularity))
-##gof.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2_firmctrl/gof_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
+##gof.file <- sprintf('/home/sdowning/compnet/results/amj_rnr2/gof_%s_pd%s_R%s_%s.rds', firm_i, nPeriods, R, m_x)
 ##saveRDS(gf, file=gof.file)
 
 cat('finished successfully.')
