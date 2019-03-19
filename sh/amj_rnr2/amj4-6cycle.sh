@@ -1,7 +1,7 @@
 #!/bin/bash
 #$ -cwd
 #$ -S /bin/bash
-#$ -l h_vmem=6G
+#$ -l h_vmem=10G
 #$ -pe smp 4
 
 export PATH=$PATH:$SGE_O_PATH

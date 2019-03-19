@@ -22,6 +22,7 @@ m_x <- 'm4'
 ## FITTED MODEL RESULTS
 fit_file <- file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s.rds',firm_i,nPeriod,R,m_x))
 fits <- readRDS(fit_file)
+fit <- fits[[firm_i]][[m_x]]
 
 ## NETWORKS LIST
 data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
@@ -46,7 +47,7 @@ gs <- lapply(nets, asIgraph)
 ##-----------------------------------------------
 g <- asIgraph(nets[[length(nets)]])
 vcnt <- vcount(g)
-time.steps <- fits@time.steps
+time.steps <- fit@time.steps
 firm.names <-  V(g)$vertex.names
 v.focal <- as.integer( V(g)[V(g)$vertex.names==name_i] )
 
@@ -62,7 +63,7 @@ for (j in 1:vcount(g))
   if (j == v.focal) {
     probs <- rep(0, time.steps)
   } else {
-    probs <- btergm::interpret(fits, type='tie', i=v.focal, j=j)
+    probs <- btergm::interpret(fit, type='tie', i=v.focal, j=j)
   }
   for (t in 1:length(probs)) {
     d <- igraph::distances(gs[[t+1]], v = v.focal, to = j)[1,1]

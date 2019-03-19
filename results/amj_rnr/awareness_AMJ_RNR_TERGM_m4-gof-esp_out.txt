@@ -188,3 +188,5 @@ memory (row)   532 532 532 532 532 532 532 532  532  532
 memory (col)   532 532 532 532 532 532 532 532  532  532
 timecov1 (row) 532 532 532 532 532 532 532 532  532  532
 timecov1 (col) 532 532 532 532 532 532 532 532  532  532
+  Skipping statistic for the following reason: Error in mcfork(): unable to fork, possible reason: Cannot allocate memory
+finished successfully.

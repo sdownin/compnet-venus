@@ -66,7 +66,7 @@ m_x <- 'm4_8cycle'
 ##
 # SET RESAMPLES
 ##
-R <- 1000
+R <- 400
 
 ## RUN TERGM
 fits[[firm_i]][[m_x]] <- btergm(get(m_x), R=R, parallel = parallel, ncpus = ncpus)
