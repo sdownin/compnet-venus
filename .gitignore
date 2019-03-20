@@ -31,3 +31,5 @@ glmmadmb/*
 
 # CPython bitcode cache
 python/__pycache__/*
+
+core
