@@ -2,7 +2,6 @@
 #$ -cwd
 #$ -S /bin/bash
 #$ -l h_vmem=6G
-  nodecov("sales_na_0_mn") +
 #$ -pe smp 4
 
 export PATH=$PATH:$SGE_O_PATH
