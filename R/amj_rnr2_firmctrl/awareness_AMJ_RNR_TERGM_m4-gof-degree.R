@@ -12,7 +12,7 @@ d <- 3
 R <- 2000
 m_x <- 'm4'
 nPeriod <- 11
-nsim <- 100
+nsim <- 50
 ncpus <- 4
 parallel <- "multicore"
 
