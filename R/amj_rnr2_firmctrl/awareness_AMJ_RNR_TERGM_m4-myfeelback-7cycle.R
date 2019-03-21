@@ -39,9 +39,7 @@ shinv <- lapply(nets, function(net) as.matrix(net %n% 'shared_investor_nd'))
 m4_7cycle <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) + 
   nodematch("ipo_status", diff = F) + 
   nodematch("state_code", diff = F) + 
-  nodecov("age") + absdiff("age") + 
-  nodecov("employee_na_age") +
-  nodecov("sales_na_0_mn") +
+  nodecov("age") + absdiff("age") + nodecov("employee_na_age") + nodecov("sales_na_0_mn") +
   edgecov(cossim) +
   edgecov(centjoin) + 
     ##edgecov(shcomp) + 
