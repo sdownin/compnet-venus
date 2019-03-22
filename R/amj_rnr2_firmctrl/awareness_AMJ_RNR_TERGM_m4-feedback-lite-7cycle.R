@@ -41,7 +41,7 @@ m4_7cycle <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) +
   nodematch("state_code", diff = F) + 
   nodecov("age") + absdiff("age") + nodecov("employee_na_age") + nodecov("sales_na_0_mn") +
   edgecov(cossim) +
-  edgecov(centjoin) + 
+    ##edgecov(centjoin) + 
     ##edgecov(shcomp) + 
   edgecov(shinv) +   
   edgecov(mmc) + 

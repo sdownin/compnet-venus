@@ -42,7 +42,7 @@ m4_4 <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) +
   nodecov("age") + absdiff("age") + 
     ##nodecov("employee_na_catage") + ##nodecov("sales_na_0") +
     ##edgecov(cossim) + 
-  edgecov(centjoin) + 
+    ##edgecov(centjoin) + 
     ##edgecov(shcomp) + ##edgecov(shinv) +   
   edgecov(mmc) + 
     ##edgecov(cpa) +
