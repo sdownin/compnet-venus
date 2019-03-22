@@ -33,7 +33,7 @@ centjoin <- lapply(nets, function(net) as.matrix(net %n% 'joint_cent_pow_n0_4'))
 centratio <- lapply(nets, function(net) as.matrix(net %n% 'cent_ratio_pow_n0_4'))
 shcomp <- lapply(nets, function(net) as.matrix(net %n% 'shared_competitor')) 
 shinv <- lapply(nets, function(net) as.matrix(net %n% 'shared_investor_nd'))
-
+i
 ####################### DEFINE MODELS ###################################
 
 m4_7cycle <-   nets ~ edges + gwesp(0, fixed = T) + gwdegree(0, fixed=T) + 
