@@ -12,7 +12,7 @@ d <- 3
 R <- 2000
 m_x <- 'm4'
 nPeriod <- 11
-nsim <- 50
+nsim <- 100
 ncpus <- 4
 parallel <- "multicore"
 
@@ -37,7 +37,7 @@ fits <- readRDS(results_file)
 fit <- fits[[firm_i]][[m_x]]
 
 #### SAVE GOODNESS OF FIT
-gf <- gof(fit, nsim=nsim, statistics=c(deg), parallel = parallel, ncpus = ncpus)  ## rocpr
+gf <- gof(fit, nsim=nsim, statistics=c(deg))  ## rocpr
 gof.file <- sprintf('%s/gof_%s_pd%s_R%s_%s_nsim%s_deg.rds', results_dir, firm_i, nPeriod, R, m_x, nsim)
 saveRDS(gf, file=gof.file)
 
