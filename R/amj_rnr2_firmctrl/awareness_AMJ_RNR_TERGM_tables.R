@@ -76,7 +76,7 @@ for (i in 1:length(firms.list))
     dat[[firm_i]] <- fits[[firm_i]][[m_x]]
   }
 
-  file.noext <- sprintf('%s/table_A1reps_pd%s_R%s_%s_group%s', results_dir, nPeriods, R, m_x, i)
+  file.noext <- sprintf('%s/table_A1reps_pd%s_R%s_%s_group%s', results_dir, nPeriod, R, m_x, i)
   htmlreg(dat, file=sprintf('%.html',file.noext), digits = 2, single.row=TRUE)
   texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
 }
@@ -99,7 +99,7 @@ for (cl in cls)
 }
 
 ## OUTPUT
-file.noext <- sprintf('%s/table_A2clust_pd%s_R%s_%s', results_dir, nPeriods, R, m_x)
+file.noext <- sprintf('%s/table_A2clust_pd%s_R%s_%s', results_dir, nPeriod, R, m_x)
 htmlreg(dat, file=sprintf('%.html',file.noext), digits = 2, single.row=TRUE)
 texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
 
@@ -130,7 +130,7 @@ beta <- 'beta5'
 fits <- readRDS(file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s_%s.rds',firm_i,nPeriod,R,m_x,beta)))
 dat[[beta]] <- fits[[firm_i]][[m_x]]
 ## OUTPUT
-file.noext <- sprintf('%s/table_A3decay_pd%s_R%s_%s', results_dir, nPeriods, R, m_x)
+file.noext <- sprintf('%s/table_A3decay_pd%s_R%s_%s', results_dir, nPeriod, R, m_x)
 htmlreg(dat, file=sprintf('%.html',file.noext), digits = 2, single.row=TRUE)
 texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
 
@@ -151,7 +151,7 @@ fits <- readRDS(file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s_%s.rds',firm_
 dat[[sep]] <- fits[[firm_i]][[m_x]]
 
 ## OUTPUT
-file.noext <- sprintf('%s/table_A4sep_pd%s_R%s_%s', results_dir, nPeriods, R, m_x)
+file.noext <- sprintf('%s/table_A4sep_pd%s_R%s_%s', results_dir, nPeriod, R, m_x)
 htmlreg(dat, file=sprintf('%.html',file.noext), digits = 2, single.row=TRUE)
 texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
 
