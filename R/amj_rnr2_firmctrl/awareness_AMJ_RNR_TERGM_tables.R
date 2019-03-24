@@ -2,6 +2,7 @@ library(igraph)
 library(intergraph)
 library(btergm)
 library(parallel)
+library(texreg)
 
 
 ## DIRECTORIES
