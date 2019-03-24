@@ -78,8 +78,8 @@ for (i in 1:length(firms.list))
   }
 
   file.noext <- sprintf('%s/table_A1reps_pd%s_R%s_%s_group%s', results_dir, nPeriod, R, m_x, i)
-  htmlreg(dat, file=sprintf('%.html',file.noext), digits = 2, single.row=TRUE)
-  texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
+  htmlreg(dat, file=sprintf('%s.html',file.noext), digits = 2, single.row=TRUE)
+  texreg(dat, file=sprintf('%s.txt',file.noext), digits = 2, single.row=TRUE)
 }
 
 
@@ -101,8 +101,8 @@ for (cl in cls)
 
 ## OUTPUT
 file.noext <- sprintf('%s/table_A2clust_pd%s_R%s_%s', results_dir, nPeriod, R, m_x)
-htmlreg(dat, file=sprintf('%.html',file.noext), digits = 2, single.row=TRUE)
-texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
+htmlreg(dat, file=sprintf('%s.html',file.noext), digits = 2, single.row=TRUE)
+texreg(dat, file=sprintf('%s.txt',file.noext), digits = 2, single.row=TRUE)
 
 
 ##--------------------
@@ -132,8 +132,8 @@ fits <- readRDS(file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s_%s.rds',firm_
 dat[[beta]] <- fits[[firm_i]][[m_x]]
 ## OUTPUT
 file.noext <- sprintf('%s/table_A3decay_pd%s_R%s_%s', results_dir, nPeriod, R, m_x)
-htmlreg(dat, file=sprintf('%.html',file.noext), digits = 2, single.row=TRUE)
-texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
+htmlreg(dat, file=sprintf('%s.html',file.noext), digits = 2, single.row=TRUE)
+texreg(dat, file=sprintf('%s.txt',file.noext), digits = 2, single.row=TRUE)
 
 
 ##--------------------
@@ -153,35 +153,8 @@ dat[[sep]] <- fits[[firm_i]][[m_x]]
 
 ## OUTPUT
 file.noext <- sprintf('%s/table_A4sep_pd%s_R%s_%s', results_dir, nPeriod, R, m_x)
-htmlreg(dat, file=sprintf('%.html',file.noext), digits = 2, single.row=TRUE)
-texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
+htmlreg(dat, file=sprintf('%s.html',file.noext), digits = 2, single.row=TRUE)
+texreg(dat, file=sprintf('%s.txt',file.noext), digits = 2, single.row=TRUE)
 
 
-
-# ## NETWORKS LIST
-# data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
-# nets <- readRDS(data_file)
-
-# ## covariates list
-# mmc <- lapply(nets, function(net) as.matrix(net %n% 'mmc'))
-# cpc <- lapply(nets, function(net) as.matrix(net %n% 'coop'))
-# cpp <- lapply(nets, function(net) as.matrix(net %n% 'coop_past'))
-# cpa <- lapply(nets, function(net) as.matrix(net %n% 'coop') + as.matrix(net %n% 'coop_past') )
-# cossim <- lapply(nets, function(net) as.matrix(net %n% 'cat_cos_sim'))
-# centjoin <- lapply(nets, function(net) as.matrix(net %n% 'joint_cent_pow_n0_4'))
-# centratio <- lapply(nets, function(net) as.matrix(net %n% 'cent_ratio_pow_n0_4'))
-# shcomp <- lapply(nets, function(net) as.matrix(net %n% 'shared_competitor'))
-# shinv <- lapply(nets, function(net) as.matrix(net %n% 'shared_investor_nd'))
-
-# ## create igraph lists
-# gs <- lapply(nets, asIgraph)
-
-# ##===============================================
-# ## interpreation data frame i-->j (for all t)
-# ##-----------------------------------------------
-# g <- asIgraph(nets[[length(nets)]])
-# vcnt <- vcount(g)
-# time.steps <- fit@time.steps
-# firm.names <-  V(g)$vertex.names
-# v.focal <- as.integer( V(g)[V(g)$vertex.names==name_i] )
 
