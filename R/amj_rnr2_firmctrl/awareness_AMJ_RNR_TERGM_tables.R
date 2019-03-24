@@ -90,23 +90,13 @@ for (i in 1:length(firms.list))
 ##--------------------
 firm_i <- 'qualtrics'
 dat <- list()
-## 1
-cl <- 'edgebetween'
-fits <- readRDS(file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s_%s.rds',firm_i,nPeriod,R,m_x,cl)))
-dat[[cl]] <- fits[[firm_i]][[m_x]]
+cls <- c('edgebetween','fastgreedy','infomap','labelprop','walktrap')
 
-## 1
-cl <- 'fastgreedy'
-
-## 1
-cl <- 'infomap'
-
-## 1
-cl <- 'labelprop'
-
-## 1
-cl <- 'walktrap'
-
+for (cl in cls)
+{
+  fits <- readRDS(file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s_cl_%s.rds',firm_i,nPeriod,R,m_x,cl)))
+  dat[[cl]] <- fits[[firm_i]][[m_x]]
+}
 
 ## OUTPUT
 file.noext <- sprintf('%s/table_A2clust_pd%s_R%s_%s', results_dir, nPeriods, R, m_x)
@@ -151,11 +141,14 @@ texreg(dat, file=sprintf('%.txt',file.noext), digits = 2, single.row=TRUE)
 ##--------------------
 firm_i <- 'qualtrics'
 dat <- list()
-## 1
-beta <- 'beta1'
-fits <- readRDS(file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s_%s.rds',firm_i,nPeriod,R,m_x,beta)))
-dat[[beta]] <- fits[[firm_i]][[m_x]]
 
+sep <- 'd2'
+fits <- readRDS(file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s_%s.rds',firm_i,nPeriod,R,m_x,sep)))
+dat[[sep]] <- fits[[firm_i]][[m_x]]
+
+sep <- '7cycle'
+fits <- readRDS(file.path(results_dir, sprintf('fit_%s_pd%s_R%s_%s_%s.rds',firm_i,nPeriod,R,m_x,sep)))
+dat[[sep]] <- fits[[firm_i]][[m_x]]
 
 ## OUTPUT
 file.noext <- sprintf('%s/table_A4sep_pd%s_R%s_%s', results_dir, nPeriods, R, m_x)
