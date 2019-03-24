@@ -13,8 +13,6 @@ R <- 2000
 m_x <- 'm4'
 nPeriod <- 11
 nsim <- 10
-ncpus <- 4
-parallel <- "multicore"
 
 ## NETWORKS LIST
 data_file <- file.path(data_dir,sprintf('%s_d%s.rds',firm_i,d))
@@ -37,8 +35,9 @@ fits <- readRDS(results_file)
 fit <- fits[[firm_i]][[m_x]]
 
 #### SAVE GOODNESS OF FIT
-gf <- gof(fit, nsim=nsim, statistics=c(deg))  ## rocpr
-gof.file <- sprintf('%s/gof_%s_pd%s_R%s_%s_nsim%s_deg.rds', results_dir, firm_i, nPeriod, R, m_x, nsim)
+gf <- gof(fit, nsim=nsim, statistics=c(deg,dsp,esp,geodesic))  ## rocpr
+ts <- gsub('\\D','',Sys.time())
+gof.file <- sprintf('%s/gof_%s_pd%s_R%s_%s_nsim%s_all_%s.rds', results_dir, firm_i, nPeriod, R, m_x, nsim, ts)
 saveRDS(gf, file=gof.file)
 
 cat('finished successfully.')
